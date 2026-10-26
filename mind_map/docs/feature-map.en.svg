@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="'Segoe UI','Microsoft YaHei','PingFang SC',system-ui,sans-serif">
+  <rect x="0" y="0" width="1000" height="560" rx="16" fill="#f8fafc"/>
+  <rect x="0.5" y="0.5" width="999" height="559" rx="16" fill="none" stroke="#e2e8f0"/>
+
+  <!-- title -->
+  <text x="40" y="46" font-size="25" font-weight="700" fill="#0f172a">mind_map · capability map</text>
+  <text x="40" y="74" font-size="14" fill="#64748b">Single file · zero dependencies · works offline · data never leaves your machine · share the HTML, share the whole tool</text>
+
+  <!-- 1 input -->
+  <rect x="40" y="104" width="250" height="300" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+  <circle cx="64" cy="134" r="6" fill="#2f6fed"/>
+  <text x="80" y="140" font-size="16" font-weight="700" fill="#0f172a">Input · anything in</text>
+  <g font-size="13.5" fill="#334155">
+    <circle cx="66" cy="178" r="3" fill="#93b8fb"/><text x="80" y="183">Markdown / outlines</text>
+    <circle cx="66" cy="214" r="3" fill="#93b8fb"/><text x="80" y="219">XMind · OPML · JSON</text>
+    <circle cx="66" cy="250" r="3" fill="#93b8fb"/><text x="80" y="255">4 built-in templates</text>
+    <circle cx="66" cy="286" r="3" fill="#93b8fb"/><text x="80" y="291">Arrow flows (↓)</text>
+    <circle cx="66" cy="322" r="3" fill="#93b8fb"/><text x="80" y="327">Live preview, untick</text>
+    <circle cx="66" cy="358" r="3" fill="#93b8fb"/><text x="80" y="363">Ctrl+V text ＝ subtree</text>
+  </g>
+
+  <!-- arrow 1 -->
+  <line x1="298" y1="254" x2="336" y2="254" stroke="#2f6fed" stroke-width="2.5"/>
+  <polygon points="336,248 348,254 336,260" fill="#2f6fed"/>
+  <text x="292" y="234" font-size="12" fill="#64748b">into a tree</text>
+
+  <!-- 2 edit -->
+  <rect x="352" y="104" width="300" height="300" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+  <circle cx="376" cy="134" r="6" fill="#0ea5a4"/>
+  <text x="392" y="140" font-size="16" font-weight="700" fill="#0f172a">Edit &amp; organize</text>
+  <g font-size="13.5" fill="#334155">
+    <circle cx="378" cy="172" r="3" fill="#7dd3cc"/><text x="392" y="177">Horizontal / vertical</text>
+    <circle cx="378" cy="205" r="3" fill="#7dd3cc"/><text x="392" y="210">Outline drag · Alt+↑↓</text>
+    <circle cx="378" cy="238" r="3" fill="#7dd3cc"/><text x="392" y="243">Search / replace / clean</text>
+    <circle cx="378" cy="271" r="3" fill="#7dd3cc"/><text x="392" y="276">Multi-select bulk edits</text>
+    <circle cx="378" cy="304" r="3" fill="#7dd3cc"/><text x="392" y="309">Notes · badges · links</text>
+    <circle cx="378" cy="337" r="3" fill="#7dd3cc"/><text x="392" y="342">Named undo + snapshots</text>
+    <circle cx="378" cy="370" r="3" fill="#7dd3cc"/><text x="392" y="375">Drawer + FAB · touch · keys</text>
+  </g>
+
+  <!-- arrow 2 -->
+  <line x1="660" y1="254" x2="698" y2="254" stroke="#2f6fed" stroke-width="2.5"/>
+  <polygon points="698,248 710,254 698,260" fill="#2f6fed"/>
+  <text x="660" y="234" font-size="12" fill="#64748b">one click</text>
+
+  <!-- 3 output -->
+  <rect x="714" y="104" width="246" height="300" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+  <circle cx="738" cy="134" r="6" fill="#f59e0b"/>
+  <text x="754" y="140" font-size="16" font-weight="700" fill="#0f172a">Output · 12 formats</text>
+  <g font-size="13.5" fill="#334155">
+    <text x="738" y="180" font-weight="700" fill="#475569">Images</text>
+    <text x="752" y="203">PNG (2×) · SVG · PDF</text>
+    <text x="738" y="239" font-weight="700" fill="#475569">Office</text>
+    <text x="752" y="262">Word · Excel</text>
+    <text x="752" y="285">PPT one slide / outline</text>
+    <text x="738" y="321" font-weight="700" fill="#475569">Interchange</text>
+    <text x="752" y="344">Markdown · OPML · XMind</text>
+    <text x="752" y="367">HTML · JSON</text>
+  </g>
+
+  <!-- bottom: data safety -->
+  <rect x="40" y="428" width="920" height="100" rx="12" fill="#eef4ff" stroke="#c7d8fb"/>
+  <text x="64" y="460" font-size="15" font-weight="700" fill="#1e40af">🛡 Data safety · three layers</text>
+  <text x="64" y="486" font-size="13" fill="#3b5bb5">Browser storage (per tab, never mixed)　·　10 history snapshots (survive closing the page)　·　auto-backup folder (real HTML files)</text>
+  <text x="64" y="510" font-size="13" fill="#3b5bb5">24-tab workspace, portable as one package　·　undo capped at 80 steps / 6 MB　·　quota rescue spares open tabs</text>
+</svg>

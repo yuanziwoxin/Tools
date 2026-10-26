@@ -1,0 +1,370 @@
+# ==========================================
+# General .gitignore
+# ==========================================
+
+# ---------- Dependencies / Package managers ----------
+node_modules/
+bower_components/
+jspm_packages/
+vendor/
+.pnp/
+.pnp.js
+venv/
+.venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+target/
+out/
+bin/
+obj/
+.gradle/
+.mvn/
+packages/
+*.nupkg
+.nuget/
+
+# ---------- Build artifacts / Compiled output ----------
+*.class
+*.jar
+*.war
+*.ear
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+*.a
+*.lib
+*.pyc
+*.pyo
+*.pyd
+*.elc
+*.lo
+*.la
+*.al
+*.dylib
+*.ncb
+*.sdf
+*.suo
+*.pdb
+*.idb
+*.ilk
+*.exp
+*.map
+
+# ---------- Cache / Temporary files ----------
+.cache/
+.temp/
+.tmp/
+tmp/
+temp/
+*.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+.cache-loader/
+.eslintcache
+.stylelintcache
+.parcel-cache
+.next/
+.nuxt/
+.svelte-kit/
+.vercel/
+.output/
+.turbo/
+.nx/
+
+# ---------- Environment variables / Secrets (IMPORTANT) ----------
+.env
+.env.*
+!.env.example
+!.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+secrets.yml
+secrets.yaml
+credentials.json
+credentials.yml
+config/secrets.*
+*.secret
+*.secrets
+
+# ---------- Databases / Data files ----------
+*.sqlite
+*.sqlite3
+*.db
+*.mdb
+*.dump
+*.sql.gz
+data/
+database/
+
+# ---------- Testing / Coverage ----------
+coverage/
+.nyc_output/
+.coverage
+.coverage.*
+htmlcov/
+*.lcov
+*.cover
+.pytest_cache/
+.tox/
+.nox/
+.hypothesis/
+.phpunit.result.cache
+target/surefire-reports/
+
+# ---------- IDE / Editors ----------
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+# Eclipse
+.classpath
+.project
+.settings/
+.metadata/
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+# NetBeans
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+# Vim
+*.swp
+*.swo
+*~
+# Sublime
+*.sublime-workspace
+*.sublime-project
+# Generic
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ---------- Operating systems ----------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+Icon?
+*.lnk
+
+# ---------- Runtime / Process files ----------
+*.pid
+*.seed
+*.pid.lock
+pids/
+*.pid
+*.sock
+*.lock
+!.gitkeep
+
+# ---------- Logs ----------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+*.log.*
+
+# ---------- Frontend specific ----------
+.npm/
+.yarn/
+.pnpm-store/
+.eslintcache
+.cache/
+.parcel-cache/
+dist-ssr/
+*.local
+storybook-static/
+
+# ---------- Java / Maven / Gradle ----------
+*.class
+*.log
+*.ctxt
+.mtj.tmp/
+hs_err_pid*
+replay_pid*
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+cython_debug/
+.venv/
+venv/
+ENV/
+
+# ---------- Go ----------
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+vendor/
+
+# ---------- Rust ----------
+target/
+Cargo.lock
+**/*.rs.bk
+
+# ---------- AI Coding Tools ----------
+# Cursor
+.cursorignore
+
+# Windsurf (Codeium)
+.codeiumignore
+.windsurf/
+
+# Claude Code
+# Ignore user-specific/local files but keep shared assets if desired
+.claude/*
+!.claude/skills/
+!.claude/hooks/
+!.claude/settings.json
+CLAUDE.local.md
+
+# Qwen Code
+.qwenignore
+
+# Tongyi Lingma (Alibaba Cloud)
+# Project rules can be shared via git; uncomment below if you prefer local-only rules
+# .lingma/rules/
+
+# Trae (ByteDance)
+.trae/
+# .trae/.ignore is usually auto-generated; whole directory ignored by default
+
+# Generic AI ignore files
+.agentignore
+.aiignore
+
+# ---------- Misc ----------
+.DS_Store
+*.bak
+*.orig
+*.rej
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# ---------- Local config files (keep as needed) ----------
+*.local
+local.properties
+config.local.*
+application-local.*
+application-*.local.*
+
+# ---------- AI Coding Tools ----------
+# Cursor
+.cursorignore
+
+# Windsurf (Codeium)
+.codeiumignore
+.windsurf/
+
+# Claude Code
+.claude/*
+!.claude/skills/
+!.claude/hooks/
+!.claude/settings.json
+CLAUDE.local.md
+
+# Qwen Code
+.qwenignore
+
+# Tongyi Lingma (Alibaba Cloud)
+# .lingma/rules/
+
+# Trae (ByteDance)
+.trae/
+
+# Codex (OpenAI)
+# Project-specific: agents and config are usually local/machine-specific
+.codex/agents/
+.codex/config.toml
+.codex/hooks.json
+# AGENTS.override.md is explicitly local/uncommitted [citation:9]
+AGENTS.override.md
+# Note: .agents/skills/ is a SHARED directory used by multiple AI tools.
+# Do NOT ignore it wholesale; it may contain project-committed skills.
+
+# CodeBuddy / WorkBuddy
+# Project-level config lives in .codebuddy/ and is intended for team sharing [citation:2][citation:3]
+# However, local personal overrides should be ignored.
+.codebuddy/settings.local.json
+# Uncomment the line below if you prefer to keep ALL .codebuddy rules local-only
+# .codebuddy/
+.workbuddy/
+
+# DeepSeek Harness
+# User data lives in ~/.dsh (outside project), but any local harness state
+# in the project should be ignored. No confirmed project-level dir name.
+.dsh/
+# Generic fallback if harness writes a local state dir
+.dsh-local/
+
+# Generic AI ignore files
+.agentignore
+.aiignore

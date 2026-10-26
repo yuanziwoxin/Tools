@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="'Segoe UI','Microsoft YaHei','PingFang SC',system-ui,sans-serif">
+  <rect x="0" y="0" width="1000" height="560" rx="16" fill="#f8fafc"/>
+  <rect x="0.5" y="0.5" width="999" height="559" rx="16" fill="none" stroke="#e2e8f0"/>
+
+  <!-- 标题 -->
+  <text x="40" y="46" font-size="25" font-weight="700" fill="#0f172a">mind_map · 能力全景</text>
+  <text x="40" y="74" font-size="14" fill="#64748b">单文件 · 零依赖 · 断网可用 · 数据不出本机 · 分享 HTML 即分享完整工具</text>
+
+  <!-- ① 输入 -->
+  <rect x="40" y="104" width="250" height="300" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+  <circle cx="64" cy="134" r="6" fill="#2f6fed"/>
+  <text x="80" y="140" font-size="16" font-weight="700" fill="#0f172a">输入 · 什么都能进来</text>
+  <g font-size="14" fill="#334155">
+    <circle cx="66" cy="178" r="3" fill="#93b8fb"/><text x="80" y="183">Markdown / 大纲 / 文档粘贴</text>
+    <circle cx="66" cy="214" r="3" fill="#93b8fb"/><text x="80" y="219">XMind · OPML · 本工具 JSON</text>
+    <circle cx="66" cy="250" r="3" fill="#93b8fb"/><text x="80" y="255">4 套内置模板一键起手</text>
+    <circle cx="66" cy="286" r="3" fill="#93b8fb"/><text x="80" y="291">箭头流程文本（平级 / 链）</text>
+    <circle cx="66" cy="322" r="3" fill="#93b8fb"/><text x="80" y="327">实时预览 · 生成前可勾选裁剪</text>
+    <circle cx="66" cy="358" r="3" fill="#93b8fb"/><text x="80" y="363">Ctrl+V 文字＝给节点生子树</text>
+  </g>
+
+  <!-- 箭头 1 -->
+  <line x1="298" y1="254" x2="336" y2="254" stroke="#2f6fed" stroke-width="2.5"/>
+  <polygon points="336,248 348,254 336,260" fill="#2f6fed"/>
+  <text x="300" y="234" font-size="12" fill="#64748b">解析成树</text>
+
+  <!-- ② 编辑 -->
+  <rect x="352" y="104" width="300" height="300" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+  <circle cx="376" cy="134" r="6" fill="#0ea5a4"/>
+  <text x="392" y="140" font-size="16" font-weight="700" fill="#0f172a">编辑与整理</text>
+  <g font-size="14" fill="#334155">
+    <circle cx="378" cy="172" r="3" fill="#7dd3cc"/><text x="392" y="177">左右 / 上下双布局，随时切</text>
+    <circle cx="378" cy="205" r="3" fill="#7dd3cc"/><text x="392" y="210">大纲视图拖拽排序 · 键盘挪位</text>
+    <circle cx="378" cy="238" r="3" fill="#7dd3cc"/><text x="392" y="243">搜索 / 替换 / 批量清洗</text>
+    <circle cx="378" cy="271" r="3" fill="#7dd3cc"/><text x="392" y="276">多选批量：删 · 折叠 · 上色</text>
+    <circle cx="378" cy="304" r="3" fill="#7dd3cc"/><text x="392" y="309">节点备注 · 语义标记 · 链接</text>
+    <circle cx="378" cy="337" r="3" fill="#7dd3cc"/><text x="392" y="342">可读步骤名的撤销 + 历史快照</text>
+    <circle cx="378" cy="370" r="3" fill="#7dd3cc"/><text x="392" y="375">手机抽屉 + FAB · 触屏 · 全键盘</text>
+  </g>
+
+  <!-- 箭头 2 -->
+  <line x1="660" y1="254" x2="698" y2="254" stroke="#2f6fed" stroke-width="2.5"/>
+  <polygon points="698,248 710,254 698,260" fill="#2f6fed"/>
+  <text x="662" y="234" font-size="12" fill="#64748b">一键导出</text>
+
+  <!-- ③ 输出 -->
+  <rect x="714" y="104" width="246" height="300" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+  <circle cx="738" cy="134" r="6" fill="#f59e0b"/>
+  <text x="754" y="140" font-size="16" font-weight="700" fill="#0f172a">输出 · 12 种格式</text>
+  <g font-size="14" fill="#334155">
+    <text x="738" y="180" font-weight="700" fill="#475569">图片类</text>
+    <text x="752" y="203">PNG（2 倍高清）· SVG · PDF</text>
+    <text x="738" y="239" font-weight="700" fill="#475569">Office</text>
+    <text x="752" y="262">Word · Excel</text>
+    <text x="752" y="285">PPT 整图一页 / 分页大纲</text>
+    <text x="738" y="321" font-weight="700" fill="#475569">数据与互通</text>
+    <text x="752" y="344">Markdown · OPML · XMind</text>
+    <text x="752" y="367">独立网页 HTML · JSON</text>
+  </g>
+
+  <!-- 底部：数据安全 -->
+  <rect x="40" y="428" width="920" height="100" rx="12" fill="#eef4ff" stroke="#c7d8fb"/>
+  <text x="64" y="460" font-size="15" font-weight="700" fill="#1e40af">🛡 数据安全 · 三层保险</text>
+  <text x="64" y="486" font-size="13" fill="#3b5bb5">浏览器本地存档（每个页签独立、互不串味）　·　历史快照 10 份（关掉页面也在）　·　自动备份目录（写成真实 HTML 文件）</text>
+  <text x="64" y="510" font-size="13" fill="#3b5bb5">24 页签工作区整包搬迁　·　撤销栈 80 步 / 6 MB 双封顶　·　存储写满先自救，绝不动还开着的页签</text>
+</svg>
