@@ -1,0 +1,13 @@
+# Let Git auto-detect text files and normalize line endings to LF in the repository
+* text=auto eol=lf
+
+# Keep CRLF for Windows batch files
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Do not convert binary files
+*.png binary
+*.jpg binary
+*.gif binary
+*.pdf binary
+*.jar binary
