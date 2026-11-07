@@ -22,7 +22,7 @@
 | --- | --- |
 | [1 Overview](#1-overview) | The big picture, feature list |
 | [2 Getting started](#2-getting-started) | Opening the file, generating from a document, templates, opening existing maps |
-| [3 Editing](#3-editing) | Node operations, multi-select, drag-to-reparent, fold/level, notes, badges, links |
+| [3 Editing](#3-editing) | Node operations, multi-select, drag-to-reparent, fold/level, notes, badges, links, **boundaries**, **summaries**, **group frames**, **relationships**, **images** |
 | [4 Finding & organizing](#4-finding--organizing) | Search, replace, text cleanup, outline view, statistics |
 | [5 View & navigation](#5-view--navigation) | Pan/zoom, two layouts, full screen, minimap, hint box |
 | [6 Appearance](#6-appearance) | Fonts, sizes, themes, palettes, backgrounds, **interface language** |
@@ -62,6 +62,9 @@ A one-line test for whether this tool fits: **is your task "turn a pile of text 
 - Multi-select to delete / colour / fold / badge in bulk; rubber-band selection
 - Batch text cleanup: add prefix/suffix, strip leading numbering, full-width ↔ half-width, split by delimiter, merge nodes
 - Undo history with human-readable step names — click a row to jump there
+- **Boundaries**: a dashed frame that groups a branch and its visible descendants (see [3.10](#310-boundaries-visual-grouping))
+- **Summaries**: a bracket over several consecutive siblings plus a summary topic that can grow sub-nodes of its own (see [3.11](#311-summaries-say-the-shared-point-in-one-line))
+- **Group frames**: select several nodes and wrap them in one dashed frame — siblings or not (see [3.12](#312-group-frames-wrap-the-selected-nodes))
 
 **Attachments — notes, badges, links**
 
@@ -337,6 +340,264 @@ Node text shows up to 4 lines. **When it is truncated a `⋯` marker appears in 
 
 To show more: increase the node width in the toolbar, or pick **Auto** — short nodes tighten up, long ones grow to 420 px, and the layout follows the measured width.
 
+### 3.10 Boundaries (visual grouping)
+
+A **boundary** is a dashed frame that says "these belong together". It is decoration carried by a node, not a node of its own: put it on a branch and it wraps that node plus every **visible** descendant.
+
+<p align="center">
+  <img src="../screenshots/mindmap-boundary.en.png" width="920" alt="Two boundaries: one with the title “Core scope”, one showing only the dashed border"/>
+</p>
+
+| To do this | Do that |
+| --- | --- |
+| Add | Right-click a node → **Add boundary** |
+| Rename | Double-click the title on the frame (or right-click → **Edit boundary title**); Enter saves, Esc reverts |
+| Recolour | Right-click → one of the five swatches beside **Frame** (clicking one also adds the frame if there is none) |
+| Remove | Right-click → **Remove boundary** — only the frame goes; the node and its subtree stay |
+
+What follows from "it is carried by the node":
+
+- **It travels with the node.** Copy, clone, paste, reorder and delete all take the frame along. Delete the node and the frame goes too, leaving nothing dangling.
+- **It shrinks to what you can see.** Fold the branch, limit the depth with "show up to level N", or filter to search hits — the frame tightens to the visible part. That is not a special case, just the bounding box being recomputed.
+- **Nested frames are allowed.** A child can carry its own frame inside its parent's — the parent frame wraps the child
+  frame (a group frame included) completely, with a gap between the two layers; it never runs through the middle.
+- **Images change nothing.** Insert a picture into a framed node and the card grows, so the frame grows; the 20px gap
+  between frames stays 20px.
+- **It never eats a click.** The frame sits below the lines and the nodes, so the canvas keeps working; only the title is clickable, and clicking it selects the node that owns the frame.
+- **A title is optional.** With no title you get the dashed border alone; the greyed placeholder is only a hint, and it is neither printed nor exported.
+- **It is not translated.** A boundary title is your content, exactly like node text.
+- **Visible without shouting**: the border is the frame colour darkened 45% and drawn 2.4px thick, the inside carries 20% of the same colour — a region at a glance, no impact on reading.
+
+Where it travels:
+
+| Output | Boundary |
+| --- | --- |
+| **PNG** / **SVG** / **PDF** (printed from the screen) | Drawn, title included |
+| **Map data `.json`** | Kept in the data, so a saved map comes back with its frames |
+| Markdown / Word / Excel / OPML / PPT paged outline | **Deliberately absent** — a boundary is a visual grouping and an outline has nowhere to put it |
+| XMind | Exported as a native XMind boundary — it wraps the branch and its subtree, title included |
+
+---
+
+### 3.11 Summaries (say the shared point in one line)
+
+A **summary** is for the case "these five things are really one thing": select several consecutive siblings under the same parent, and you get a **bracket** down their right side plus a **summary topic** that states what they have in common.
+
+The only difference from a boundary, in one line: **a boundary wraps one branch's whole subtree; a summary covers several siblings.**
+
+<p align="center">
+  <img src="../screenshots/mindmap-summary.en.png" width="920" alt="A bracket around the first two branches, with the summary topic “Shared by both” carrying two sub-nodes of its own"/>
+</p>
+
+| To do this | Do that |
+| --- | --- |
+| Add | Select **two or more** siblings under one parent (`Ctrl`-click to add, `Shift`-click to extend), then right-click → **Add summary** |
+| Rename | Double-click the summary topic, or right-click → **Edit summary title**; Enter saves, Esc reverts |
+| Remove | Right-click the summary topic → **Remove summary** — only the bracket and that one line go; every node it covered stays |
+
+**A summary topic is a real node**, not a label pasted on top. Which means:
+
+- **It can carry sub-nodes of its own.** In the screenshot above "Shared by both" carries "Must ship" and "Must be measurable" — the most common use: collapse five things into one sentence, then break that sentence into actions.
+- Double-click it, colour it, mark it, fold it, copy it — it behaves like any other node.
+- It can grow further levels below it, as deep as you like.
+- **It does not look like an ordinary node, on purpose**: pill-shaped (fully rounded, no vertical colour bar on the left), a heavier tint of the branch colour, a solid rather than faded border, and bold text. Every one of those is "one notch heavier than a plain node in the same branch colour", so it keeps standing out after you switch theme. Screen, PNG and SVG share the same rule.
+
+**The bracket never sits inside a frame.** Add a boundary to the branch, put the covered siblings in a group frame, or give one of their children a boundary: the bracket steps outside all of them and the summary topic moves along, so the grey line never runs across a dashed frame or its tinted fill. Only the **outer edge** moves — the bracket still spans just the siblings it covers, not the whole branch. The same holds after an image makes a card taller.
+
+**Who gets covered:** from the first selected node to the last, **everything in between counts**. Pick the 1st and the 3rd and the 2nd comes along (same as XMind). Only consecutive ranges exist — cross-parent ranges and multiple disjoint brackets are out of scope for this version.
+
+**The range follows structural edits:**
+
+| You do this | What happens to the range |
+| --- | --- |
+| Insert a sibling **inside** the range | The range grows; the new node is covered |
+| Insert a sibling **before** the range | The range shifts; the same nodes stay covered |
+| Insert a sibling **right after the last** covered node | The range stays put — the new node sits outside the bracket |
+| Delete a covered node | The range shrinks; delete them all and the summary removes itself |
+| Fold / depth limit / "hits only" | The bracket tightens to what is still visible |
+
+**Deliberate edges:**
+
+- A summary topic **cannot be dragged under another node** — it belongs to that parent, and "which siblings" stops meaning anything under a different one.
+- It **cannot be moved up or down**, and **cannot take a sibling**. Its position comes from the nodes it covers, not from dragging.
+- **It never eats a click.** The bracket is drawn below the lines and the nodes; the summary topic itself is an ordinary clickable node.
+
+Where it travels:
+
+| Output | Summary |
+| --- | --- |
+| **PNG** / **SVG** / **PDF** (printed from the screen) | Bracket and summary topic drawn together |
+| **Map data `.json`** | Kept in the data, so a saved map comes back with it |
+| Markdown / Word / Excel / OPML / PPT paged outline | **Exported as an ordinary child** — a summary has content, so dropping it from an outline would lose information |
+| XMind | As an ordinary sub-topic (this version does not use XMind's native summary marker) |
+
+---
+
+### 3.12 Group frames (wrap the selected nodes)
+
+A **group frame** answers "these nodes belong together, but they don't share a parent": hold `Ctrl` and click a few nodes — across branches, or just a handful of siblings — then right-click -> **Group the selected nodes**, and one dashed frame wraps them all.
+
+<p align="center">
+  <img src="../screenshots/mindmap-group.en.png" width="920" alt="Group frames: one dashed frame across branches around two nodes, with the group name inside its top edge"/>
+</p>
+
+Three frames, one line each:
+
+| Shape | What it wraps | Who decides the range |
+| --- | --- | --- |
+| **Boundary** (3.10) | One branch plus its visible descendants | **That node** itself |
+| **Summary** (3.11) | **Consecutive** siblings under one parent | The **selected range**, plus a summary topic |
+| **Group frame** (this section) | **Any selected nodes** (two or more) | Your **multi-selection** — across branches, non-adjacent |
+
+| To do this | Do that |
+| --- | --- |
+| Add a group frame | Select 2+ nodes (`Ctrl`+click or rubber-band) -> right-click -> **Group the selected nodes** |
+| Rename it | Double-click the label on the frame (or right-click -> **Edit group frame title**); `Enter` saves, `Esc` reverts |
+| Recolour it | Right-click -> the five swatches after **Group color** |
+| Remove it | Right-click any member -> **Remove group frame** — only the frame and its label go, every node stays |
+
+A few things worth knowing:
+
+- **The frame follows its members.** Fold one branch, cut the map at depth N, or turn on "hits only", and the frame shrinks to whatever is still visible; hide every member and the frame is simply not drawn until you unfold.
+- **Delete members down to one and the frame disappears** (a "group" of one node is meaningless). Keep at least two members if you want the frame.
+- **A node already in another group is not offered for a new group** — that would silently destroy the old group's title and colour. Remove the old frame first if you want to regroup.
+- **A node belongs to one group at a time**; nested group frames are out of scope for this version (single-node boundaries still nest — a different feature).
+- **Frames never cover a node, and never cross each other.** The block a node occupies in the layout **already includes its own
+  frame**, so every frame edge keeps at least 20px from the neighbouring card or from another frame's edge. Two nested layers
+  only ever **nest** (the outer one fully contains the inner one); they never cut through each other. The same holds after an
+  image makes a card taller, because the height comes from the layout, not from a constant. The trade-off is that adding or
+  removing a frame shifts the map up or down slightly — in exchange, the dashes always run through empty space.
+- **An enlarged image never covers the dashes** (v55): a cross-branch group frame's bounding rectangle cuts through the middle branch, so a taller card can land on its edge. The edge now **expands outward to wrap the whole card**, plus an 8px gap — it only ever grows, never shrinks. On-screen frames, PNG/SVG exports, relationship endpoints and summary brackets all read the same frame geometry, so switching outputs cannot shift anything.
+- **It never eats a click.** The frame body is click-through; only the label on it is clickable (clicking it selects the first visible member, which is where the context menu is).
+- **Recognisable as a region at a glance.** The border is the frame colour darkened 45% and drawn 2.6px thick, the inside carries the same colour at 24% (20% for boundaries), so the line always reads darker than the fill — visible without competing with node text.
+
+Where it travels:
+
+| Output | Group frame |
+| --- | --- |
+| **PNG** / **SVG** / **PDF** (printed from the screen) | Drawn, title included |
+| **Map data `.json`** | Kept in the data, so a saved map comes back with it |
+| Markdown / Word / Excel / OPML / PPT paged outline | **Deliberately dropped** — grouping is a visual statement, and an outline has nowhere to put it |
+| XMind | As a native boundary, but only when the members are **one consecutive run of siblings under the same parent** (the only range an XMind boundary can express); otherwise it is skipped rather than mis-drawn |
+
+### 3.13 Relationships (draw a labelled line between two objects)
+
+**Edges are structure** — who is whose child. **A relationship is the extra layer you state yourself**: "these two back each other up", "this branch conflicts with that frame". It has nothing to do with hierarchy: it can cross branches, cross levels, and either end can be a boundary, a summary or a group frame.
+
+<p align="center">
+  <img src="../screenshots/mindmap-rlink.en.png" width="920" alt="Relationship: a labelled curve from one branch to another, the label sitting in the gap between two cards"/>
+</p>
+
+| Task | How |
+| --- | --- |
+| Add a relationship | Select a node → right-click → **Add relationship…**, pick both ends, type a label (optional) → **Create relationship** |
+| Edit the label | **Double-click the small label on the curve**, type, `Enter` to save, `Esc` to revert |
+| Adjust the curve | **Drag the curve itself** (any stretch that runs through empty space) — in any direction: sideways pushes the arc to one side, along the line slides the whole arc forward / back; it follows up to ±900px, so there is no more "at the limit it still covers something"; however far you drag, it **never loops into a knot** (v53); **if the line is too short to grab, drag the label instead** — on short links it is the handle. Saved on release |
+| Delete it | Click the `×` on the label |
+
+Three behaviours new in v51 / v53:
+
+- **no knotting, however hard you drag**: the distance the two control points open up along the chord depends only on the chord (30% of it, capped at 42%), so the control polygon always runs forward — a large bend becomes a long, narrow detour that never doubles back;
+- **when the endpoints are close**, the line no longer collapses into a 6px bump inside the gap — it **loops out through the 20px gap** between the two cards, and the emptier side is chosen when the link is created; drag it to switch sides if it is in the way;
+- **labels avoid cards, boundaries and group frames** (sitting on a frame line or its caption is as bad as sitting on text); if the whole curve is buried, the label is pushed out along the normal rather than parked on top of something.
+
+What can be an endpoint: a **node**, a **boundary**, a **summary topic**, a **group frame**. The dropdown groups them in that order (node → summary → boundary → group frame), and objects you cannot see right now (folded, cut at depth N, filtered out by search) are not offered — picking one would only produce a line that is never drawn.
+
+**The default start and end follow the same order.** When the panel opens, the start is the earliest identity among the objects you selected, and the end is the next one (each node counts once). An object can carry several identities at once — a summary topic is also a node, may have a boundary, and may sit in a group frame — and the order decides which is used. So:
+
+- select two nodes → the start is the one you picked **first**, the end is the other (not the one clicked last);
+- select one node that has a boundary → start is the node, end is its boundary;
+- select one summary topic → start is the node, end is the summary;
+- select one node that sits in a group frame → start is the node, end is that group frame.
+
+Change either one in the dropdown if it guessed wrong; the default only saves you a click.
+
+A few things worth knowing:
+
+- **The curve is painted beneath the nodes.** It never covers text; where it would cross a card it passes behind it — the price is that stretch is invisible. **Drag it**: grab any part that shows through and pull the arc into open space; it stays there (stored in the file, not a temporary effect).
+- **Two objects sitting close together still get a visible line**: the ends leave from the **narrowest gap** between the two cards (also when one wraps the other), and below 30px the line switches to solid with a smaller arrowhead — a 7/5 dash pattern on 20px leaves a single dot that reads as "nothing drawn".
+- **No knots, however far you drag**: up to 0.7 × chord the bend tracks the pointer 1:1, beyond that it converges to at most 1 × chord, so it cannot close into a loop. A second relationship between the same pair is forced to the **other side**, otherwise the two would stack into one thicker line.
+- **The label is painted above the nodes** (otherwise you could not click it), so it **finds a free spot along the curve**: if the midpoint lands on somebody else's card, it slides along the curve until it covers no card at all. Short links invert this — the label is parked 28px beyond an endpoint so the 20px of line can show through.
+- **When an endpoint disappears, the relationship goes with it** — delete the node, remove the boundary, dissolve the group frame, delete the summary topic. Nothing is left pointing at thin air.
+- **Both ends cannot be the same object**, and the same pair cannot be stored twice.
+- **Folded endpoints are not drawn**: fold the branch an endpoint lives in and the curve and its label are hidden together, and come back when you unfold (rather than being drawn at a stale position).
+- **Copy / paste does not steal endpoints**: a pasted copy does not inherit an identity, so relationships never end up pointing at the copy.
+
+Where it travels:
+
+| Output | Relationship |
+| --- | --- |
+| **PNG** / **SVG** / **PDF** | Curve, arrowhead and label all drawn |
+| **Map data `.json`** | Kept in full (endpoints, label, id) |
+| Markdown / Word / Excel / OPML / PPT paged outline | **Deliberately dropped** — a relationship is a statement between two objects, and a linear outline has nowhere to put it |
+| XMind | As a native `relationship` (a titled connector between two topics). A group frame is not a topic, so it lands on its **first member** — better to point at one node inside the group than to lose the whole relationship |
+
+### 3.14 Node images (thumbnail + hover for the original)
+
+<p align="center">
+  <img src="../screenshots/mindmap-image.en.png" width="920" alt="Node images: a thumbnail sits above the node label, and one node holds an image only"/>
+</p>
+
+A node can carry one image. It is shown **small**, and there are two ways to see the original: hover it, or click it.
+
+**Putting one in**
+
+Right-click a node → **Insert image…** and pick a local file. Once a node has one, the same item reads **Replace image…**,
+with **View full size** and **Remove image** next to it (both greyed out when there is no image).
+
+**Image and text**
+
+Image on top, text underneath; the two do not fight, and all three shapes work:
+
+- **Image + text**: thumbnail above, text below (with an image the text is capped at two lines — hover to see the rest);
+- **Image only**: just empty the text and the node shrinks to "one image" height, leaving no gap underneath;
+- **Text only**: exactly as before — a node without an image does not move a pixel.
+
+**Seeing the original**
+
+- **Hover the thumbnail** and a panel with the original flies out beside it. Scroll on it to zoom (20%–800%), click for the full view.
+  Moving from the thumbnail onto the panel does not dismiss it (140ms of grace); moving away closes it.
+- **Wheel zoom is anchored at the pointer** (v54): the preview no longer vanishes after a few notches. The point under the cursor stays at the same spot inside the panel, the panel no longer snaps back beside the thumbnail on every notch, and zooming past the panel's width cap never leaks the wheel to the canvas. Before dismissing, it rechecks whether the pointer is still over the picture — a layout change alone cannot close it.
+- **Still draggable at any zoom** (v55): the panel now grows with the picture so the whole zoomed image stays inside it. Past 1.5× the image used to overflow into an area that received no pointer events, so pressing there moved only the canvas. Even at 800%, holding anywhere on the picture now moves both the preview and the canvas behind it; the first frame is still fitted to the window.
+- **Hold and drag the panel** (v53): it follows your hand and **the canvas behind pans by the same distance** — you can see the map move while you drag, and bring the content the picture refers to into view without closing the preview. Under 3px it still counts as a click (the full view opens); a brief `mouseleave` mid-drag does not dismiss it.
+- The **full-size overlay** (click the thumbnail, or right-click → View full size) has − / ＋ / **Fit** / **Actual size**:
+  - the wheel zooms **anchored at the pointer** — whatever sits under the cursor stays put;
+  - when the image is larger than the window, **drag it** to pan (it scrolls, so letting go does not snap back);
+  - **dragging the image pans the mind map behind it too** (v52): the overlay backdrop is deliberately pale (16%, 6% while dragging) so you can see where the canvas went — you can bring the node this image belongs to into view without closing the overlay. When the image is smaller than the window there is no scroll room, so the leftover movement is covered by a temporary offset: **dragging works at any zoom level**; zoom, fit and close all reset that offset, so the picture never drifts permanently;
+  - 800% stays sharp, because zooming changes the image's real width and height instead of stretching a small bitmap — and since v50 the source is the original bytes, so "Actual size" maps to real pixels.
+
+**Where the original lives (v50+)**
+
+Previously an insert downsampled the image to 1280px and re-encoded it under 400 KB, so "Actual size" showed an already-shrunk bitmap — hence the blur. There are now **two copies with two jobs**:
+
+- the node keeps only a **lightweight copy** (320px long edge, 96 KB cap) for layout and the 96px thumbnail; images already inside that budget are stored **as-is**, with no re-encoding at all;
+- the **original is kept byte-for-byte** in the browser's IndexedDB (fixed database `mindmap-studio-orig-v1`) — no downsampling, no quality loss, and GIFs are not flattened to their first frame. Hover preview, the full-size overlay, 100% zoom, and PNG / SVG / PDF exports all read this copy.
+
+The original cannot simply live in the map data: `localStorage` is only about 5 MB, and the whole document is duplicated into undo snapshots, tab slots and automatic backups, so one 4 MB photo would be copied many times over and burst the quota. The document now holds only a few dozen KB plus short fields (original id, native width/height, byte size), even with 80 undo steps. Browsers without IndexedDB degrade gracefully: the original still works for the current session, it just needs re-importing after a reload.
+
+Only **inline** images (`data:` PNG / JPEG / WebP / GIF) are accepted. Web addresses and local paths are **refused** —
+accepting them would break both "opens without a network" and "opens on another machine" at once. Anything above **24 MB** is still refused outright.
+
+**It travels with the data**
+
+The lightweight copy is an ordinary node field, so copying a subtree, cloning, pasting, undo, saving and switching tabs **all carry it**. Originals live in IndexedDB keyed by id: referencing the same picture twice does not duplicate its bytes, and a picture that undo could still restore is never reclaimed early. On export:
+
+| Output | Image |
+| --- | --- |
+| **PNG** / **SVG** / **PDF** | the **original** is drawn (same placement as the screen: 8 above, 12 either side, 96 tall) |
+| **Standalone `.html`** | originals inlined into `IMG_DATA` — one file sent to someone else opens with the originals intact |
+| **Map data `.json` / workspace `.json`** | the lightweight copy stays on the node; originals go in a sibling `images` table keyed by id |
+| Markdown / Word / Excel / OPML / PPT outline | **deliberately omitted**; an image-only node keeps the “（图片）” placeholder |
+| Copy as text / indented text | same — the placeholder stays |
+| XMind | travels with the topic |
+
+**Small tips**
+
+- Need the same image twice? Clone the node (`Ctrl+D`) instead of inserting it again.
+- The "about N KB" toast is the **lightweight copy**, not the original — the original does not consume `localStorage` quota.
+- **Export ▾ → Standalone .html** is the self-contained one: send that file and the recipient sees the originals. Sending the `mind_map.html` source alone gives an empty canvas — the program is not the data.
+- To just peek at the detail you do not need the overlay — hovering is enough.
+
 ---
 
 ## 4 Finding & organizing
@@ -587,8 +848,8 @@ Click **Export ▾**. Formats are **grouped by purpose** (Images / Office / Data
 | **XMind** `.xmind` | Continue editing in XMind, Mubu, etc. | All nodes | The topic's `notes` field (readable back) |
 | **OPML outline** `.opml` | The lingua franca of outlines: XMind / Mubu / Workflowy / Feishu all open it, and it imports back | All nodes | The `_note` attribute (line breaks encoded correctly) |
 | **Markdown** `.md` | A standard `#` outline for notes apps | All nodes | A `> 备注：…` blockquote (**re-imports onto the node**) |
-| **Image** `.png` | 2× bitmap for documents, slides, chat | What you see | Numbered badges plus a note list below the map |
-| **SVG** `.svg` | Sharp at any size, drops into Word / PPT / web, editable in Illustrator | What you see | Same as PNG |
+| **Image** `.png` | 2× bitmap for documents, slides, chat | What you see | Numbered badges plus a note list below the map; **boundaries and summaries drawn** |
+| **SVG** `.svg` | Sharp at any size, drops into Word / PPT / web, editable in Illustrator | What you see | Same as PNG, **boundaries and summaries drawn** |
 | **PDF** `.pdf` | Print → save as PDF, vector-crisp | What you see | A note list appended at the end |
 | **Standalone page** `.html` | Double-click to open, complete **and still editable** — the best way to share | All nodes | Included in the data |
 | **Map data** `.json` | This tool's own format; open it later to continue; the main backup format | All nodes | Included in the data |
@@ -817,7 +1078,7 @@ The source was probably written as `1.` `2.` … Set "Max depth" to 2–3 and ge
 ### 10.2 Export
 
 **The exported image is huge / blurry?**
-PNG is 2× by default; beyond the browser canvas limit (16384 px) it is downsampled proportionally and text gets smaller — collapse to 2–3 levels first.
+PNG is 2× by default; beyond the browser canvas limit (16384 px) it is downsampled proportionally and text gets smaller — collapse to 2–3 levels first. Since v50 node images use the **original** bytes rather than the copy that used to be shrunk on insert, full-size view and PNG / SVG exports start from real pixels; if it still looks soft, either the whole canvas was downsampled or the source picture was low-resolution to begin with.
 
 **I don't want to pick a location every time?**
 Untick "Save with the Save As dialog" at the bottom of the export panel to go back to a plain download (remembered). Note that downloaded files may hit the Windows policy below.
@@ -870,7 +1131,7 @@ Yes — see [9.4](#94-phones-and-narrow-screens). Narrow screens switch to the �
 
 ## 11 Implementation notes
 
-**Size and dependencies**: one HTML file, **10,258 lines / 595,668 bytes (~582 KB)**, **zero external dependencies** (no CDN, no framework, no remote fonts), usable offline.
+**Size and dependencies**: one HTML file, **10,270 lines / 596,675 bytes (~583 KB)**, **zero external dependencies** (no CDN, no framework, no remote fonts), usable offline.
 
 **Layout**: a hand-written tidy-tree (left→right) plus a vertical org-chart layout (top→bottom). Both share one coordinate convention (`x` ＝ node's left edge, `y` ＝ vertical centre), so positioning / bounds / fit-to-window / minimap / rubber-band all work from a single implementation. Every render recomputes layout and Bézier edges, so folding never leaves anything misaligned, and collapsed subtrees are excluded from layout entirely.
 

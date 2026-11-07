@@ -320,6 +320,59 @@
   #stage.dropping{outline:2px dashed var(--accent);outline-offset:-6px;background:#eef4ff;}
   #viewport{position:absolute;top:0;left:0;transform-origin:0 0;}
   #edges{position:absolute;top:0;left:0;overflow:visible;pointer-events:none;}
+  /* N8：外框层。DOM 顺序排在 #edges 之前 → 框压在连线之下、节点之下，不会有色块盖住文字。
+     #frames 自身零尺寸、pointer-events 由子元素各自决定：框体 none（不能吃掉节点点击），
+     标题 auto（要能双击改字）。 */
+  #frames{position:absolute;top:0;left:0;width:0;height:0;}
+  /* N11：联系层。曲线在节点之下（不盖文字），标签在节点之上（要能点）。
+     两层都零尺寸、overflow:visible —— 坐标与节点同一套世界坐标。
+     曲线本身是虚线（7 5）、2.2px —— 比节点卡片的 1.4px 描边粗一截，缩到 50% 也还看得见。
+     层里只有一条条**透明加宽的命中带**（.rlkhit，16px）吃得着指针：
+     这样 2.2px 的虚线也抓得住，拖动它就能把弧线拉离被遮挡的地方。
+     v51：端点贴近时曲线自动绕出卡片（不再整条藏在缝里），拖动改二维 ——
+     法线鼓 + 沿弦挪，配 16px 命中带，空白处就抓得住、拉得开。 */
+  #rlinks{position:absolute;top:0;left:0;overflow:visible;pointer-events:none;}
+  #rlinks .rlkhit{pointer-events:stroke;cursor:grab;}
+  body.rlk-drag{cursor:grabbing;}
+  body.rlk-drag .rlkhit{cursor:grabbing;}
+  /* 拖的是「线上的把手」时别顺手把标签文字选中（手机长按会弹系统菜单） */
+  body.rlk-drag .rlkl{cursor:grabbing;user-select:none;-webkit-user-select:none;}
+  #rlabels{position:absolute;top:0;left:0;width:0;height:0;}
+  /* 颜色由 renderLinkLabels() 按主题写进内联样式（深底要换亮色），这里只是兜底 */
+  .rlkl{position:absolute;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:3px;
+        padding:0 4px 0 7px;border-radius:8px;font-size:11px;line-height:16px;font-weight:700;
+        white-space:nowrap;pointer-events:auto;cursor:text;max-width:220px;
+        background:var(--stage-bg,#fff);border:1px solid rgba(51,64,90,.55);color:#33405a;}
+  .rlkl.ph{opacity:.62;font-weight:400;}
+  .rlkt{overflow:hidden;text-overflow:ellipsis;}
+  .rlkx{pointer-events:auto;cursor:pointer;padding:0 2px;border-radius:5px;font-weight:700;opacity:.55;}
+  .rlkx:hover{opacity:1;background:rgba(107,122,144,.14);}
+  @media print{ .rlkl.ph{display:none;} }
+  .bdf{position:absolute;box-sizing:border-box;border-radius:16px;border:2.4px dashed;pointer-events:none;}
+  /* 外框 / 分组框的标题是**同一颗组件**：同字号、同行高、同内边距、同圆角、同边框、
+     同底色来源。两处只在「贴哪儿」上不同（外框压在框线上、分组框在框内顶部居中），
+     那是各自的遮挡条件决定的，不是两套样式 —— 所以数值必须一模一样，改一处就得改另一处。 */
+  .bdft{position:absolute;left:12px;top:-11px;padding:1px 8px;border-radius:9px;font-size:11.5px;font-weight:700;
+        line-height:17px;white-space:nowrap;pointer-events:auto;cursor:text;
+        /* 底色跟画布走（不是写死 #fff）：深色主题下标题下面才不会糊一块白 */
+        background:var(--stage-bg,#fff);outline:none;max-width:220px;overflow:hidden;text-overflow:ellipsis;}
+  .bdft.ph{opacity:.6;font-weight:400;}
+  @media print{ .bdft.ph{display:none;} }
+  /* N9：分组框。与 .bdf 的区别只有两处：圆角更大（18，视觉上比单节点框「高一档」）、
+     标题贴在**框内顶部居中** —— 那条带子宽度是 GB_PAD(22)，永远没有节点（框顶 = 最靠上的
+     成员再外扩 22），所以标题既不压节点、也不会被节点盖住。单节点框的标题在左上，不打架。
+     为什么不用框外：框在节点之下，无论贴左上还是左下，边上那块都正好是隔壁兄弟的头顶，
+     标题会被节点盖住、点都点不到（真 Chrome 的 elementFromPoint 抓到的就是这个）。
+     为什么还要 z-index:1：留白带 22 比兄弟间距 12 宽，最靠上的那一步仍会压到上一支的底边，
+     不抬一层标签就会被节点盖住 —— 只有这一颗小药丸抬起来，框体照旧在节点之下。 */
+  .gbf{position:absolute;box-sizing:border-box;border-radius:18px;border:2.6px dashed;pointer-events:none;}
+  /* 与外框标题（.bdft）逐项一致：11.5px / 行高 17 / 内边距 1px 8px / 圆角 9 / 最大宽 220。
+     只差位置：这里贴框内顶部居中（压到框线上会被上一支的节点盖住，见上面那段注释）。 */
+  .gbft{position:absolute;top:2px;left:50%;transform:translateX(-50%);z-index:1;padding:1px 8px;border-radius:9px;font-size:11.5px;font-weight:700;
+        line-height:17px;white-space:nowrap;pointer-events:auto;cursor:text;
+        background:var(--stage-bg,#fff);outline:none;max-width:220px;overflow:hidden;text-overflow:ellipsis;}
+  .gbft.ph{opacity:.6;font-weight:400;}
+  @media print{ .gbft.ph{display:none;} }
 
   /* ---------- B4 大纲侧边栏 ---------- */
   #outline{
@@ -435,6 +488,16 @@
     border-radius:9px;font-size:var(--node-fs);font-weight:var(--node-fw-leaf);line-height:1.35;
     box-shadow:0 1px 3px var(--node-shadow);cursor:pointer;user-select:none;
   }
+  /* P2：概要主题（v44 加强）—— 一屏之内要能一眼认出「这一颗是概括」。
+     只改「形与色」，不参与布局：宽高仍按原来的实测走，坐标不受影响。
+       ① 药丸形（999px），满屏方角卡片里唯一一种形状 → 隔远了也认得出；
+       ② 左边 5px 色条收成与其它三边等宽的整圈描边（配合 nodeSkin 给的实色）→ 是个完整的圈；
+       ③ 底色由 nodeSkin 按分支色染 28%（正常节点是白/纯深底）+ 字加粗。
+     三条叠在一起才够显眼 —— 少一条就退回「和普通节点差不多，只是圆一点」。 */
+  .node.sum{
+    border-radius:999px;border-left-width:1.6px;font-weight:700;
+    padding-left:18px;padding-right:18px;
+  }
   /* P2：长按 = 出我们自己的菜单，不是系统那张「复制 / 搜索 / 全选 / 翻译」。
      —— 关键：不能只写在 @media(pointer:coarse) 或 @media(max-width:760px) 里。
         部分安卓浏览器（微信/QQ 内核）不报 pointer:coarse，横屏时宽度又超过 760px，
@@ -491,6 +554,69 @@
   .node.root{font-weight:var(--node-fw-root);font-size:var(--node-fs-root);min-height:58px;background:var(--accent);color:#fff;border-color:var(--accent);}
   .node.root .toggle{color:var(--accent);border-color:var(--accent);}
   .node.leaf{font-weight:var(--node-fw-leaf);}
+  /* ---------- N12（v47）：节点图片 ----------
+     有了图就把节点从「一条横排」变成「上下两段」：缩略图在上、文字在下。
+     只有图没有字时 .txt 是空的（:empty），直接不占位 —— 否则 gap 会多出一截空气。
+     缩略图固定 96px 高、宽度跟着节点走：导图里永远是「小图」，原图靠悬停预览看。 */
+  .node.hasimg{flex-direction:column;align-items:stretch;gap:6px;min-width:168px;}
+  .node.hasimg .txt:empty{display:none;}
+  .node.hasimg .txt{-webkit-line-clamp:2;text-align:center;}
+  .node .thumb{
+    position:relative;height:96px;border-radius:6px;overflow:hidden;
+    border:1px solid var(--node-line);background:var(--node-bg);
+    display:flex;align-items:center;justify-content:center;cursor:zoom-in;
+  }
+  .node.root .thumb{border-color:rgba(255,255,255,.55);background:rgba(255,255,255,.12);}
+  .node .thumb img{
+    max-width:100%;max-height:100%;width:auto;height:auto;display:block;object-fit:contain;
+    -webkit-user-drag:none;user-drag:none;user-select:none;pointer-events:none;
+  }
+  /* 悬停预览：贴在缩略图边上的一块大图（首屏按 64% 视口收好），滚轮缩放、单击看大图。
+     它是 fixed 定位（视口坐标），不跟着画布缩放走 —— 缩到 30% 时也看得清。
+     v55：框必须**始终包住整张图**。旧写法给框加了 max-width:760px 却没给 <img> 加上限，
+     放到一定倍数图就从框里溢出去一大截；溢出去那片没有框接事件（img 是 pointer-events:none），
+     按住在图上一拖，pointerdown 落到 stage 上 —— 只平移了画布，预览纹丝不动。
+     width:max-content 让框跟着图一起长大，1 倍档仍由 imgHoverFit() 收在 760px 内。 */
+  #imghover{
+    position:fixed;z-index:72;display:none;width:max-content;max-width:none;
+    padding:8px;border-radius:12px;background:var(--panel);color:var(--text);
+    border:1px solid var(--line);box-shadow:0 18px 44px var(--node-shadow);
+  }
+  #imghover.show{display:block;pointer-events:auto;cursor:grab;touch-action:none;}
+  /* v53：按住预览拖动 —— 框跟手走，背后的画布同时平移（和大图浮层同一套语义）。
+     拖动中把光标换成抓手，并禁掉文字选中，免得一路拖出一片蓝。 */
+  body.ih-drag{cursor:grabbing;user-select:none;}
+  body.ih-drag #imghover{cursor:grabbing;}
+  /* v55：图自己也吃事件。框用 max-content 包住图之后本来已经够，但留一层兜底：
+     万一某种浏览器把 fixed 框的宽度又收回 containing block，溢出去那片仍能被图接住，
+     pointerdown 会冒泡到 #imghover，不会再漏到画布上。 */
+  #imghover img{display:block;margin:0 auto;border-radius:8px;background:#fff;
+    -webkit-user-drag:none;user-drag:none;user-select:none;pointer-events:auto;}
+  #imghover .ih-cap{padding:6px 2px 0;font-size:11.5px;color:var(--text-dim);
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #imghover .ih-tip{padding-top:2px;font-size:11px;color:var(--text-dim);opacity:.85;}
+  /* 大图浮层：图片放在一个可滚动的框里，缩放改的是图片自身的宽高（不是 transform），
+     所以放到 400% 也不会糊成一片，滚动条也能真实滚到边上。 */
+  /* 大图浮层：图片放在一个可滚动的框里，缩放改的是图片自身的宽高（不是 transform），
+     所以放到 400% 也不会糊成一片，滚动条也能真实滚到边上。
+     v52：遮罩刻意做得很淡 —— 在里面按住图拖动时，背后的导图会跟着一起平移，
+     看得见背景才知道自己把画布挪到哪儿了（别的浮层仍是 44% 的深遮罩，不受影响）。 */
+  #imgview{background:rgba(16,24,40,.16);}
+  body.iv-drag #imgview{background:rgba(16,24,40,.06);}
+  #imgview .card{max-width:940px;}
+  #imgview .bd{padding-bottom:8px;}
+  .iv-bar{display:flex;align-items:center;gap:8px;padding-bottom:10px;font-size:12px;color:var(--text-dim);}
+  .iv-bar .iv-pct{min-width:46px;text-align:center;font-weight:700;color:var(--text);}
+  .iv-bar .iv-info{margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46%;}
+  .iv-wrap{
+    display:block;text-align:center;overflow:auto;padding:14px;
+    max-height:62vh;min-height:220px;background:var(--panel-soft);
+    border:1px solid var(--line);border-radius:10px;
+  }
+  .iv-wrap img{display:inline-block;vertical-align:top;max-width:none;background:#fff;
+    box-shadow:0 6px 18px var(--node-shadow);cursor:grab;}
+  body.iv-drag{cursor:grabbing;}
+  body.iv-drag .iv-wrap img{cursor:grabbing;}
 
   /* 量「不被截断时文字有多高」用的隐藏容器（line-clamp 下 scrollHeight 只比可视高多 0~1px，判不准） */
   #meas{
@@ -576,6 +702,25 @@
   #link .lk-tip{
     font-size:12px;color:var(--text-dim);line-height:1.8;margin-top:8px;
     border-top:1px dashed var(--line);padding-top:8px;
+  }
+  /* ---------- N11：联系面板 ---------- */
+  #rlink .lk-tip{
+    font-size:12px;color:var(--text-dim);line-height:1.8;
+    border-bottom:1px dashed var(--line);padding-bottom:9px;margin-bottom:11px;
+  }
+  #rlink .rlk-row{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+  #rlink .rlk-row > span{
+    flex:0 0 34px;font-size:12.5px;font-weight:700;color:var(--text-dim);
+  }
+  #rlink .rlk-row select,
+  #rlink .rlk-row input[type=text]{
+    flex:1 1 auto;min-width:0;box-sizing:border-box;
+    border:1px solid var(--line);border-radius:9px;padding:7px 9px;
+    font:inherit;font-size:13px;background:var(--panel-soft);color:var(--text);
+  }
+  #rlink .rlk-row select:focus,
+  #rlink .rlk-row input[type=text]:focus{
+    outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);
   }
   #note textarea{
     width:100%;min-height:132px;box-sizing:border-box;
@@ -1182,8 +1327,13 @@
 
 <div id="stage">
   <div id="viewport">
+    <!-- N8：外框层（在 #edges 之前 → 框在连线与节点之下） -->
+    <div id="frames"></div>
     <svg id="edges"></svg>
+    <!-- N11：联系（Relationship）—— 画在连线之上、节点之下；标签另起一层贴在节点之上 -->
+    <svg id="rlinks" aria-hidden="true"></svg>
     <div id="nodes" role="tree" aria-label="思维导图画布"></div>
+    <div id="rlabels"></div>
   </div>
   <div id="selbox"></div>
   <!-- O7：空画布时中央的一句引导，比只在底部弹一下 toast 更容易被看见 -->
@@ -1578,7 +1728,34 @@
   <!-- N3：链接（Ctrl+单击是加选，所以打开链接走 Alt+单击 / 点角标，这里两条都不冲突） -->
   <div data-act="link">编辑链接<kbd>Ctrl+Shift+L</kbd></div>
   <div data-act="openlink">打开链接<kbd>Alt+Enter</kbd></div>
+  <!-- N12（v47）：节点图片 —— 一个节点一张图；画布上只画缩略图，原图靠悬停预览 / 大图浮层 -->
+  <div data-act="imgadd">插入图片…</div>
+  <div data-act="imgview">查看大图</div>
+  <div data-act="imgdel">移除图片</div>
   <div data-act="done">标记完成<kbd>Ctrl+Enter</kbd></div>
+  <!-- N8：外框（Boundary）—— 范围由所属节点决定，加在谁身上就包住谁和它的可见后代 -->
+  <div data-act="bdadd">添加外框</div>
+  <div data-act="bdedit">编辑外框标题</div>
+  <div data-act="bddel">删除外框</div>
+  <div class="swrow" id="ctx-bd">
+    <span class="mini">外框色</span>
+    <span class="sw clear" data-act="bdclr" title="取消外框的自定义颜色（回到默认紫）">清除</span>
+  </div>
+  <!-- N9：分组框 —— 框住「选中的这几个节点」。与上面「外框」的区别：那个框住谁由节点自己决定
+       （它和它的可见后代），这个框住谁由**多选**决定，可以跨分支、也可以只框几个兄弟。 -->
+  <div data-act="gbadd">为选中节点加分组框</div>
+  <div data-act="gbedit">编辑分组框标题</div>
+  <div data-act="gbdel">删除分组框</div>
+  <div class="swrow" id="ctx-gb">
+    <span class="mini">分组框色</span>
+    <span class="sw clear" data-act="gbclr" title="取消分组框的自定义颜色（回到默认紫）">清除</span>
+  </div>
+  <!-- N11：联系 —— 任意两个对象之间画一条带说明的曲线（节点 / 外框 / 概要 / 分组框都能当端点） -->
+  <div data-act="rlkadd">加联系…</div>
+  <!-- P2：概要（Summary）—— 概括同一个父节点下连续的几个兄弟，至少选两个才可用 -->
+  <div data-act="sumadd">添加概要</div>
+  <div data-act="sumedit">编辑概要标题</div>
+  <div data-act="sumdel">删除概要</div>
   <hr>
   <div data-act="copy">复制子树<kbd>Ctrl+C</kbd></div>
   <div data-act="paste">粘贴到此处<kbd>Ctrl+V</kbd></div>
@@ -1638,6 +1815,56 @@
 </div>
 <div id="dragghost"></div>
 <div id="meas" aria-hidden="true"></div>
+
+<div id="rlink" class="overlay" role="dialog" aria-modal="true" aria-labelledby="rlk-title">
+  <div class="card">
+    <div class="hd"><span id="rlk-title">加联系</span><span class="x" id="rlk-close" role="button" tabindex="0" aria-label="关闭" title="关闭">×</span></div>
+    <div class="bd">
+      <div class="lk-tip">在两个对象之间拉一条带说明的曲线：节点、外框、概要、分组框都能当端点。线画在节点之下，不会盖住文字。</div>
+      <label class="rlk-row"><span>起点</span><select id="rlk-a"></select></label>
+      <label class="rlk-row"><span>终点</span><select id="rlk-b"></select></label>
+      <label class="rlk-row"><span>说明</span><input type="text" id="rlk-t" placeholder="比如「互为依据」「此处有冲突」（可留空）" autocomplete="off"></label>
+    </div>
+    <div class="ft">
+      <span class="note">文字留空也行，之后双击连线上的小标签就能补。</span>
+      <span class="spacer"></span>
+      <button class="btn" id="rlk-cancel">取消</button>
+      <button class="btn primary" id="rlk-ok">建立联系</button>
+    </div>
+  </div>
+</div>
+
+<!-- N12（v47）：图片大图预览。缩放改的是 <img> 的宽高（不是 transform），
+     所以放到 400% 也不糊；滚轮缩放以指针为锚，拖动画布内平移。 -->
+<div id="imgview" class="overlay" role="dialog" aria-modal="true" aria-labelledby="iv-title">
+  <div class="card wide">
+    <div class="hd"><span id="iv-title">图片预览</span><span class="x" id="iv-close" role="button" tabindex="0" aria-label="关闭图片预览" title="关闭">×</span></div>
+    <div class="bd">
+      <div class="iv-bar">
+        <button class="btn" id="iv-out" aria-label="缩小" title="缩小（滚轮向下也行）">−</button>
+        <span class="iv-pct" id="iv-pct" aria-live="polite">100%</span>
+        <button class="btn" id="iv-in" aria-label="放大" title="放大（滚轮向上也行）">＋</button>
+        <button class="btn" id="iv-fit">适应窗口</button>
+        <button class="btn" id="iv-one">原始大小</button>
+        <span class="iv-info" id="iv-info"></span>
+      </div>
+      <div class="iv-wrap" id="iv-wrap"><img id="iv-img" alt="" draggable="false"></div>
+    </div>
+    <div class="ft">
+      <span class="note">滚轮缩放；按住图片拖动时，图和背后的导图一起平移；Esc 关闭。</span>
+      <span class="spacer"></span>
+      <button class="btn primary" id="iv-ok">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- N12：悬停预览（视口坐标，跟着缩略图走）+ 选图用的隐藏 input -->
+<div id="imghover" role="tooltip" aria-label="图片预览">
+  <img id="ih-img" alt="" draggable="false">
+  <div class="ih-cap" id="ih-cap"></div>
+  <div class="ih-tip"><span id="ih-pct">100%</span> · <span class="ih-hint">滚轮缩放 · 拖动平移 · 单击看大图</span></div>
+</div>
+<input type="file" id="imgfile" accept="image/*" hidden>
 
 <script>
 /* =====================================================================
@@ -2566,6 +2793,37 @@ const EN = Object.freeze({
   "，大图已按比例缩小": ", scaled down to fit",
   "已保存 SVG 矢量图（放大不模糊，可直接插入 Word / PPT / 网页）": "SVG vector saved (stays sharp at any zoom — drop it into Word / PPT / a web page)",
   "已导出 SVG 矢量图": "SVG vector exported",
+  "图片预览": "Image preview",
+  "关闭图片预览": "Close image preview",
+  "原始大小": "Actual size",
+  "滚轮缩放、按住图片拖动平移；Esc 关闭。": "Scroll to zoom, drag the image to pan, Esc to close.",
+  "滚轮缩放 · 单击看大图": "Scroll to zoom · click for the full view",
+  "插入图片…": "Insert image…",
+  "更换图片…": "Replace image…",
+  "查看大图": "View full size",
+  "移除图片": "Remove image",
+  "（图片）": "(image)",
+  "悬停看原图 · 滚轮缩放 · 单击看大图": "Hover to see the original · scroll to zoom · click for the full view",
+  "这不是图片文件": "That is not an image file",
+  "只能插入 JPG / PNG / WebP / GIF 这类图片": "Only JPG / PNG / WebP / GIF images can be inserted",
+  "图片太大（{s} MB）": "Image is too large ({s} MB)",
+  "先压到 20 MB 以内再插入": "Compress it below 20 MB first",
+  "读取图片失败": "Could not read the image",
+  "换一张图试试，或先把图片存到本地再插入": "Try another image, or save it to disk first and insert it again",
+  "这张图片解不开": "This image cannot be decoded",
+  "有些 HEIC / RAW 格式浏览器不认识，先转成 JPG 或 PNG": "Browsers do not read HEIC / RAW; convert it to JPG or PNG first",
+  "这张图片处理不了": "This image cannot be processed",
+  "浏览器没能把这个格式画出来，先转成 JPG 或 PNG": "The browser could not render this format; convert it to JPG or PNG",
+  "这张图片读不出可用数据": "No usable data in this image",
+  "换一张 JPG / PNG 试试": "Try another JPG / PNG",
+  "节点": "node",
+  "已插入图片（{w}×{h}，约 {k} KB）": "Image inserted ({w}×{h}, about {k} KB)",
+  "这张图片偏大": "This image is on the large side",
+  "图片会跟着存档一起占空间，建议先压到 1 MB 以内": "Images count against the save quota; compressing below 1 MB is recommended",
+  "移除图片「{n}」": "Remove image from “{n}”",
+  "图片已移除（文字和子树都还在）": "Image removed (the text and children are still there)",
+  "更换图片「{n}」": "Replace image of “{n}”",
+  "插入图片「{n}」": "Insert image into “{n}”",
   "各层级节点数": "Nodes per level",
   "各一级分支占比": "Share of each top-level branch",
   "当前共 {n} 个节点（屏幕上显示了 {v} 个）。文件名取自根节点名称。": "{n} nodes in total ({v} on screen). The file name comes from the root node.",
@@ -2577,6 +2835,81 @@ const EN = Object.freeze({
   "取消完成": "Unmark done",
   "给这个节点写点补充说明、链接、验收标准、待办说明…\n\n留空并保存 = 删除该备注。Ctrl+Enter 快速保存。": "Add context, links, acceptance criteria, to-dos…\n\nLeave it empty and save to delete the note. Ctrl+Enter saves instantly.",
   "把大纲、笔记、目录、会议纪要等粘贴进来…\n支持 Markdown 标题（# ## ###）、缩进/无序列表、1. / 1.1 / 1.1.1 编号、第X章 等结构": "Paste an outline, notes, a table of contents, meeting minutes…\nMarkdown headings (# ## ###), indented or bulleted lists, 1. / 1.1 / 1.1.1 numbering and “Chapter X” headings are all recognised",
+  "外框": "Boundary",
+  "添加外框": "Add boundary",
+  "编辑外框标题": "Edit boundary title",
+  "删除外框": "Remove boundary",
+  "外框色": "Frame",
+  "外框标题（双击改）": "Boundary title (double-click to edit)",
+  "外框「{t}」": "Boundary “{t}”",
+  "加外框「{n}」": "Add boundary “{n}”",
+  "删外框「{n}」": "Remove boundary “{n}”",
+  "改外框标题：{x}": "Rename boundary: {x}",
+  "改外框颜色「{n}」": "Recolor boundary “{n}”",
+  "已加外框 · 双击框上的标题可以写名字": "Boundary added · double-click its title to name it",
+  "外框已删（节点和它的子树都还在）": "Boundary removed — the node and its subtree stay",
+  "把外框改成这个颜色": "Recolor the boundary",
+  "取消外框的自定义颜色（回到默认紫）": "Reset the frame color to the default",
+  "添加概要": "Add summary",
+  "编辑概要标题": "Edit summary title",
+  "删除概要": "Remove summary",
+  "概要": "Summary",
+  "概要（概括左边那几个节点）": "Summary (covers the nodes on its left)",
+  "请先选中同一个父节点下的 2 个以上节点（Ctrl+点击可加选）": "Select two or more siblings under the same parent first (Ctrl+click to add)",
+  "加概要（概括 {c} 个节点）": "Add summary over {c} nodes",
+  "删概要「{n}」": "Remove summary “{n}”",
+  "概要已删 · 被它概括的那些节点都还在": "Summary removed — the nodes it covered are untouched",
+  "概要主题的位置由它概括的节点决定，不能上下移": "A summary sits where the nodes it covers sit, so it cannot be moved up or down",
+  "再往下就是概要主题了": "The next one down is the summary",
+  "概要主题不能整个拖走（它属于那个父节点）": "A summary cannot be dragged away — it belongs to that parent",
+  "概要主题不能再加同级（删了重挂概要即可）": "A summary cannot take a sibling — remove it and add a new one instead",
+  "为选中节点加分组框": "Group the selected nodes",
+  "编辑分组框标题": "Edit group frame title",
+  "删除分组框": "Remove group frame",
+  "分组框色": "Group color",
+  "把分组框改成这个颜色": "Recolor the group frame",
+  "取消分组框的自定义颜色（回到默认紫）": "Clear the group frame color (back to the default purple)",
+  "分组框": "Group frame",
+  "分组框「{t}」": "Group frame “{t}”",
+  "分组框标题（双击改）": "Group title (double-click to rename)",
+  "给 {n} 个节点加分组框": "Add a group frame for {n} node||Add a group frame for {n} nodes",
+  "删分组框（{n} 个节点）": "Remove group frame ({n} node)||Remove group frame ({n} nodes)",
+  "先选中两个以上的节点": "Select two or more nodes first",
+  "已加分组框 · 双击框上的标题可以写名字": "Group frame added — double-click its title to name it",
+  "分组框已删（节点都还在）": "Group frame removed — all nodes are still there",
+  "改分组框颜色": "Recolor the group frame",
+  "分组框恢复默认颜色": "Reset the group frame color",
+  "改分组框标题：{x}": "Rename group frame: {x}",
+  "联系": "Relationship",
+  "加联系": "Add relationship",
+  "加联系…": "Add relationship…",
+  "联系（双击写说明）": "Relationship (double-click to describe)",
+  "删除这条联系": "Delete this relationship",
+  "改联系说明：{x}": "Edit relationship label: {x}",
+  "节点「{t}」": "Node “{t}”",
+  "概要「{t}」": "Summary “{t}”",
+  "画布上还没有两个能连的对象": "The canvas does not have two connectable objects yet",
+  "起终点没选好": "Pick both ends first",
+  "起点和终点是同一个对象": "Start and end are the same object",
+  "换一个端点，才有「联系」可言": "Pick a different end — a relationship needs two",
+  "加联系：{a} → {b}": "Add relationship: {a} → {b}",
+  "删除联系：{a} → {b}": "Delete relationship: {a} → {b}",
+  "已加联系": "Relationship added",
+  "已加联系「{x}」": "Relationship added: “{x}”",
+  "双击连线上的小标签可以补一句说明": "Double-click the small label on the line to add a note",
+  "起点": "Start",
+  "终点": "End",
+  "说明": "Label",
+  "在两个对象之间拉一条带说明的曲线：节点、外框、概要、分组框都能当端点。线画在节点之下，不会盖住文字。": "Draw a labelled curve between two objects — nodes, boundaries, summaries and group frames can all be endpoints. The curve is drawn beneath the nodes, so text stays readable.",
+  "比如「互为依据」「此处有冲突」（可留空）": "e.g. “cross-references this” or “conflicts here” (optional)",
+  "文字留空也行，之后双击连线上的小标签就能补。": "You can leave it empty and fill it in later by double-clicking the small label on the curve.",
+  "建立联系": "Create relationship",
+  "调整联系弧度": "Adjust relationship curve",
+  "拖动曲线可以把它拉离遮挡；双击小标签可以补一句说明": "Drag the curve to pull it clear of anything covering it; double-click its label to add a note",
+  "原图": "Original",
+  "原图已按原样保存，放大和导出都用它": "Original saved as-is; zoom and exports use this copy",
+  "滚轮缩放；按住图片拖动时，图和背后的导图一起平移；Esc 关闭。": "Scroll to zoom; dragging the image pans the image and the map behind it; Esc to close.",
+  "滚轮缩放 · 拖动平移 · 单击看大图": "Scroll to zoom · drag to pan · click for the full view",
   /*<</EN>>*/
 });
 
@@ -2640,6 +2973,13 @@ const DATA = {
   text: "中心主题",
   children: []
 };
+
+/* v50：导出的独立网页把原图内联在这里（{ oid: dataURL }）。
+   源文件里恒为空对象；启动 imgBootInline() 会把里面的内容灌回本源 IndexedDB。
+   和 DATA 一样由 buildStandaloneHtml() 整块替换，请勿改动这一行的写法。 */
+const IMG_DATA = {
+};
+/*<<IMG_DATA_END>>*/
 
 /* =====================================================================
    文档解析：把 Markdown / 文本 / 编号大纲 转成树
@@ -3071,6 +3411,31 @@ function parseDoc(raw, opts){
 /* 节点宽度：可被顶部「宽度」下拉改写（auto 档由每个节点实测宽度决定列宽） */
 let   NODE_W = 260;
 const GAP_X = 64, GAP_Y = 12, MIN_H = 46;
+/* N8：外框往四周外扩多少。v46 从 14 提到 20 —— 用户报「框线离节点太贴近」，
+   14px 在 2.4px 的粗虚线旁边只剩一圈很窄的白，看着像画在卡片边上。
+   而 GAP_X=64 远大于它，框的右沿伸进列间隙也压不到下一列，所以列模型一行都不用改。 */
+const BD_PAD = 20;
+/* 框沿与「不属于这个框的」卡片 / 另一个框之间要留的最小距离。
+   它才是「框和框不贴在一起」的那个数：两个都带外框的兄弟之间
+   = 2×BD_PAD + FRAME_CLEAR，而不是傻补一个 GAP_Y。 */
+const FRAME_CLEAR = 20;
+/* N9：分组框（框住一组节点）的留白。取 36 = BD_PAD(20) + 16：
+   ① 要装得下框内顶部那条标题带（标题 21px + 边框 2.6px + 2px 呼吸）；
+   ② 组里若有节点自带外框，两层框之间还得剩 16px —— 26/14 那版只剩 12px，视觉上就是两根线并排。 */
+const GB_PAD = BD_PAD + 16;
+/* N9：分组框要让位的缝。v48 起既不是一个固定常量，也不在兄弟之间补 ——
+   改成「块本身就把自己那层框吃进去」（framePadOf），兄弟之间只剩 FRAME_CLEAR 一件事。
+   于是父节点的外框自然包得住子节点的组框，两条虚线不会再交叉。 */
+/* N10：框的两种颜色 —— 线更深，框内同色但浅，一眼能分出「这是一片区域」。
+   v44 第一版取 14% / 7.5% / 10%，实测在浅色画布上几乎看不见（用户报「太浅了」），
+   于是加深到 32% / 13% / 18%：描边已经是一根有分量的深色线，框内是一片能看出来的淡色区域。
+   两者仍保持「线比底深」的层次，节点文字没有被抢走注意力（框画在节点之下）。 */
+const FRAME_FILL_BD = 0.20, FRAME_FILL_GB = 0.24;
+function frameEdge(col){ return mix(col, '#000000', 0.45); }
+const BD_COLORS = ['#7F77DD', '#1D9E75', '#D85A30', '#378ADD', '#BA7517'];
+/* P2：概要（Summary）的三段留白 —— 括线离节点右沿、概要主题离括线、概要子树自身的列间距。
+   括线要比外框贴得紧（它是一根线，不是一块面），所以只给 10。 */
+const SUM_BRACKET = 10, SUM_LINK = 16;
 const NODE_W_PRESETS = { n:210, m:260, w:330, x:420, auto:260 };
 /* 每一层的列起点，在 render 里按实测宽度算好（固定档位时各列等宽，结果与旧逻辑完全一致） */
 let colX = [];
@@ -3278,7 +3643,8 @@ function markOf(n){ return (n && n.mark && MARK_BY[n.mark]) || null; }
    除非每次改动都向上逐级重算（漏一处就永久错），而现算永远和事实一致，也省掉一次数据迁移。 */
 function doneStat(n){
   let done = 0, total = 0;
-  (function w(x){ x.children.forEach(k => { total++; if(k.done === true) done++; w(k); }); })(n);
+  /* P2：概要主题是标注、不是任务 —— 它（和它下面挂的东西）不算进分支完成度 */
+  (function w(x){ x.children.forEach(k => { if(k.sum) return; total++; if(k.done === true) done++; w(k); }); })(n);
   return { done, total };
 }
 function donePct(s){ return s.total ? Math.round(s.done / s.total * 100) : 0; }
@@ -3360,6 +3726,47 @@ function build(src, depth){
   /* N3：链接原样收下（哪怕是 javascript: 也不在打开时丢数据），
      「能不能用」由 linkKind/linkHref 在**渲染与导出那一刻**判 —— 挡住的是输出，不是数据。 */
   if(linkNorm(src.link)) n.link = linkNorm(src.link);
+  /* N8：外框 { t:标题, c:颜色 }。挂在节点上 —— 删节点，框自然没了，不需要任何引用清理。
+     颜色只收 6 位十六进制（它要被写进 style，不能让外部文件塞进任意字符串）。 */
+  if(src.bd && typeof src.bd === 'object') n.bd = { t: bdTitle(src.bd.t), c: bdColor(src.bd.c) };
+  /* N9：分组框成员标记 —— 节点上只存一个组 id，组定义在根节点的 groups 里。
+     指向不存在的组时由 normGroups() 丢掉；粘贴出来的子树天然落在这一类
+     （粘贴只带节点、不带根上的 groups），所以「复制出来的不带组」不需要额外写一行。 */
+  if(typeof src.gb === 'string' && /^[A-Za-z0-9_-]{1,24}$/.test(src.gb)) n.gb = src.gb;
+  if(typeof src.uid === 'string' && /^[A-Za-z0-9_-]{1,24}$/.test(src.uid)) n.uid = src.uid;   // N11
+  /* N12（v47）：图片 { src:dataURL, w, h, n:文件名 }。只认内嵌的图片 data URL ——
+     外链（http/file）会让「断网可用 + 单文件」这两条承诺同时失效，所以一律不收。 */
+  if(src.img){ const g = imgOk(src.img); if(g) n.img = g; }
+  if(Array.isArray(src.links) && src.links.length){                                            // N11
+    const ok = e => e && typeof e === 'object' && ['node','bd','sum','grp'].indexOf(e.k) >= 0 &&
+                    typeof e.id === 'string' && /^[A-Za-z0-9_-]{1,24}$/.test(e.id);
+    const ls = src.links.filter(l => l && typeof l.id === 'string' && ok(l.a) && ok(l.b))
+                        .map(l => {
+                          const one = { id: l.id.slice(0, 24), t: bdTitle(l.t),
+                                        a: { k: l.a.k, id: l.a.id }, b: { k: l.b.k, id: l.b.id } };
+                          /* N11-b：外部文件里的 bend / shift 只认真正的数字（NaN / 字符串 / 天文数字都
+                             挡在外面）。注意 0 是合法值 —— 它表示「拉直 / 不偏」，与「没拖过」不是一回事。 */
+                          if(typeof l.bend === 'number' && isFinite(l.bend))
+                            one.bend = Math.round(clamp(l.bend, -900, 900) * 10) / 10;
+                          /* v51：切向偏移（弧顶沿弦方向左右挪），净化口径与 bend 完全一致 */
+                          if(typeof l.shift === 'number' && isFinite(l.shift))
+                            one.shift = Math.round(clamp(l.shift, -900, 900) * 10) / 10;
+                          return one;
+                        });
+    if(ls.length) n.links = ls;
+  }
+  /* N9：分组框定义（只可能长在根节点上）。这里原样收下 —— 净化交给 normGroups()：
+     导入文件 / 手改 JSON / 粘贴子树都走同一条收口，不在这里再写一份校验。 */
+  if(Array.isArray(src.groups) && src.groups.length) n.groups = src.groups;
+  /* P2：概要 { a, b } —— 覆盖「本节点第 a..b 个**真实子节点**」的连续区间。
+     概要主题本身也是一个节点（进 children、末尾），所以选中 / 编辑 / 加子节点 / 复制
+     全部白拿；a/b 只在布局与括线两处被读。越界的区间由 clampSums() 收口。 */
+  if(src.sum && typeof src.sum === 'object'){
+    const rawA = parseInt(src.sum.a, 10), rawB = parseInt(src.sum.b, 10);
+    const a = isFinite(rawA) ? Math.max(0, rawA) : 0;
+    const b = isFinite(rawB) ? Math.max(a, rawB) : a;
+    n.sum = { a, b };
+  }
   n.children.forEach(c => c.parent = n);
   return n;
 }
@@ -3370,6 +3777,31 @@ function serialize(n){
   if(n.mark) o.mark = n.mark;
   if(n.done === true) o.done = true;                   // N2：没勾的节点不长这个字段
   if(linkNorm(n.link)) o.link = linkNorm(n.link);      // N3：没挂链接的节点同样不长这个字段
+  if(n.bd) o.bd = { t: bdTitle(n.bd.t), c: bdColor(n.bd.c) };   // N8：外框随子树一起复制 / 克隆 / 粘贴
+  if(n.sum) o.sum = { a: n.sum.a, b: n.sum.b };                 // P2：概要随子树一起走（区间是相对父节点算的）
+  if(n.gb) o.gb = n.gb;                                         // N9：组成员标记（组定义只在根上，见下一行）
+  if(n.uid) o.uid = n.uid;                                       // N11：联系端点的稳定 id（只有当端点时才发）
+  /* N12 / v50：图片随子树一起复制 / 克隆 / 粘贴 / 存档。src/w/h 是**轻量副本**（供布局与缩略图），
+     oid 只是个短 id（原图字节在 IndexedDB，不进文档、不进撤销快照），ow/oh/os 供放大时算尺寸。
+     不存 w/h 就得等图片解码完才知道多大，布局会跳一下 —— 这一条从 v47 起没变。 */
+  if(n.img){
+    o.img = { src: n.img.src, w: n.img.w, h: n.img.h };
+    if(n.img.n) o.img.n = n.img.n;
+    if(n.img.oid) o.img.oid = n.img.oid;
+    if(n.img.ow && n.img.oh){ o.img.ow = n.img.ow; o.img.oh = n.img.oh; }
+    if(n.img.os) o.img.os = n.img.os;
+  }
+  if(n.links && n.links.length){                                 // N11：联系定义挂根节点
+    o.links = n.links.map(l => {
+      const one = { id: l.id, t: bdTitle(l.t), a: { k: l.a.k, id: l.a.id }, b: { k: l.b.k, id: l.b.id } };
+      if(typeof l.bend === 'number' && isFinite(l.bend)) one.bend = l.bend;   // N11-b：拖出来的法线弧度
+      if(typeof l.shift === 'number' && isFinite(l.shift)) one.shift = l.shift; // v51：拖出来的切向偏移
+      return one;
+    });
+  }
+  if(n.groups && n.groups.length){                              // N9：分组框定义挂根节点 —— 不进撤销以外的任何地方
+    o.groups = n.groups.map(g => ({ id: g.id, t: bdTitle(g.t), c: bdColor(g.c) }));
+  }
   if(n.children.length){ o.collapsed = !!n.collapsed; o.children = n.children.map(serialize); }
   return o;
 }
@@ -3764,24 +4196,37 @@ function shiftSubtree(n, dy){
   n.y += dy;
   if(!n.collapsed) n.children.forEach(c => shiftSubtree(c, dy));
 }
-function layout(node, depth, yTop){
+function layout(node, depth, yTop, gbPrev, gbNext){
   /* 折叠的、以及被「显示到第 N 层」挡住的子树都不该再占纵向空间，
      否则限制层级后可见节点会被看不见的子树撑得很散 */
-  const kids = (node.collapsed || isCut(node)) ? [] : node.children;
+  /* N8：带框的节点自己吃掉上下各 pad，子树整体往下挪 —— 兄弟分支也就跟着让位了。
+     v48：pad 不再只认外框 —— 有分组框时组框才是最外层，要按 GB_PAD 让（见 padSide）。
+     同一个组里的相邻兄弟，朝内的那一侧不再留 GB_PAD（组框在那一侧本来就连着）——
+     不留的话，框住两个兄弟会把它们推开 72px。 */
+  const pT = padSide(node, gbPrev), pB = padSide(node, gbNext);
+  /* P2：概要主题不参与正常折行 —— 它的位置由「所覆盖区间的右沿」反推，
+     硬当普通子节点排进去会把它塞进子节点那一列，还把父节点的居中算歪 */
+  const kids = (node.collapsed || isCut(node)) ? [] : node.children.filter(c => !c.sum);
   node.x = colX[depth] || 0;
-  if(!kids.length){ node.y = yTop + node.h / 2; return node.h; }
-  let cursor = yTop;
+  if(!kids.length){ node.y = yTop + pT + node.h / 2; return node.h + pT + pB; }
+  let cursor = yTop + pT;
   kids.forEach((c, i) => {
-    cursor += layout(c, depth + 1, cursor);
-    if(i < kids.length - 1) cursor += GAP_Y;
+    /* v48：块 = 「这一支在画面上真正占的高度」，**它自己那层框也算在里面**。
+       于是父节点的外框自然包得住子节点的组框，兄弟之间只剩 FRAME_CLEAR 一件事 ——
+       以前在兄弟之间补 ext 的做法只管得了隔壁那一支，管不了「爸爸的框」。 */
+    const prev = kids[i - 1], next = kids[i + 1];
+    cursor += layout(c, depth + 1, cursor,
+                     !!(prev && c.gb && prev.gb === c.gb),      // 上面紧挨着同一组的成员
+                     !!(next && c.gb && next.gb === c.gb));     // 下面紧挨着同一组的成员
+    if(i < kids.length - 1) cursor += Math.max(GAP_Y, FRAME_CLEAR);
   });
-  let total = cursor - yTop;
+  let total = cursor - (yTop + pT);
   if(total < node.h){
     kids.forEach(c => shiftSubtree(c, (node.h - total) / 2));
     total = node.h;
   }
   node.y = (kids[0].y + kids[kids.length - 1].y) / 2;
-  return total;
+  return total + pT + pB;
 }
 
 /* ---------- C3：多布局（先做组织结构图） ----------
@@ -3790,30 +4235,71 @@ function layout(node, depth, yTop){
      x = 节点左沿，y = 节点垂直中心。
    于是 render 的定位、bounds / fitWidth / ensureVisible / 缩略图 / 框选命中
    全都不用动，要改的只有两件事 ——「x/y 怎么算」和「连线从哪条边出去」。 */
-const ORG_GAP_Y = 44;                 // 上下层之间的呼吸空间（横向的 GAP_Y=12 在纵向太挤）
+/* 上下层之间的呼吸空间（横向的 GAP_Y=12 在纵向太挤）。
+   v46 跟 BD_PAD 一起从 44 提到 52：两层各 20px 的框留白之后，44 只剩 4px 给框线自己。 */
+const ORG_GAP_Y = 52;
 
 /* 行高按「这一层最高的那个节点」取，同层节点才会对得齐 —— 否则每个节点各自居中，
    一行看上去就是波浪线。 */
+/* v48：行的上下也可能有框沿。行距 = max(ORG_GAP_Y, FRAME_CLEAR + 上一行框往下冒 + 下一行框往上冒)。
+   只按 ORG_GAP_Y=52 的话，两个分组框（各 36）会叠进去 20px —— 纵向布局里最刺眼的那种交叠。 */
+function orgFrameOv(n){ return framePadOf(n); }
+function orgSpanOf(n){ return orgSpan.get(n) || (n.w || NODE_W); }
 function orgRowY(){
-  const rh = [];
-  flat.forEach(n => { rh[n.depth] = Math.max(rh[n.depth] || 0, n.h || MIN_H); });
+  const rh = [], ovT = [], ovB = [];
+  flat.forEach(n => {
+    if(n.sum || n.__inSum) return;          // P2：概要自成一片，不参与「这一层多高」的计算
+    const d = n.depth;
+    rh[d] = Math.max(rh[d] || 0, n.h || MIN_H);
+    if(n.bd || n.gb){
+      const o = orgFrameOv(n);
+      ovT[d] = Math.max(ovT[d] || 0, o);
+      ovB[d] = Math.max(ovB[d] || 0, o);
+    }
+  });
   const y = [];
   let cur = 0;
-  for(let d = 0; d < rh.length; d++){ y[d] = cur + rh[d] / 2; cur += rh[d] + ORG_GAP_Y; }
+  for(let d = 0; d < rh.length; d++){
+    y[d] = cur + rh[d] / 2;
+    cur += rh[d] + Math.max(ORG_GAP_Y, FRAME_CLEAR + (ovB[d] || 0) + (ovT[d + 1] || 0));
+  }
   return y;
 }
 /* 每棵子树横向要占多宽（先量再摆，两趟）。只在本轮布局里用 —— 不写进节点，
    免得跟着 serialize 到处跑，也免得跟 __cut 这类「渲染标记」混在一起。 */
 const orgSpan = new Map();
-function orgMeasure(n){
+/* v48：一排孩子从最左到最右占多宽，以及每个孩子的起点。
+   「左让 / 右让」只在首尾两个孩子上出现（组框往这一排的外侧冒），中间靠 orgGap 现算。
+   量（orgMeasure）与摆（place）必须用同一个函数 —— 两边各写一份，量出来的和摆出来的迟早会差。 */
+function orgGap(a, b){ return Math.max(GAP_X, FRAME_CLEAR); }
+function orgKids(kids){
+  const offs = [];
+  let x = 0;
+  kids.forEach((c, i) => {
+    const prev = kids[i - 1], next = kids[i + 1];
+    const samePrev = !!(prev && c.gb && prev.gb === c.gb);   // 左边紧挨着同一组的成员
+    const sameNext = !!(next && c.gb && next.gb === c.gb);   // 右边紧挨着同一组的成员
+    if(!samePrev) x += padSide(c, false);
+    offs.push(x);
+    x += orgSpanOf(c);
+    if(!sameNext) x += padSide(c, false);
+    if(i < kids.length - 1) x += orgGap(c, kids[i + 1]);
+  });
+  return { offs: offs, w: x };
+}
+/* 一个节点的「内容跨度」= 卡片自己 or 孩子那一排（**不含它自己的框**）。
+   框的留白由**父级**在 orgKids 里加（左 / 右分开算）—— 只在这里加一个对称的数，
+   同组相邻兄弟会被推开两倍的 GB_PAD。 */
+function orgContent(n){
   const w = n.w || NODE_W;
-  const kids = (n.collapsed || isCut(n)) ? [] : n.children;
-  let total = w;
-  if(kids.length){
-    let sum = 0;
-    kids.forEach((c, i) => { sum += orgMeasure(c); if(i < kids.length - 1) sum += GAP_X; });
-    total = Math.max(w, sum);
-  }
+  const kids = (n.collapsed || isCut(n)) ? [] : n.children.filter(c => !c.sum);   // P2：概要另算
+  if(!kids.length) return w;
+  return Math.max(w, orgKids(kids).w);
+}
+function orgMeasure(n){
+  const kids = (n.collapsed || isCut(n)) ? [] : n.children.filter(c => !c.sum);   // P2：概要另算
+  kids.forEach(orgMeasure);
+  const total = orgContent(n);
   orgSpan.set(n, total);
   return total;
 }
@@ -3823,19 +4309,18 @@ function layoutOrg(){
   orgMeasure(root);
   (function place(n, xLeft, depth){
     const w = (n.w || NODE_W);
-    const span = orgSpan.get(n) || w;
-    const kids = (n.collapsed || isCut(n)) ? [] : n.children;
+    const span = orgSpanOf(n);
+    const kids = (n.collapsed || isCut(n)) ? [] : n.children.filter(c => !c.sum);   // P2：概要另算
     n.y = rowY[depth] || 0;
-    if(!kids.length){ n.x = xLeft + (span - w) / 2; return; }
-    let sum = 0;
-    kids.forEach((c, i) => { sum += orgSpan.get(c) || 0; if(i < kids.length - 1) sum += GAP_X; });
-    let cx = xLeft + (span - sum) / 2;
-    kids.forEach(c => { place(c, cx, depth + 1); cx += (orgSpan.get(c) || 0) + GAP_X; });
+    if(!kids.length){ n.x = xLeft; return; }
+    const lay = orgKids(kids);
+    const ox = (span - lay.w) / 2;
+    kids.forEach((c, i) => place(c, xLeft + ox + lay.offs[i], depth + 1));
     /* 父节点居中在首尾子节点的中点上（不是整块跨度的中点）—— 这样一枝独苗也不会歪到一边 */
     const a = kids[0], b = kids[kids.length - 1];
     const mid = ((a.x + (a.w || NODE_W) / 2) + (b.x + (b.w || NODE_W) / 2)) / 2;
     n.x = mid - w / 2;
-  })(root, 0, 0);
+  })(root, padSide(root, false), 0);
 }
 function layoutTree(){
   if(isVert()) layoutOrg();
@@ -4541,7 +5026,7 @@ function renderOutline(){
     tri.textContent = n.children.length ? (n.collapsed ? '▸' : '▾') : '·';
     const tx = document.createElement('span');
     tx.className = 'otxt';
-    tx.textContent = n.text || tr('（空）');
+    tx.textContent = nodeLabel(n) || tr('（空）');   // N12：只有图的节点不能显示成「（空）」
     row.appendChild(tri);
     /* N2：行首勾选框。点它只改完成态，不触发「定位」——
        所以 stopPropagation 必须放在前面，否则 200ms 后那记定位还是会把画布带跑。 */
@@ -5006,6 +5491,11 @@ async function wsExport(){
   saveNow();                 // 打包要含「刚改完还没落盘」的那一份
   const pkg = wsPackage();
   if(!pkg.slots.length){ toast(tr('工作区里还没有可导出的内容')); return; }
+  /* v50：多页签包把所有槽引用到的原图一起内联，仍然是**一个 .json** */
+  const ids = new Set();
+  pkg.slots.forEach(s => imgCollectOids(s.doc, ids));
+  const images = await imgInlineFor(ids);
+  if(Object.keys(images).length) pkg.images = images;
   const d = new Date(), p = n => String(n).padStart(2, '0');
   const stamp = d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes());
   const name = trf('工作区-{n}个页签-{t}.json', { n: pkg.slots.length, t: stamp });
@@ -5028,6 +5518,8 @@ function wsParsePackage(obj){
 function wsImportObject(obj){
   const err = wsParsePackage(obj);
   if(err){ toastErr(tr('导入工作区包失败'), trf('{e}。单张导图的 .json 请用顶部「打开」', { e: err })); return 0; }
+  /* v50：多页签包里的原图一次灌回；「打开 / 拖进来 / 面板导入」三条路都走这个函数 */
+  if(obj.images && typeof obj.images === 'object') imgBootInline(obj.images);
   const slots = readSlots();
   const room  = SLOT_MAX - Object.keys(slots).length;
   if(room <= 0){
@@ -5390,19 +5882,25 @@ function cancelRenderSoon(){
 
 function render(){
   cancelRenderSoon();                          // 马上要同步渲了，排队的那次别再白跑一趟
+  imgHoverHide();                              // N12：节点元素要重建了，悬停预览先收掉（别挂在一个已经消失的缩略图上）
   const __t0 = nowMs();
   const __ed = captureEditing();
   if(findQuery) findCompute();
+  clampTree(root);                             // P2：结构改动后的区间收口，统一在渲染前跑一次
+  normGroups(root);                            // N9：分组框收口（无效组 / 孤儿 gb / 单人组），同一处一次
+  normLinks(root);                             // N11：联系收口（端点没了 / 组没了 / 自连 / 重复 id）
   flat = [];
-  (function walk(n){
+  (function walk(n, inSum){
     flat.push(n);
+    /* P2：概要素材的整棵子树都不进全局列 —— 它们自成一片，x 由 placeSums 现推 */
+    n.__inSum = !!inSum;
     const cut = isCut(n);
     n.__cut = cut;
     /* 「只看命中」时，既没命中、子孙里也没有命中的分支不再往下展开 */
     const fblock = !!(findFilter && findQuery && n.children.length && !n.collapsed && !cut && !n.__hasHit);
     n.__fcut = fblock;
-    if(!n.collapsed && !cut && !fblock) n.children.forEach(walk);
-  })(root);
+    if(!n.collapsed && !cut && !fblock) n.children.forEach(c => walk(c, inSum || !!n.sum));
+  })(root, false);
   /* 换 DOM 前后把 blur 闸门关一下（详见 rebuildingDOM 的说明） */
   rebuildingDOM = true;
   try{
@@ -5428,16 +5926,23 @@ function render(){
     });
     /* 列起点：按每层实测最宽节点推算（固定档位时各列等宽，结果与旧的 depth*(NODE_W+GAP_X) 完全一致） */
     const colW = [];
-    flat.forEach(n => { colW[n.depth] = Math.max(colW[n.depth] || 0, n.w || NODE_W); });
+    flat.forEach(n => {
+      if(n.sum || n.__inSum) return;          // P2：概要与它的子树不参与列宽，否则整张图会被撑歪
+      colW[n.depth] = Math.max(colW[n.depth] || 0, n.w || NODE_W);
+    });
     colX = [];
     for(let d = 0; d < colW.length; d++) colX[d] = d ? (colX[d - 1] + (colW[d - 1] || NODE_W) + GAP_X) : 0;
     layoutTree();                              // C3：左→右 / 上→下，由 layoutMode 决定
+    placeSums();                               // P2：概要主题与它的子树（依赖上面算好的兄弟坐标）
     flat.forEach(n => {
       n.el.style.left   = n.x + 'px';
       n.el.style.top    = (n.y - n.h / 2) + 'px';
       n.el.style.height = n.h + 'px';
     });
     drawEdges();
+    renderFrames();                        // N8：外框（节点定位完成后才算得出包围盒）
+    drawLinks();                           // N11：联系曲线（节点之下、连线之上）
+    renderLinkLabels();                    // N11：联系标签（贴在节点之上，要能点）
   }finally{
     rebuildingDOM = false;
   }
@@ -5492,6 +5997,15 @@ function nodeSkin(n){
   const c = hl || branchColor(n);
   const m = THEME_META[theme] || THEME_META.light;
   const base = m.base || '#ffffff';
+  /* P2：概要不跟「层级」走，跟「它是概括」走 —— 深浅主题都给一块明显着色的底 + 实色描边。
+     普通浅层节点是 .88（几乎白），这里 .70，差出来的 18% 就是「一眼看出不一样」的那口气。
+     深色主题同理：底色在 surface 里掺 30% 分支色，比深层普通节点的纯色底亮一档。 */
+  if(n.sum){
+    const surf = m.dark ? (m.surface || '#0f1420') : base;
+    /* 深浅主题各比「普通浅层节点」重一档：浅色 0.88 → 0.70，深色 0.70 → 0.55。
+       深色主题不能直接抄 0.70 —— 那正好等于深层普通节点的底色，概要就白染了。 */
+    return { bd: c, bl: c, bg: mix(c, surf, m.dark ? .55 : .70) };
+  }
   if(m.dark){
     const surf = m.surface || '#0f1420';
     /* 高亮的：整条分支都给实色边框 + 带色底，深层也一样（否则只有连线变色，节点看着没反应） */
@@ -5518,6 +6032,7 @@ function hexOf(c){
 function makeEl(n){
   const el = document.createElement('div');
   el.className = 'node' + (n.depth === 0 ? ' root' : (n.children.length ? ' branch' : ' leaf'));
+  if(n.sum) el.classList.add('sum');          // P2：概要主题 —— 位置与括线配对，外观不特殊处理
   if(n.depth > 0){
     const sk = nodeSkin(n);
     el.style.borderColor    = sk.bd;
@@ -5527,6 +6042,22 @@ function makeEl(n){
   el.innerHTML = '<div class="txt">' + escapeHtml(n.text) + '</div>' +
                  '<div class="clipmark" title="' + tr('文字被截断，双击节点可查看 / 编辑完整内容') + '">⋯</div>' +
                  (n.note ? '<div class="notemark" title="' + escapeHtml(trf('备注：{x}', { x: clip(n.note, 120) })) + '">✎</div>' : '');
+  /* N12：有图就把缩略图插到最前面（.hasimg 把节点改成上下两段；没有文字时 .txt 是空的，
+     CSS 里 :empty 直接不占位）。图挂在 n.img 上 —— 复制 / 粘贴 / 撤销 / 存档全自动带上。 */
+  if(n.img){
+    el.classList.add('hasimg');
+    const th = document.createElement('div');
+    th.className = 'thumb';
+    th.title = (n.img.n ? n.img.n + ' · ' : '') + imgDim(n) +
+               '\n' + tr('悬停看原图 · 滚轮缩放 · 单击看大图');
+    const im = document.createElement('img');
+    im.setAttribute('src', n.img.src);
+    im.setAttribute('alt', n.img.n || tr('图片'));
+    im.setAttribute('draggable', 'false');
+    th.appendChild(im);
+    th.__node = n;
+    el.insertBefore(th, el.firstChild);
+  }
   /* N5：语义图标挂在「左上角」——备注角标在右上角、截断角标在左下角，三处互不叠字。
      追加而不是塞进上面那串：纯绝对定位，不参与 offsetHeight 实测，tidy-tree 的列宽一个像素都不变。 */
   const mk = markOf(n);
@@ -5549,12 +6080,15 @@ function makeEl(n){
     if(nm) nm.classList.add('shift');
   }
 
-  /* 无障碍 + 悬停看全文：节点里被 clamp 掉的字，至少鼠标移上去能看到 */
+  /* 无障碍 + 悬停看全文：节点里被 clamp 掉的字，至少鼠标移上去能看到。
+     N12：只有图没有字的节点，标题不能是空串 —— 用 nodeLabel 兜一句「（图片）」。 */
   el.setAttribute('role', 'treeitem');
   el.setAttribute('aria-level', String(n.depth + 1));
   el.setAttribute('aria-selected', n === selected ? 'true' : 'false');
   if(n.children.length) el.setAttribute('aria-expanded', (n.collapsed || n.__cut || n.__fcut) ? 'false' : 'true');
-  el.title = n.text + (n.note ? '\n\n' + trf('备注：{x}', { x: n.note }) : '');
+  el.title = nodeLabel(n) + (n.note ? '\n\n' + trf('备注：{x}', { x: n.note }) : '');
+  if(n.img) el.title += (el.title ? '\n' : '') + '🖼 ' + (n.img.n || tr('图片')) + ' · ' + imgDim(n);
+  if(n.sum) el.title = tr('概要（概括左边那几个节点）') + '\n' + el.title;
   if(mk) el.title = tr(mk.label) + ' ' + mk.ic + '\n' + el.title;
   if(n.done === true) el.title = tr('✓ 已完成') + '\n' + el.title;
   /* N3：悬停就看到目标地址 —— 不用点开才知道这个节点跳到哪 */
@@ -5634,13 +6168,2193 @@ function makeEl(n){
     else selectNode(n);
   });
   el.addEventListener('dblclick', e => { e.stopPropagation(); selectNode(n); startEdit(n); });
-  el.addEventListener('contextmenu', e => { e.preventDefault(); e.stopPropagation(); selectNode(n); showCtx(e.clientX, e.clientY); });
+  el.addEventListener('contextmenu', e => {
+    e.preventDefault(); e.stopPropagation();
+    /* P2：在多选状态下右键其中一员，别把多选清掉 —— 「添加概要」要的正是这一批 */
+    if(selectedSet.has(n) && selectedSet.size > 1){
+      selected = n; syncSelectionUI(); refreshBar();
+    }else selectNode(n);
+    showCtx(e.clientX, e.clientY);
+  });
   if(selectedSet.has(n)) el.classList.add(n === selected ? 'selected' : 'multi');   // B6：主节点实线、其余蓝圈
   n.el = el;
   el.__node = n;                            // 反查用：拖拽时靠 elementFromPoint 找到节点
   return el;
 }
 
+/* ====== N8：外框（Boundary） BEGIN ======
+   三句话的设计前提：
+   ① 字段挂在节点上（bd:{t,c}），跟着节点走 —— 复制 / 克隆 / 粘贴自动带上，
+      删节点框自然消失，全程不需要任何引用清理；
+   ② 布局只「预留空间」，不引入新的一列 —— 外框要的是留白，不是层级，
+      所以 colX / colW 一行都不用改；
+   ③ 渲染走独立一层 #frames，压在连线与节点之下，框体不吃点击、只有标题可点。
+   范围（本版刻意不做）：不做多选批量加框、不做嵌套限深、不做框上拖拽改范围。 */
+var framesLayer = null;                    // var + 惰性取：render 万一被更早调用也不会踩 TDZ
+function framesEl(){
+  if(!framesLayer) framesLayer = document.getElementById('frames');
+  return framesLayer;
+}
+/* 标题 / 颜色的净化：外框的颜色要写进 style，标题要写进 DOM —— 外部文件带进来的
+   任意字符串不能原样落地。两处收口，build() 与 bdAdd 都走这里。 */
+function bdTitle(v){ return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, 60); }
+function bdColor(v){
+  const s = String(v == null ? '' : v);
+  return /^#[0-9a-fA-F]{6}$/.test(s) ? s : null;
+}
+/* 卡片并集：节点自己 + 全部**可见**后代，**不含任何框**。
+   折叠 / 层级截断 / 搜索过滤一律不往下走 —— 于是「折叠后框收窄」「只看命中时框跟着缩」
+   都不是特判，而是这个递归的自然结果。
+   注意：画框不能直接用这个（框会从子框中间穿过去），要用下面的 contentRect()。 */
+function subtreeRect(n){
+  const h = n.h || MIN_H, w = n.w || NODE_W;
+  const r = { x1: n.x, y1: n.y - h / 2, x2: n.x + w, y2: n.y + h / 2 };
+  if(n.collapsed || n.__cut || n.__fcut) return r;
+  n.children.forEach(c => {
+    if(c.sum) return;                 // P2：外框不把概要括进来 —— 概要有自己的括线，套两层反而看不懂
+    const t = subtreeRect(c);
+    if(t.x1 < r.x1) r.x1 = t.x1;
+    if(t.y1 < r.y1) r.y1 = t.y1;
+    if(t.x2 > r.x2) r.x2 = t.x2;
+    if(t.y2 > r.y2) r.y2 = t.y2;
+  });
+  return r;
+}
+/* 一个节点自己那层框离它「内容」有多远：有分组框就按 GB_PAD（组框在最外层），
+   否则按 BD_PAD。布局的让位与框的绘制必须用同一个数 —— 两边各写一份就会差出十几像素。 */
+function framePadOf(n){ return n.gb ? GB_PAD : (n.bd ? BD_PAD : 0); }
+/* 一侧的留白。sameGb = 这一侧紧挨着**同一个组**的成员 —— 那一侧组框是连着的，
+   只需要给外框（如果有）留 20，不再留 GB_PAD，否则框住两个兄弟会把它们推开 72px。 */
+function padSide(n, sameGb){ return (n.gb && !sameGb) ? GB_PAD : (n.bd ? BD_PAD : 0); }
+/* 内容盒：卡片 + **子树里所有框**。框也算内容，父框才包得住子框。
+   v48 之前这里用的是 subtreeRect（只有卡片），于是「父外框 + 子分组框」时
+   父框会从子框中间穿过去 —— 两道虚线交叉，插了图片之后更显眼。
+   递归口径与布局一致：孩子那层框沿 = 孩子的 contentRect 再外扩 framePadOf(孩子)。 */
+function contentRect(n){
+  const h = n.h || MIN_H, w = n.w || NODE_W;
+  const r = { x1: n.x, y1: n.y - h / 2, x2: n.x + w, y2: n.y + h / 2 };
+  if(n.collapsed || n.__cut || n.__fcut) return r;
+  n.children.forEach(c => {
+    if(c.sum) return;                 // 与外框口径一致：概要括线不算内容
+    const t = contentRect(c), p = framePadOf(c);
+    if(t.x1 - p < r.x1) r.x1 = t.x1 - p;
+    if(t.y1 - p < r.y1) r.y1 = t.y1 - p;
+    if(t.x2 + p > r.x2) r.x2 = t.x2 + p;
+    if(t.y2 + p > r.y2) r.y2 = t.y2 + p;
+  });
+  return r;
+}
+/* ---------------- v55：框沿避让卡片 ----------------
+   跨分支的分组框（以及包住别的分支的外框）算出来是一个外包矩形，中间那几支并不属于这个框。
+   插图把卡片从 46px 撑到 138px 后，矩形的一条边很可能正好从别人的卡片中间穿过去；
+   #frames 在 #nodes 之下，被压住的那一段虚线就看不见了 —— 用户看到的正是「节点盖住框线」。
+   这里把「压到卡片的框沿」向外推，直到整张卡片被包进框里（再留 8px 空隙），
+   边框便不会再从任何卡片上穿过。屏幕 / PNG / SVG / PPT / 联系端点 / 概要括线 /
+   标签遮挡清单一律走下面的 bdFrameBox() / gbFrameBox()，不许各写一份几何。 */
+const FRAME_EDGE_BAND = 4;      // 边框 2.4 / 2.6px + 一点余量
+const FRAME_KEEP_M = 8;         // 包进来之后再留的空隙
+function frameOuterRect(inner, pad){
+  return { x1: inner.x1 - pad, y1: inner.y1 - pad, x2: inner.x2 + pad, y2: inner.y2 + pad };
+}
+function keepOutFrameRect(F){
+  if(!flat || !flat.length) return F;
+  for(let pass = 0; pass < 6; pass++){
+    let changed = false;
+    for(const n of flat){
+      const w = n.w || NODE_W, h = n.h || MIN_H;
+      const q = { x1: n.x, y1: n.y - h / 2, x2: n.x + w, y2: n.y + h / 2 };
+      const hit = (ax1, ay1, ax2, ay2) => q.x1 < ax2 && q.x2 > ax1 && q.y1 < ay2 && q.y2 > ay1;
+      const B = FRAME_EDGE_BAND;
+      if(hit(F.x1, F.y1, F.x2, F.y1 + B) && q.y1 < F.y1){ F.y1 = q.y1 - FRAME_KEEP_M; changed = true; }
+      if(hit(F.x1, F.y2 - B, F.x2, F.y2) && q.y2 > F.y2){ F.y2 = q.y2 + FRAME_KEEP_M; changed = true; }
+      if(hit(F.x1, F.y1, F.x1 + B, F.y2) && q.x1 < F.x1){ F.x1 = q.x1 - FRAME_KEEP_M; changed = true; }
+      if(hit(F.x2 - B, F.y1, F.x2, F.y2) && q.x2 > F.x2){ F.x2 = q.x2 + FRAME_KEEP_M; changed = true; }
+    }
+    if(!changed) break;
+  }
+  return F;
+}
+/* 一个框最终的四要素（x/y/w/h）。minW/minH 与旧版绘制里的 Math.max 兜底逐位一致。 */
+function frameBox(inner, pad, minW, minH){
+  const F = keepOutFrameRect(frameOuterRect(inner, pad));
+  const w = Math.max(minW, F.x2 - F.x1), h = Math.max(minH, F.y2 - F.y1);
+  return { x: F.x1, y: F.y1, w: w, h: h, x2: F.x1 + w, y2: F.y1 + h };
+}
+function bdFrameBox(n){ return frameBox(contentRect(n), BD_PAD, 40, 26); }
+function gbFrameBox(gid){ const r = groupRect(gid); return r ? frameBox(r, GB_PAD, 44, 30) : null; }
+
+/* #RRGGBB → rgba(...)，用于外框那层 6% 的底色 */
+function hexA(hex, a){
+  try{
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  }catch(e){ return 'rgba(127,119,221,' + a + ')'; }
+}
+/* 外框实际落地的颜色：没指定就用第一支默认紫（BD_COLORS[0]） */
+function bdColorOf(n){ return (n && n.bd && bdColor(n.bd.c)) || BD_COLORS[0]; }
+function renderFrames(){
+  const L = framesEl();
+  if(!L) return;
+  L.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  renderGroupFrames(frag);             // N9：分组框先入 → 画在单节点外框之下、连线之下
+  flat.forEach((n, i) => {
+    if(!n.bd) return;
+    const B = bdFrameBox(n);        // v55：屏幕与导出 / 联系端点共用同一份几何
+    const col = bdColorOf(n);
+    const d = document.createElement('div');
+    d.className = 'bdf';
+    d.style.left   = B.x + 'px';
+    d.style.top    = B.y + 'px';
+    d.style.width  = B.w + 'px';
+    d.style.height = B.h + 'px';
+    d.style.borderColor = frameEdge(col);
+    d.style.borderWidth = '2.4px';
+    d.style.background  = hexA(col, FRAME_FILL_BD);
+    /* 没有语义角色能表达「外框」，但至少让读屏软件知道这里有个分组、叫什么 */
+    d.setAttribute('role', 'group');
+    d.setAttribute('aria-label', n.bd.t ? trf('外框「{t}」', { t: n.bd.t }) : tr('外框'));
+    const lb = document.createElement('div');
+    lb.className = 'bdft' + (n.bd.t ? '' : ' ph');
+    lb.textContent = n.bd.t || tr('外框标题（双击改）');
+    lb.style.color = frameEdge(col);
+    lb.style.border = '1px solid ' + hexA(col, 0.55);
+    lb.dataset.fi = i;                       // 反查：右键「编辑标题」靠它找到这一颗
+    lb.addEventListener('mousedown', e => { e.stopPropagation(); });
+    lb.addEventListener('click', e => { e.stopPropagation(); selectNode(n); });
+    lb.addEventListener('dblclick', e => { e.stopPropagation(); editBdTitle(n, lb); });
+    d.appendChild(lb);
+    frag.appendChild(d);
+  });
+  L.appendChild(frag);
+}
+/* 导出共用：把外框算成 [{x,y,w,h,col,title}]，坐标不含纵向偏移（oy 由调用方给）。
+   PNG / SVG / PPT 都从这一份取 —— 三种图不会画成三个样。 */
+function bdExportFrames(oy){
+  const dy = oy || 0;
+  return flat.filter(n => n.bd).map(n => {
+    const B = bdFrameBox(n);        // 与屏幕同一份几何（含子框 + v55 框沿避让）
+    return {
+      x: B.x, y: B.y + dy, w: B.w, h: B.h,
+      col: bdColorOf(n), title: n.bd.t || ''
+    };
+  });
+}
+/* 一行字的估算宽度（没有 canvas 时用；与 estWrap 同一套 estCharW 口径） */
+function estTextW(s, fs){
+  let w = 0;
+  for(const ch of String(s)) w += estCharW(ch) * fs;
+  return w;
+}
+/* 右键「编辑外框标题」：先定位到这个节点对应的那颗标题，再进编辑态 */
+function editBdOf(n){
+  if(!n || !n.bd) return;
+  const L = framesEl();
+  if(!L) return;
+  const i = flat.indexOf(n);
+  const lb = (i >= 0) ? L.querySelector('.bdft[data-fi="' + i + '"]') : null;
+  if(lb) editBdTitle(n, lb);
+}
+/* 行内改标题（外框 / 分组框共用）：Enter 保存 / Esc 还原 / 失焦保存。
+   刻意不开浮层 —— 少一张浮层就少一处「Esc 关不掉」的无障碍风险（现有 14 张浮层的断言也不用动）。
+   onSave 只在「值真的变了」时被调用，撤销名由调用方给（两处的上下文不一样）。 */
+function editLabel(lb, prev, onSave){
+  if(!lb) return;
+  if(lb.dataset.edit === '1') return;      // 已经在编辑了，别再进一次（双击会连着派发两次）
+  lb.dataset.edit = '1';
+  lb.classList.remove('ph');
+  lb.textContent = prev;
+  lb.setAttribute('contenteditable', 'true');
+  lb.focus();
+  try{
+    const rg = document.createRange(); rg.selectNodeContents(lb);
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(rg);
+  }catch(e){}
+  const finish = keep => {
+    if(lb.dataset.edit !== '1') return;
+    lb.dataset.edit = '0';
+    lb.removeAttribute('contenteditable');
+    const v = bdTitle(lb.textContent);
+    if(keep && v !== prev) onSave(v);
+    render();
+  };
+  lb.addEventListener('blur', () => finish(true));
+  lb.addEventListener('keydown', e => {
+    e.stopPropagation();                   // 别让画布的快捷键（删 / Tab …）在改标题时插进来
+    if(e.key === 'Enter'){ e.preventDefault(); finish(true); }
+    else if(e.key === 'Escape'){ e.preventDefault(); lb.textContent = prev; finish(false); }
+  });
+}
+function editBdTitle(n, lb){
+  if(!n || !n.bd || !lb) return;
+  editLabel(lb, n.bd.t || '', v => {
+    pushUndo(trf('改外框标题：{x}', { x: clip(n.bd.t || tr('外框'), 12) }));
+    n.bd.t = v;
+    save();
+  });
+}
+function editGbTitle(g, lb){
+  if(!g || !lb) return;
+  editLabel(lb, g.t || '', v => {
+    pushUndo(trf('改分组框标题：{x}', { x: clip(g.t || tr('分组框'), 12) }));
+    g.t = v;
+    save();
+  });
+}
+function bdAdd(n){
+  if(!n) return;
+  pushUndo(trf('加外框「{n}」', { n: clip(n.text, 14) }));
+  n.bd = { t: '', c: null };
+  render(); save(); refreshBar();
+  toast(tr('已加外框 · 双击框上的标题可以写名字'));
+}
+function bdDel(n){
+  if(!n || !n.bd) return;
+  pushUndo(trf('删外框「{n}」', { n: clip(n.text, 14) }));
+  delete n.bd;
+  render(); save(); refreshBar();
+  toast(tr('外框已删（节点和它的子树都还在）'));
+}
+/* 右键色板：点一下既定色也在没有框时顺手加上 —— 少一次「先加框再改色」的往返 */
+function bdSetColor(n, col){
+  if(!n) return;
+  const c = bdColor(col);
+  pushUndo(trf(n.bd ? '改外框颜色「{n}」' : '加外框「{n}」', { n: clip(n.text, 14) }));
+  n.bd = { t: (n.bd && n.bd.t) || '', c: c };
+  render(); save(); refreshBar();
+}
+
+/* ====== N9：分组框（Group frame）BEGIN ======
+   与单节点外框（N8）的三点差别 —— 想清楚这三条，其余全是既有设施的复用：
+   ① 范围不同：外框的范围由节点自己决定（它 + 它的可见后代），分组框的范围是**一组节点**，
+      所以它必须是独立对象，不能挂在某个成员身上（挂谁身上都会跟着那个节点被删 / 被移而失真）；
+   ② 存法不同：组定义放根节点 `groups:[{id,t,c}]`，成员节点只挂 `gb:<id>`。
+      复制 / 粘贴子树时 gb 指向的组不存在 → normGroups() 收掉，正是想要的结果（粘出来的不带组）；
+   ③ 不参与布局：它是**背景层**，画在连线与节点之下。让位要重排整棵树，跨分支的组又没法
+      局部让位；线在背后被节点盖住，视觉上已经足够「框住」，而布局代码一行都不用改。
+   边界（本版刻意不做）：不做嵌套分组框（一个节点只属于一个组）、不做框上拖拽改范围。 */
+function gbNewId(){
+  const used = new Set((root.groups || []).map(g => g.id));
+  let i = 1;
+  while(used.has('g' + i)) i++;
+  return 'g' + i;                         // 确定性 id：撤销 / 存档回读 / 测试都好核对
+}
+function gbColorOf(g){ return (g && bdColor(g.c)) || BD_COLORS[0]; }
+/* 全树收口：丢掉无效的组定义、指向不存在组的 gb、成员不足 2 个的组（删到只剩一个，框没意义了）。
+   与 clampTree 同一个套路 —— 只在 render() 开头跑一次，结构怎么变都不怕漏调。 */
+function normGroups(tree){
+  if(!tree) return;
+  const list = Array.isArray(tree.groups) ? tree.groups : [];
+  const seen = new Set(), keep = [];
+  list.forEach(g => {
+    if(!g || typeof g !== 'object') return;
+    const id = String(g.id == null ? '' : g.id);
+    if(!/^[A-Za-z0-9_-]{1,24}$/.test(id) || seen.has(id)) return;   // 重复 id 只留第一个
+    seen.add(id);
+    keep.push({ id, t: bdTitle(g.t), c: bdColor(g.c) });
+  });
+  const members = new Map();
+  (function w(n){
+    if(n === tree){
+      if(n.gb) delete n.gb;                // 根节点永远不进组：它代表整张图，框它没有意义
+    }else if(n.gb){
+      if(!seen.has(n.gb)) delete n.gb;     // 组已经没了（粘贴出来的子树就落在这里）
+      else {
+        if(!members.has(n.gb)) members.set(n.gb, []);
+        members.get(n.gb).push(n);
+      }
+    }
+    (n.children || []).forEach(w);
+  })(tree);
+  tree.groups = keep.filter(g => (members.get(g.id) || []).length >= 2);
+  const alive = new Set(tree.groups.map(g => g.id));
+  (function w(n){
+    if(n !== tree && n.gb && !alive.has(n.gb)) delete n.gb;
+    (n.children || []).forEach(w);
+  })(tree);
+}
+/* 全树找成员（不能只看 flat：折叠起来的成员也是成员，删组时同样要清标记） */
+function gbMembers(id){
+  const out = [];
+  if(!root) return out;
+  (function w(n){
+    if(n !== root && n.gb === id) out.push(n);
+    (n.children || []).forEach(w);
+  })(root);
+  return out;
+}
+/* 组的包围盒 = 成员**可见子树**的并集。走 subtreeRect 而不是节点自身矩形，
+   于是「组里某个分支折叠了 → 框跟着缩」「只看命中 → 框只包住命中的」都不是特判。
+   成员全被挡掉时返回 null，整组不画 —— 与单节点外框同一套收窄口径。 */
+function groupRect(gid){
+  let r = null;
+  flat.forEach(n => {
+    if(n.gb !== gid) return;
+    const t = contentRect(n);        // 成员子树里的框也算内容
+    if(!r){ r = { x1: t.x1, y1: t.y1, x2: t.x2, y2: t.y2 }; return; }
+    if(t.x1 < r.x1) r.x1 = t.x1;
+    if(t.y1 < r.y1) r.y1 = t.y1;
+    if(t.x2 > r.x2) r.x2 = t.x2;
+    if(t.y2 > r.y2) r.y2 = t.y2;
+  });
+  return r;
+}
+/* 渲染：先往 frag 里塞分组框，再塞单节点外框 —— DOM 顺序靠前的画在下面，
+   所以「组框在背景、节点自带的外框在里面」，不会反压。 */
+function renderGroupFrames(frag){
+  if(!root || !root.groups || !root.groups.length) return;
+  root.groups.forEach(g => {
+    const B = gbFrameBox(g.id);
+    if(!B) return;
+    const col = gbColorOf(g);
+    const d = document.createElement('div');
+    d.className = 'gbf';
+    d.style.left   = B.x + 'px';
+    d.style.top    = B.y + 'px';
+    d.style.width  = B.w + 'px';
+    d.style.height = B.h + 'px';
+    d.style.borderColor = frameEdge(col);
+    d.style.borderWidth = '2.6px';
+    d.style.background  = hexA(col, FRAME_FILL_GB);
+    d.setAttribute('role', 'group');
+    d.setAttribute('aria-label', g.t ? trf('分组框「{t}」', { t: g.t }) : tr('分组框'));
+    const lb = document.createElement('div');
+    lb.className = 'gbft' + (g.t ? '' : ' ph');
+    lb.textContent = g.t || tr('分组框标题（双击改）');
+    lb.style.color = frameEdge(col);
+    lb.style.border = '1px solid ' + hexA(col, 0.55);
+    lb.dataset.gi = g.id;
+    lb.addEventListener('mousedown', e => { e.stopPropagation(); });
+    /* 点标题 = 选中组里第一个**看得见**的成员：右键菜单（改标题 / 改色 / 删组）
+       都挂在「当前节点」上，不这样用户就没法从框本身进菜单。 */
+    lb.addEventListener('click', e => {
+      e.stopPropagation();
+      const m = flat.find(n => n.gb === g.id);
+      if(m) selectNode(m);
+    });
+    lb.addEventListener('dblclick', e => { e.stopPropagation(); editGbTitle(g, lb); });
+    d.appendChild(lb);
+    frag.appendChild(d);
+  });
+}
+/* 导出共用：与 bdExportFrames 同一套形状 [{x,y,w,h,col,title}]，PNG / SVG 都从这里取 */
+function gbExportFrames(oy){
+  const dy = oy || 0;
+  if(!root || !root.groups || !root.groups.length) return [];
+  return root.groups.map(g => {
+    const B = gbFrameBox(g.id);
+    if(!B) return null;
+    return {
+      x: B.x, y: B.y + dy, w: B.w, h: B.h,
+      col: gbColorOf(g), title: g.t || ''
+    };
+  }).filter(Boolean);
+}
+/* 能进组的节点：多选出来的「不被别的选中节点包含」的那一批，且都不属于任何组。
+   已经有组的先不掺和 —— 「把已入组的节点并进新组」等于拆了重建，
+   一次误操作就丢掉原来的组标题和颜色，宁可让用户先删旧组。 */
+function gbTargets(){
+  const list = selectionRoots().filter(n => n !== root);
+  if(list.length < 2) return [];
+  if(list.some(n => n.gb)) return [];
+  return list;
+}
+function gbAdd(){
+  const list = gbTargets();
+  if(list.length < 2){ toast(tr('先选中两个以上的节点')); return; }
+  pushUndo(trf('给 {n} 个节点加分组框', { n: list.length }));
+  const id = gbNewId();
+  root.groups = root.groups || [];
+  root.groups.push({ id, t: '', c: null });
+  list.forEach(n => { n.gb = id; });
+  render(); save(); refreshBar();
+  toast(tr('已加分组框 · 双击框上的标题可以写名字'));
+}
+function gbDel(n){
+  if(!n || !n.gb) return;
+  const id = n.gb, ms = gbMembers(id);
+  pushUndo(trf('删分组框（{n} 个节点）', { n: ms.length }));
+  root.groups = (root.groups || []).filter(g => g.id !== id);
+  ms.forEach(x => { delete x.gb; });
+  render(); save(); refreshBar();
+  toast(tr('分组框已删（节点都还在）'));
+}
+function gbSetColor(n, col){
+  if(!n || !n.gb) return;
+  const g = (root.groups || []).find(x => x.id === n.gb);
+  if(!g) return;
+  const c = bdColor(col);
+  pushUndo(trf(c ? '改分组框颜色' : '分组框恢复默认颜色'));
+  g.c = c;
+  render(); save(); refreshBar();
+}
+function editGbOf(n){
+  if(!n || !n.gb) return;
+  const L = framesEl();
+  if(!L) return;
+  const lb = L.querySelector('.gbft[data-gi="' + n.gb + '"]');
+  const g = (root.groups || []).find(x => x.id === n.gb);
+  if(lb && g) editGbTitle(g, lb);
+}
+/* ====== N9：分组框 END ====== */
+
+/* ====== N11：联系（Relationship） BEGIN ======
+   「这两个东西是有关系的」—— 可以跨分支、跨层级，甚至一端是外框/概要/分组框。
+   与「连线」的区别：连线画的是父子结构，联系画的是**你另外说的一层意思**，还带一句说明。
+
+   存法：`root.links = [{id, t, a:{k,id}, b:{k,id}}]`。
+   端点四种：node（节点）/ bd（那个节点的外框）/ sum（那个概要主题）/ grp（分组框）。
+   前三者都落到「某个节点」上，所以节点需要一个**稳定 id** —— 这是本文件第一次给节点发 id，
+   只在节点被当成端点时才发（`n.uid`），不给全树发，避免动到序列化体积与既有逻辑。
+   代价：复制/粘贴必须把 uid 剥掉（见 pasteSubtree），否则两份快照会抢同一个端点。
+   收口在 render() 开头一次 normLinks()：端点没了 / 组没了 / 自己连自己 / 重复 id，一律清掉。 */
+const RLK_COLOR = '#33405a';              // 浅底主题：比原来的 #6b7a90 深两档（「颜色加深」）
+const RLK_COLOR_D = '#9aabc4';            // 深底主题（dark / midnight）：同色系提亮，深底上照样看得见
+const RLK_W = 2.2;                        // 线宽：比节点卡片的 1.4px 描边粗，比外框的 2.4px 略细
+const RLK_HIT = 16;                       // 命中带宽度（透明）—— 虚线太细，没有它拖不动
+const RLK_DASH = [7, 5];                  // 虚线：7 实 5 空
+/* v51：弯曲不再被弦长锁死。旧版把 bend 软饱和到 kCap = max(44, chord*0.85)：
+   20px 的短弦只能鼓 44px，210px 的长弦 bend 拖过 300 之后视觉上几乎不动 ——
+   用户「拖到极限也避不开框线」就是这么来的。现在 bend 原样生效（±900 硬夹，
+   中点最多可挪 675px），另给 shift 让弧顶沿弦方向也能挪，二维才躲得开任意遮挡。 */
+const RLK_BEND_MAX = 900;                 // 法线 / 切向偏移的绝对上限（build 与拖动同一口径）
+const RLK_NEAR = 60;                      // 弦短于它 = 端点贴近，自动「绕出来」
+const RLK_LIFT = 64;                      // 贴近时自动弧高（控制点偏移），保证线头露在卡片 / 框外
+/* v53：控制点沿弦拉开多少 —— 这是「打结」的唯一开关。
+   三次贝塞尔的折线 P0 → M1 → M2 → P3 必须**顺序前进**：两个控制点在弦上的间距是
+   `chord - 2*lead`，一旦 2*lead > chord 就变成负的，折线自交、曲线绕成一个圈。
+   v51 让 lead 随 |k| 增长（0.3c + 0.55|k|），bend 拖过 150 左右就必然回折 —— 用户报的
+   「联系线会打结」就是它。现在 lead 只按弦长取固定比例，且上限死死压在 0.5 以下：
+   大 k 时控制点距离变近，曲线被拉成一条细长的绕行弧 —— 窄，但绝不回头。
+   （诊断：320 组 chord / bend / shift 组合，改前 242 组自交，改后 0 组；
+     扫比例时 1.0 倍弦长仍不自交、1.2 倍必然自交 —— 取 0.42 是留足两倍余量。） */
+const RLK_LEAD_R = 0.3;                   // 基础比例：弦长的 30%
+const RLK_LEAD_CAP = 0.42;                // 上限比例：必须 < 0.5，否则折线回折 → 打结
+let __lg = null;                          // 一次渲染里只算一遍几何（曲线与标签共用）
+
+/* 屏幕上的联系色跟主题走：深底用亮色，浅底用深色。导出（PNG / SVG）永远是浅底，固定 RLK_COLOR。 */
+function rlkColor(){
+  const m = THEME_META[theme] || THEME_META.light;
+  return m.dark ? RLK_COLOR_D : RLK_COLOR;
+}
+
+function newUid(){
+  let m = 0;
+  (function w(n){ const k = /^u(\d+)$/.exec(n.uid || ''); if(k) m = Math.max(m, +k[1]); n.children.forEach(w); })(root);
+  return 'u' + (m + 1);
+}
+function nodeUid(n){ if(!n.uid) n.uid = newUid(); return n.uid; }
+function uidIndex(){
+  const m = new Map();
+  (function w(n){ if(n.uid) m.set(n.uid, n); n.children.forEach(w); })(root);
+  return m;
+}
+function newLinkId(){
+  let m = 0;
+  (root.links || []).forEach(l => { const k = /^lk(\d+)$/.exec(l.id || ''); if(k) m = Math.max(m, +k[1]); });
+  return 'lk' + (m + 1);
+}
+/* 端点是否还成立（结构变了会失效） */
+function epOk(ep, idx){
+  if(!ep || !ep.id) return false;
+  if(ep.k === 'grp') return !!(root.groups || []).some(g => g.id === ep.id);
+  const n = idx.get(ep.id);
+  if(!n) return false;
+  if(ep.k === 'bd') return !!n.bd;
+  if(ep.k === 'sum') return !!n.sum;
+  return ep.k === 'node';
+}
+function normLinks(t){
+  if(!t || !t.links || !t.links.length){ if(t) delete t.links; return; }
+  const idx = new Map();
+  (function w(n){ if(n.uid) idx.set(n.uid, n); n.children.forEach(w); })(t);
+  const seen = new Set();
+  const keep = t.links.filter(l => {
+    if(!l || !l.id || seen.has(l.id)) return false;
+    if(!epOk(l.a, idx) || !epOk(l.b, idx)) return false;
+    if(l.a.k === l.b.k && l.a.id === l.b.id) return false;      // 自己连自己
+    seen.add(l.id); return true;
+  });
+  t.links = keep;
+  if(!keep.length) delete t.links;
+}
+/* 端点 → 屏幕矩形（世界坐标，左上角 + 宽高）。端点不可见就返回 null，那一条先不画。 */
+function epRect(ep, idx){
+  if(ep.k === 'grp'){
+    const B = gbFrameBox(ep.id);
+    if(!B) return null;
+    return { x: B.x, y: B.y, w: B.w, h: B.h };
+  }
+  const n = idx.get(ep.id);
+  if(!n || flat.indexOf(n) < 0) return null;                     // 折叠 / 截断掉的端点不画
+  if(ep.k === 'bd'){
+    const B = bdFrameBox(n);
+    return { x: B.x, y: B.y, w: B.w, h: B.h };
+  }
+  const w = n.w || NODE_W, h = n.h || MIN_H;
+  return { x: n.x, y: n.y - h / 2, w, h };
+}
+/* 从矩形中心朝 (dx,dy) 射出去，落在边上的那个点（只在退化情形下兜底） */
+function rectEdgePt(r, dx, dy){
+  const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+  let t = Infinity;
+  if(Math.abs(dx) > 1e-6) t = Math.min(t, (dx > 0 ? (r.x + r.w - cx) : (cx - r.x)) / Math.abs(dx));
+  if(Math.abs(dy) > 1e-6) t = Math.min(t, (dy > 0 ? (r.y + r.h - cy) : (cy - r.y)) / Math.abs(dy));
+  if(!isFinite(t)) t = 0;
+  return { x: cx + dx * t, y: cy + dy * t };
+}
+function rectCtr(r){ return { x: r.x + r.w / 2, y: r.y + r.h / 2 }; }
+function insideRect(r, p){
+  return p.x > r.x + 0.5 && p.x < r.x + r.w - 0.5 && p.y > r.y + 0.5 && p.y < r.y + r.h - 0.5;
+}
+/* 从 from 沿 (ux,uy) 射出，与矩形四边的**第一个**交点：from 在框外拿到入口、在框内拿到出口。
+   两个端点都用它，才能同时保证「起点落在 r1 边上、终点落在 r2 边上」和「中间那一截不穿过
+   自己的卡片」。v46 修的洞就在这里：节点连自己的外框 / 分组框时，按「各自中心朝对方中心」
+   求边，两端会取到**相反的两条边**，整条线（含箭头）从卡片底下穿过去 —— 看上去就是
+   「线根本没画出来」，也就抓不到、拖不了。 */
+function rayExit(r, from, ux, uy){
+  /* slab 法：t0 = 进入、t1 = 穿出。from 在框外时取 t0（入口），在框内时 t0 < 0、取 t1（出口）。
+     只取「朝出去的那条边」是错的 —— 框在射线前面时那算的是**穿出**点，线会整个跨过卡片。 */
+  let t0 = -Infinity, t1 = Infinity;
+  if(Math.abs(ux) < 1e-9){
+    if(from.x < r.x || from.x > r.x + r.w) return null;
+  } else {
+    let a = (r.x - from.x) / ux, b = (r.x + r.w - from.x) / ux;
+    if(a > b){ const t = a; a = b; b = t; }
+    t0 = Math.max(t0, a); t1 = Math.min(t1, b);
+  }
+  if(Math.abs(uy) < 1e-9){
+    if(from.y < r.y || from.y > r.y + r.h) return null;
+  } else {
+    let a = (r.y - from.y) / uy, b = (r.y + r.h - from.y) / uy;
+    if(a > b){ const t = a; a = b; b = t; }
+    t0 = Math.max(t0, a); t1 = Math.min(t1, b);
+  }
+  if(t0 > t1 || t1 < 0) return null;
+  const t = t0 >= 0 ? t0 : t1;
+  return { x: from.x + ux * t, y: from.y + uy * t };
+}
+/* 一方包住另一方（节点在自己的外框 / 分组框里）时中心连线指不出方向 ——
+   取**两条边挨得最近**的那一侧：线头最短，且只穿过框自己的留白带，不会被隔壁卡片盖住。
+   注意要拿「内框的边」去比，不是「内框的中心」—— 用中心比会偏向扁的那一侧。 */
+function nearestSideDir(outer, inner){
+  const dl = inner.x - outer.x;
+  const dr = (outer.x + outer.w) - (inner.x + inner.w);
+  const dt = inner.y - outer.y;
+  const db = (outer.y + outer.h) - (inner.y + inner.h);
+  const m = Math.min(dl, dr, dt, db);
+  if(m === dl) return { x: -1, y: 0 };
+  if(m === dr) return { x: 1, y: 0 };
+  if(m === dt) return { x: 0, y: -1 };
+  return { x: 0, y: 1 };
+}
+/* 曲线实际长度：虚线与箭头都得按它缩 —— 28px 的短线上还画 10px 的箭头、7/5 的虚线，
+   两者会互相吃掉，看上去就是「箭头没了、线也没了」。 */
+function curveLen(g){
+  let L = 0, prev = g.p1;
+  for(let i = 1; i <= 24; i++){
+    const q = bezPt(g, i / 24);
+    L += Math.hypot(q.x - prev.x, q.y - prev.y);
+    prev = q;
+  }
+  return L;
+}
+/* 三次贝塞尔：两端各留一段直出的控制点，再往法线方向鼓一点 —— 看起来是「一条弧」，不是直线。
+   `bend` 是**用户拖出来的**法线偏移，`shift` 是切向偏移（v51）。给了就听它们的：线被节点 /
+   外框 / 分组框 / 概要挡住时，往任意方向拖到空白处就绕开了 —— 这是「可拖动」存在的唯一理由。
+   没给（没拖过）才自动取弧度，`i%2` 交替正负免得两条线叠在一起。
+
+   v46 留下两条仍然成立的修正：① 端点用射线求交（嵌套时线不从卡片底下穿过）；
+   ② 自动弧度随弦长走，长弦不鼓成一个大包。
+   v51 改掉第三条（软饱和）：kCap = max(44, chord*0.85) 把 20px 的短弦锁死在 44px、
+   210px 的长弦在 bend 拖过 300 之后几乎不动，用户「拖到极限也避不开框线」就是这个。
+   现在 bend 原样生效、只做 ±RLK_BEND_MAX 硬夹；shift 让弧顶沿弦方向也能挪。
+   v53：大 k 要「不打结」，恰恰**不能**让控制点沿弦越拉越开 —— 拉开比例一旦越过弦长的
+   一半，折线 P0→M1→M2→P3 就回折（这是 v51 拖出打结的根因）。比例固定 + 上限 0.42，
+   大 k 时得到一条细长的绕行弧：窄，但绝不回头。
+   近距（chord < RLK_NEAR）没拖过时自动给足 RLK_LIFT，线头才露得出卡片 / 框。 */
+function linkCurve(r1, r2, sign, bend, shift){
+  const c1 = rectCtr(r1), c2 = rectCtr(r2);
+  let ux = c2.x - c1.x, uy = c2.y - c1.y;
+  const d0 = Math.hypot(ux, uy);
+  if(insideRect(r2, c1) || insideRect(r1, c2)){
+    const r2HasC1 = insideRect(r2, c1);
+    const u = nearestSideDir(r2HasC1 ? r2 : r1, r2HasC1 ? r1 : r2);
+    ux = u.x; uy = u.y;
+  } else if(d0 > 1e-6){ ux /= d0; uy /= d0; }
+  else { ux = 1; uy = 0; }
+
+  const p1 = rayExit(r1, c1, ux, uy) || rectEdgePt(r1, ux, uy);
+  const p2 = rayExit(r2, c1, ux, uy) || rectEdgePt(r2, -ux, -uy);
+
+  let chx = p2.x - p1.x, chy = p2.y - p1.y, chord = Math.hypot(chx, chy);
+  if(chord < 1e-6){ chx = ux; chy = uy; chord = 1; }
+  const vx = chx / chord, vy = chy / chord;
+  const nx = -vy, ny = vx;
+  const near = chord < RLK_NEAR;
+  const manual = (typeof bend === 'number' && isFinite(bend));
+  /* 没拖过：近距自动绕出来，长弦按弦长克制地鼓。拖过：一律听用户的，不再压回弦长比例。 */
+  const auto = near ? RLK_LIFT : clamp(chord * 0.22, 6, 40);
+  const k = clamp(manual ? bend : auto * (sign < 0 ? -1 : 1), -RLK_BEND_MAX, RLK_BEND_MAX);
+  const s = clamp((typeof shift === 'number' && isFinite(shift)) ? shift : 0,
+                  -RLK_BEND_MAX, RLK_BEND_MAX);
+  /* 两个控制点沿弦同时加 s（mid 因此沿弦走 0.75s），沿法线同时加 k（mid 走 0.75k）。
+     拖动手感仍按 cf = 3(u²t + ut²) 换算，两个方向都是 1:1。
+     v53：lead 只跟弦长走，**不再随 k / s 变大** —— 详见上面 RLK_LEAD_CAP 的说明。 */
+  const lead = clamp(chord * RLK_LEAD_R, 6, chord * RLK_LEAD_CAP);
+  const m1 = { x: p1.x + vx * (lead + s) + nx * k, y: p1.y + vy * (lead + s) + ny * k };
+  const m2 = { x: p2.x + vx * (s - lead) + nx * k, y: p2.y + vy * (s - lead) + ny * k };
+  const mid = { x: (p1.x + 3 * m1.x + 3 * m2.x + p2.x) / 8, y: (p1.y + 3 * m1.y + 3 * m2.y + p2.y) / 8 };
+  const g = { p1, p2, m1, m2, mid, k, s, chord, near, auto: !manual };
+  g.len = curveLen(g);
+  return g;
+}
+/* 「这一侧有没有空地」的遮挡清单：节点卡片 + 自己那层框 + 分组框。
+   v51：框也算内容 —— 标签压在框线 / 框标题上，和压在别人的字上一样碍事。 */
+function rlkBusyRects(){
+  const out = [];
+  (flat || []).forEach(n => {
+    const w = n.w || NODE_W, h = n.h || MIN_H;
+    out.push({ x1: n.x, y1: n.y - h / 2, x2: n.x + w, y2: n.y + h / 2 });
+    const p = framePadOf(n);
+    if(p){
+      const B = frameBox(contentRect(n), p, 40, 26);    // 自己那层框：口径不变，只补上避让
+      out.push({ x1: B.x, y1: B.y, x2: B.x2, y2: B.y2 });
+    }
+  });
+  ((root && root.groups) || []).forEach(g => {
+    const B = gbFrameBox(g.id);
+    if(B) out.push({ x1: B.x, y1: B.y, x2: B.x2, y2: B.y2 });
+  });
+  return out;
+}
+/* 沿曲线抽样，数有多少点钻在遮挡物里 —— 自动选边只看这个数，选更空的一侧。 */
+function rlkOcclusion(g, rects){
+  let hit = 0;
+  for(let i = 1; i < 24; i++){
+    const p = bezPt(g, i / 24);
+    if(rects.some(r => p.x > r.x1 && p.x < r.x2 && p.y > r.y1 && p.y < r.y2)) hit++;
+  }
+  return hit;
+}
+/* 三次贝塞尔上的点（t=0.5 是中点） */
+function bezPt(g, t){
+  const u = 1 - t;
+  return {
+    x: u*u*u*g.p1.x + 3*u*u*t*g.m1.x + 3*u*t*t*g.m2.x + t*t*t*g.p2.x,
+    y: u*u*u*g.p1.y + 3*u*u*t*g.m1.y + 3*u*t*t*g.m2.y + t*t*t*g.p2.y
+  };
+}
+/* 标签落点：默认曲线中点，但中点经常正好压在**中间那一支**的卡片上 ——
+   标签在节点之上（要能点），压上去就是盖住别人的字，截图里一眼就看得见。
+   于是沿曲线往两边挪，找第一个不压任何节点卡片的点（出端点之外再试）。
+   整条线都钻在节点里时（几乎不可能）就老实回中点，不硬挪。 */
+function pickLabelPt(g, txt, rects){
+  /* 13 ≈ 药丸半个高（9）+ 一点余量：只躲「中心点」不够，贴边压上去照样挡住第一行字。
+     横向要按**药丸半宽**算 —— 标签是横着长的，只按中心点 + 13px 判，
+     四个字以上的标签会横着压到隔壁卡片上（配图里就能看出来）。
+     v51：遮挡清单换成 rlkBusyRects()，框线 / 框标题也算内容。 */
+  /* 近距端点之间只有 20px 的缝，13px 余量会把整条缝判成「满」—— 标签于是无处可去，
+     最后老老实实回中点压在别人的字上。缝比标签（16px 高）宽，留 2px 就够不覆盖了。 */
+  const PAD = g.near ? 2 : 13;
+  const half = Math.min(70, (String(txt || '').length * 7) / 2 + 10);
+  const rs = rects || rlkBusyRects();
+  const busy = p => rs.some(r => p.x > r.x1 - half && p.x < r.x2 + half &&
+                                 p.y > r.y1 - PAD && p.y < r.y2 + PAD);
+  const nrm = () => {
+    const dx = g.p2.x - g.p1.x, dy = g.p2.y - g.p1.y, d = Math.hypot(dx, dy) || 1;
+    return { x: -dy / d, y: dx / d };
+  };
+  /* 近距（弧已经绕出卡片）：标签挂到弧顶再外侧一点，别把刚露出来的那一截线又盖回去。 */
+  if(g.near){
+    const n = nrm(), s = g.k < 0 ? -1 : 1;
+    const apex = { x: g.mid.x + n.x * s * 24, y: g.mid.y + n.y * s * 24 };
+    if(!busy(apex)) return apex;
+    if(!busy(g.mid)) return g.mid;
+  }
+  /* 线确实很短（端点贴在同一条缝里、又被手动拉直）：先试顺着线往外一点。 */
+  if((g.len || 0) < 90){
+    const dx = g.p2.x - g.p1.x, dy = g.p2.y - g.p1.y, d = Math.hypot(dx, dy) || 1;
+    const out = [{ x: g.p2.x + dx / d * 28, y: g.p2.y + dy / d * 28 },
+                 { x: g.p1.x - dx / d * 28, y: g.p1.y - dy / d * 28 }];
+    for(const p of out) if(!busy(p)) return p;
+  }
+  if(!busy(g.mid)) return g.mid;
+  for(let d = 0.05; d <= 0.4001; d += 0.05){
+    for(const t of [0.5 - d, 0.5 + d]){
+      if(t < 0.08 || t > 0.92) continue;
+      const p = bezPt(g, t);
+      if(!busy(p)) return p;
+    }
+  }
+  /* 整条曲线都钻在卡片 / 框里：沿法线往外推，最多 3 档 × 26px。
+     宁可让标签离自己的线远一点，也不许它压住别人的内容（v51 用户反馈）。
+     连外推点都全忙时，也不老实回中点（那等于把问题原样留着）—— 挑压到东西最少的那一档。 */
+  const n = nrm(), s = g.k < 0 ? -1 : 1;
+  const hits = p => rs.reduce((a, r) => a + ((p.x > r.x1 - half && p.x < r.x2 + half &&
+                                              p.y > r.y1 - PAD && p.y < r.y2 + PAD) ? 1 : 0), 0);
+  let best = g.mid, bestHit = hits(g.mid), first = null;
+  for(const sgn of [s, -s]) for(let step = 1; step <= 3; step++){
+    const p = { x: g.mid.x + n.x * sgn * step * 26, y: g.mid.y + n.y * sgn * step * 26 };
+    const h = hits(p);
+    if(!first) first = p;
+    if(h === 0) return p;
+    if(h < bestHit){ bestHit = h; best = p; }
+  }
+  /* 全都一样忙：也取第一档外推，至少不再把标签压在曲线中点上 */
+  return bestHit >= hits(g.mid) ? (first || g.mid) : best;
+}
+/* 同一对端点之间画了第二条时，弧度必须往**另一边**鼓：否则两条线完全重合（看上去是一条
+   更粗的线），三条以上互相穿插就是用户说的「打结」。按「无向端点对」计数，第二条一定反号。 */
+function linkPairKey(lk){
+  const a = lk.a.k + ':' + lk.a.id, b = lk.b.k + ':' + lk.b.id;
+  return a < b ? a + '|' + b : b + '|' + a;
+}
+function linkGeoms(){
+  const out = [];
+  if(!root || !root.links || !root.links.length) return out;
+  const idx = uidIndex(), pairSign = new Map(), rects = rlkBusyRects();
+  root.links.forEach((lk, i) => {
+    const r1 = epRect(lk.a, idx), r2 = epRect(lk.b, idx);
+    if(!r1 || !r2) return;
+    const key = linkPairKey(lk);
+    let sign = pairSign.get(key);
+    const first = (sign === undefined);
+    sign = first ? (i % 2 ? -1 : 1) : -sign;   // 同一对的第二条一定反着鼓
+    pairSign.set(key, sign);
+    /* v51：近距且**没拖过**时，自动挑露出更多的那一侧鼓。两端点几乎贴在一起，
+       固定往某一侧鼓会让弧顶正好压在隔壁卡片 / 框上 —— 就是「线都很难显示出来」。
+       长弦保持原来的交替口径，不惹已经躲好了的旧图；第二条仍强制反号。 */
+    if(first && lk.bend === undefined && lk.shift === undefined){
+      const gp = linkCurve(r1, r2, 1), gn = linkCurve(r1, r2, -1);
+      if(gp.near && rlkOcclusion(gn, rects) < rlkOcclusion(gp, rects) - 1) sign = -1;
+      else sign = 1;
+    }
+    const g = linkCurve(r1, r2, sign, lk.bend, lk.shift);
+    out.push({ lk, g, la: pickLabelPt(g, lk.t, rects) });
+  });
+  return out;
+}
+function drawLinks(){
+  const L = document.getElementById('rlinks');
+  if(!L) return;
+  __lg = linkGeoms();
+  const W = svg.getAttribute('width'), H = svg.getAttribute('height');
+  if(W) L.setAttribute('width', W);
+  if(H) L.setAttribute('height', H);
+  const col = rlkColor();
+  let p = '';
+  __lg.forEach(o => {
+    const g = o.g, d = linkPathD(g);
+    /* 虚线 + 加粗 + 深色：三件事是一组，少一件都会「看不清」（v45 用户反馈）。
+       短于 30px 的线头改画实线（v46）—— 7/5 的虚线在 20px 上只剩一个点。 */
+    const dash = linkDashArr(g).join(' ');
+    p += '<path d="' + d + '" fill="none" stroke="' + col +
+         '" stroke-width="' + RLK_W + '" stroke-opacity="1" stroke-linecap="round"' +
+         (dash ? ' stroke-dasharray="' + dash + '"' : '') + '/>';
+    p += '<path d="' + linkArrowD(g) + '" fill="' + col + '" fill-opacity="1" stroke="none"/>';
+    /* 命中带：透明、16px 宽，专供拖动。放在同一条线上方（同层后绘制在上），
+       视觉上看不见，但正好包住虚线 + 两侧各 7px —— 不然 2.2px 的虚线抓不住。 */
+    p += '<path class="rlkhit" data-lk="' + o.lk.id + '" d="' + d +
+         '" fill="none" stroke="transparent" stroke-width="' + RLK_HIT + '"/>';
+  });
+  L.innerHTML = p;
+}
+function renderLinkLabels(){
+  const L = document.getElementById('rlabels');
+  if(!L) return;
+  L.innerHTML = '';
+  const list = __lg || linkGeoms();
+  if(!list.length) return;
+  const frag = document.createDocumentFragment();
+  const rc = rlkColor();                       // 与曲线同色；深底主题换亮色，CSS 里那份只是兜底
+  list.forEach(o => {
+    const lk = o.lk, g = o.g, la = o.la || g.mid;
+    const d = document.createElement('div');
+    d.className = 'rlkl' + (lk.t ? '' : ' ph');
+    d.style.left = la.x + 'px';
+    d.style.top  = la.y + 'px';
+    d.style.color = rc;
+    d.style.borderColor = hexA(rc, 0.55);
+    d.dataset.lk = lk.id;
+    const tx = document.createElement('span');
+    tx.className = 'rlkt';
+    tx.textContent = lk.t || tr('联系（双击写说明）');
+    const x = document.createElement('span');
+    x.className = 'rlkx';
+    x.textContent = '×';
+    x.title = tr('删除这条联系');
+    x.setAttribute('role', 'button');
+    d.appendChild(tx); d.appendChild(x);
+    d.addEventListener('mousedown', e => e.stopPropagation());
+    d.addEventListener('click', e => e.stopPropagation());
+    /* 标签本身就是「线上的把手」：短线上线被标签整个盖住，只有从标签起手才拖得动。
+       这里**不能** preventDefault —— 那会连带干掉 dblclick（双击改说明就没了）。 */
+    d.addEventListener('pointerdown', e => {
+      if(e.target && e.target.closest && e.target.closest('.rlkx')) return;   // × 是删除，不是拖
+      e.stopPropagation();
+      rlkDragStart(e, lk.id);
+    });
+    d.addEventListener('dblclick', e => { e.stopPropagation(); editLinkTitle(lk, tx); });
+    x.addEventListener('click', e => { e.stopPropagation(); rlkDel(lk.id); });
+    frag.appendChild(d);
+  });
+  L.appendChild(frag);
+}
+function editLinkTitle(lk, el){
+  if(!lk || !el) return;
+  editLabel(el, lk.t || '', v => {
+    pushUndo(trf('改联系说明：{x}', { x: clip(lk.t || tr('联系'), 12) }));
+    lk.t = v; save();
+  });
+}
+/* 端点显示名（对话框与撤销名共用一套口径）。
+   占位符统一用 {t} —— 与既有的「外框「{t}」」「分组框「{t}」」同一套词条，不再另造一份近似键。 */
+function epName(ep){
+  if(ep.k === 'grp'){
+    const g = (root.groups || []).find(x => x.id === ep.id) || {};
+    return trf('分组框「{t}」', { t: g.t || tr('未命名') });
+  }
+  const n = uidIndex().get(ep.id) || {};
+  const t = clip(n.text || tr('空节点'), 16);
+  if(ep.k === 'bd') return trf('外框「{t}」', { t: (n.bd && n.bd.t) || t });
+  if(ep.k === 'sum') return trf('概要「{t}」', { t: t });
+  return trf('节点「{t}」', { t: t });
+}
+/* 可当端点的对象清单（可见的才算 —— 选一个看不见的端点只会得到一条不画的线）。
+   顺序即默认值的直觉：节点 → 概要 → 外框 → 分组框（与 defaultEndpoints 同一套口径）。 */
+function rlkOptions(){
+  const nodes = [], sums = [], bds = [], grps = [];
+  flat.forEach(n => {
+    nodes.push({ v: 'node:' + nodeUid(n), t: trf('节点「{t}」', { t: clip(n.text, 18) || tr('空节点') }) });
+    if(n.sum) sums.push({ v: 'sum:' + nodeUid(n), t: trf('概要「{t}」', { t: clip(n.text, 18) }) });
+    if(n.bd)  bds.push({ v: 'bd:' + nodeUid(n),   t: trf('外框「{t}」', { t: n.bd.t || clip(n.text, 14) }) });
+  });
+  (root.groups || []).forEach(g => {
+    if(groupRect(g.id)) grps.push({ v: 'grp:' + g.id, t: trf('分组框「{t}」', { t: g.t || tr('未命名') }) });
+  });
+  return nodes.concat(sums, bds, grps);
+}
+/* 端点类型的默认优先级：节点 → 概要 → 外框 → 分组框（用户口径）。 */
+const EP_RANK = { node: 1, sum: 2, bd: 3, grp: 4 };
+function epRank(k){ return EP_RANK[k] || 9; }
+/* 默认起终点：从**当前选中**里按上面的优先级挑。
+   一个选中节点可能同时是概要、又带外框、又在某个组里 —— 多种身份都进候选，
+   排序（稳定）后第一个当起点，下一个「不是同一个身份」的当终点。
+   注意「同一个身份」= 同 k 又同 id；同一节点的 node 与 bd 算两个身份（节点 → 它的外框是合法的），
+   而 node / sum / bd 共用同一个 uid，不会出现 id 撞车导致的「自己连自己」误判。
+   这也顺带修掉了旧行为的一个坑：原来起点取 `selected`（**最后**点中的那个），
+   先点 A 再 Ctrl 点 B，起终点就被悄悄对调了。现在起点永远按身份优先级 + 选中顺序来。 */
+function defaultEndpoints(){
+  const cand = [], seenGrp = new Set();
+  selectionRoots().forEach(n => {
+    if(n === root) return;                     // 根代表整张图，不当默认端点
+    const uid = nodeUid(n);
+    cand.push({ k: 'node', id: uid });
+    if(n.sum) cand.push({ k: 'sum', id: uid });
+    if(n.bd)  cand.push({ k: 'bd',  id: uid });
+    if(n.gb && !seenGrp.has(n.gb)){ seenGrp.add(n.gb); cand.push({ k: 'grp', id: n.gb }); }
+  });
+  if(!cand.length) return null;
+  cand.sort((a, b) => epRank(a.k) - epRank(b.k));   // 稳定排序：同优先级保持选中顺序
+  const a = cand[0];
+  const b = cand.find(c => !(c.k === a.k && c.id === a.id)) || null;
+  return { a, b };
+}
+function parseEp(v){
+  const i = String(v || '').indexOf(':');
+  if(i < 0) return null;
+  const k = v.slice(0, i), id = v.slice(i + 1);
+  if(['node', 'bd', 'sum', 'grp'].indexOf(k) < 0 || !id) return null;
+  return { k, id };
+}
+let rlkOpenA = null;
+function openRlinkDlg(){
+  const el = document.getElementById('rlink');
+  if(!el) return;
+  const list = rlkOptions();
+  if(list.length < 2){ toast(tr('画布上还没有两个能连的对象')); return; }
+  const opts = list.map(o => '<option value="' + escapeHtml(o.v) + '">' + escapeHtml(o.t) + '</option>').join('');
+  const sa = document.getElementById('rlk-a'), sb = document.getElementById('rlk-b');
+  sa.innerHTML = opts; sb.innerHTML = opts;
+  /* 默认起终点按「节点 → 概要 → 外框 → 分组框」的优先级从选中里挑（见 defaultEndpoints）。
+     一个都没选中时两个下拉都留在第一项（节点列表开头），用户自己改。 */
+  const pick = defaultEndpoints();
+  if(pick) sa.value = pick.a.k + ':' + pick.a.id;
+  if(!sa.value) sa.value = list[0].v;             // 兜底：候选不在清单里（理论上不会）
+  if(pick && pick.b) sb.value = pick.b.k + ':' + pick.b.id;
+  if(!sb.value || sb.value === sa.value){
+    /* 没凑出一对（只选了一个对象，或端点它自己）→ 挑一个不同的，免得一打开就是「自己连自己」 */
+    const av = sa.value;
+    const alt = list.find(o => o.v !== av);
+    if(alt) sb.value = alt.v;
+  }
+  document.getElementById('rlk-t').value = '';
+  rlkOpenA = selected;
+  el.classList.add('show');
+  dlgOpenEl(el, '#rlk-a');
+}
+function closeRlinkDlg(){
+  const el = document.getElementById('rlink');
+  el.classList.remove('show');
+  dlgCloseEl(el);
+}
+function rlkOk(){
+  const a = parseEp(document.getElementById('rlk-a').value);
+  const b = parseEp(document.getElementById('rlk-b').value);
+  if(!a || !b){ toast(tr('起终点没选好')); return; }
+  if(a.k === b.k && a.id === b.id){ toastErr(tr('起点和终点是同一个对象'), tr('换一个端点，才有「联系」可言')); return; }
+  const t = bdTitle(document.getElementById('rlk-t').value);
+  root.links = root.links || [];
+  pushUndo(trf('加联系：{a} → {b}', { a: epName(a), b: epName(b) }));
+  root.links.push({ id: newLinkId(), t, a, b });
+  closeRlinkDlg();
+  render(); save(); refreshBar();
+  /* 提示改成「可拖动」—— 线被节点盖住时的唯一出路，不说用户不会知道 */
+  toast(t ? trf('已加联系「{x}」', { x: t }) : tr('已加联系'),
+        tr('拖动曲线可以把它拉离遮挡；双击小标签可以补一句说明'));
+}
+(function bindRlink(){
+  const el = document.getElementById('rlink');
+  if(!el) return;
+  const on = (id, ev, fn) => { const d = document.getElementById(id); if(d) d.addEventListener(ev, fn); };
+  on('rlk-close', 'click', closeRlinkDlg);
+  on('rlk-cancel', 'click', closeRlinkDlg);
+  on('rlk-ok', 'click', rlkOk);
+  on('rlk-t', 'keydown', e => { e.stopPropagation(); if(e.key === 'Enter'){ e.preventDefault(); rlkOk(); } });
+  el.addEventListener('keydown', e => { if(e.key === 'Escape'){ e.stopPropagation(); closeRlinkDlg(); } });
+  el.addEventListener('mousedown', e => { if(e.target === el) closeRlinkDlg(); });
+})();
+function rlkDel(id){
+  const i = (root.links || []).findIndex(l => l.id === id);
+  if(i < 0) return;
+  const lk = root.links[i];
+  pushUndo(trf('删除联系：{a} → {b}', { a: epName(lk.a), b: epName(lk.b) }));
+  root.links.splice(i, 1);
+  if(!root.links.length) delete root.links;
+  render(); save(); refreshBar();
+}
+/* ---------- N11-b：拖动曲线调弧度 ----------
+   问题：曲线在节点之下（这是承诺 —— 永远不压字），代价是它会被节点 / 外框 / 分组框 / 概要盖住。
+   解法不是改图层（会压字），而是让线**听用户的**：抓住它往空白处拖，弧就鼓到那边去。
+   v51：从「只沿法线一维」扩成二维 —— `lk.bend`（法线）+ `lk.shift`（沿弦），
+   位移按各自方向投影，都除以同一个抓点系数 cf，两个方向都是 1:1 跟手。
+   于是「拖到极限还压着框 / 标签」有了出路：往任意方向拉开，而不是只有弧更鼓。
+   仍然只有两个数字进数据，屏幕 / PNG / SVG / 撤销 / 存档自动同源，不需要第二套几何。 */
+let rlkDrag = null;
+function worldPt(cx, cy){
+  const r = stage.getBoundingClientRect();
+  return { x: (cx - r.left - tx) / scale, y: (cy - r.top - ty) / scale };
+}
+/* 抓在哪一段 —— 返回曲线上离指针最近的参数 t（夹在 0.2~0.8：
+   越靠近端点，同样的 k 让那一点移动得越少，除出来的放大倍数就越野）。 */
+function curveNearT(g, p){
+  let best = 0.5, bd = Infinity;
+  for(let i = 2; i <= 18; i++){
+    const t = i / 20, q = bezPt(g, t);
+    const dd = (q.x - p.x) * (q.x - p.x) + (q.y - p.y) * (q.y - p.y);
+    if(dd < bd){ bd = dd; best = t; }
+  }
+  return clamp(best, 0.2, 0.8);
+}
+function rlkDragStart(e, hit){
+  /* hit 既可能是命中带（#rlinks 里的 path），也可能是曲线上的小标签：
+     短线上线被标签整个盖住，标签才是唯一抓得住的地方（用户报「根本拖不了」就是这个）。 */
+  const id = (typeof hit === 'string') ? hit
+           : (hit && hit.getAttribute ? hit.getAttribute('data-lk') : '');
+  const list = __lg || linkGeoms();
+  const o = list.find(x => x.lk.id === id);
+  if(!o) return;
+  const g = o.g;
+  const dx = g.p2.x - g.p1.x, dy = g.p2.y - g.p1.y, d = Math.hypot(dx, dy) || 1;
+  const p0 = worldPt(e.clientX, e.clientY);
+  /* 抓点跟手：曲线上 t 处的点随 k 移动 cf·k（t=0.5 时正好 0.75k），
+     所以把位移除以 cf —— 抓在中间还是抓在靠上的位置，手感都是 1:1，不会「拖了半米才动一点」。 */
+  const t = curveNearT(g, p0), u = 1 - t;
+  const cf = Math.max(0.3, 3 * (u * u * t + u * t * t));
+  /* 起点就是「现在这条弧」的 k / s —— 接住再拖，不会一按就跳一下。
+     法线与切向都记下来：v51 的拖动是二维的，两个方向各自投影、各自跟手。 */
+  rlkDrag = { lk: o.lk, nx: -dy / d, ny: dx / d, tx: dx / d, ty: dy / d,
+              cf, fromLabel: typeof hit === 'string', p0,
+              c0: { x: e.clientX, y: e.clientY }, vs: (scale || 1),
+              bend0: g.k, shift0: g.s || 0, pushed: false };
+  document.body.classList.add('rlk-drag');
+  window.addEventListener('pointermove', rlkDragMove);
+  window.addEventListener('pointerup', rlkDragEnd);
+  window.addEventListener('pointercancel', rlkDragEnd);
+  window.addEventListener('blur', rlkDragEnd);              // 焦点被抢走也要收尾，否则线「粘」在手上
+}
+function rlkDragMove(e){
+  const D = rlkDrag;
+  if(!D) return;
+  /* 从标签上起手时，浏览器会顺手把标签文字选中（手机上还会弹系统菜单）—— 每帧清一次 */
+  if(D.fromLabel && window.getSelection){
+    const s = window.getSelection();
+    if(s && s.rangeCount) s.removeAllRanges();
+  }
+  /* 位移直接取**客户端**坐标差再除以按下时的缩放倍数，不再「两次 worldPt 相减」。
+     原因：worldPt 依赖画布 rect / tx / ty / scale 四个量，拖动过程中任意一个变了
+     （滚动条出现、欢迎浮层收起、用户滚轮缩放），两次相减就会凭空多出 / 少掉一整段位移，
+     手感变成「拖了半米只动一点」。按下时把基准钉住，中途怎么变都不影响。 */
+  const mx = (e.clientX - D.c0.x) / D.vs, my = (e.clientY - D.c0.y) / D.vs;
+  const nb = clamp(Math.round((D.bend0 + (mx * D.nx + my * D.ny) / D.cf) * 10) / 10,
+                   -RLK_BEND_MAX, RLK_BEND_MAX);
+  const ns = clamp(Math.round((D.shift0 + (mx * D.tx + my * D.ty) / D.cf) * 10) / 10,
+                   -RLK_BEND_MAX, RLK_BEND_MAX);
+  if(nb === D.lk.bend && ns === D.lk.shift) return;
+  /* pushUndo 是快照式，必须在**改**之前拍 —— 第一次真的要动的时候补一张 */
+  if(!D.pushed){ pushUndo(tr('调整联系弧度')); D.pushed = true; }
+  D.lk.bend = nb;
+  D.lk.shift = ns;
+  drawLinks(); renderLinkLabels();
+}
+function rlkDragEnd(){
+  const D = rlkDrag;
+  if(!D) return;
+  rlkDrag = null;
+  window.removeEventListener('pointermove', rlkDragMove);
+  window.removeEventListener('pointerup', rlkDragEnd);
+  window.removeEventListener('pointercancel', rlkDragEnd);
+  window.removeEventListener('blur', rlkDragEnd);
+  document.body.classList.remove('rlk-drag');
+  if(D.pushed){ save(); refreshBar(); }
+}
+(function bindRlinkDrag(){
+  const L = document.getElementById('rlinks');
+  if(!L) return;
+  const hitOf = e => {
+    const t = e.target;
+    return (t && t.closest && t.closest('.rlkhit')) || null;
+  };
+  /* 只认 pointerdown：手指 / 笔 / 鼠标一条路。
+     stopPropagation 是必须的 —— 否则 stage 会把这一下当成「拖动画布」。 */
+  L.addEventListener('pointerdown', e => {
+    const h = hitOf(e);
+    if(!h) return;
+    e.stopPropagation();
+    e.preventDefault();
+    rlkDragStart(e, h);
+  });
+  /* 鼠标还会补发 mousedown，那一路要单独挡住（它走的是 stageDown → 画布平移） */
+  L.addEventListener('mousedown', e => {
+    if(hitOf(e)){ e.stopPropagation(); e.preventDefault(); }
+  });
+})();
+/* 复制 / 粘贴 / 克隆出来的副本不能顶着原来的 uid —— 否则同一 id 指到两个节点上 */
+function stripUid(n){ delete n.uid; n.children.forEach(stripUid); }
+function linkPathD(g){
+  return 'M' + svgNum(g.p1.x) + ',' + svgNum(g.p1.y) +
+         ' C' + svgNum(g.m1.x) + ',' + svgNum(g.m1.y) + ' ' + svgNum(g.m2.x) + ',' + svgNum(g.m2.y) +
+         ' ' + svgNum(g.p2.x) + ',' + svgNum(g.p2.y);
+}
+/* 虚线：短于 30px 的线头画实线 —— 7/5 的虚线在 20px 上只剩一个点，看上去「线没了」 */
+const RLK_SOLID_BELOW = 30;
+function linkDashArr(g){ return (g.len || 40) < RLK_SOLID_BELOW ? [] : RLK_DASH; }
+/* 箭头：随线宽一起长大一点，线粗了箭头还是 9px 会显得「断头」；
+   短线上再按长度缩 —— 20px 的线头塞 10px 的箭头，箭头会把线本身吃掉。 */
+function linkArrowD(g){
+  const AL = clamp((g.len || 40) * 0.28, 5.5, 10), AW = AL * 0.5;
+  const a = Math.atan2(g.p2.y - g.m2.y, g.p2.x - g.m2.x);
+  const x1 = g.p2.x - Math.cos(a) * AL + Math.sin(a) * AW, y1 = g.p2.y - Math.sin(a) * AL - Math.cos(a) * AW;
+  const x2 = g.p2.x - Math.cos(a) * AL - Math.sin(a) * AW, y2 = g.p2.y - Math.sin(a) * AL + Math.cos(a) * AW;
+  return 'M' + svgNum(g.p2.x) + ',' + svgNum(g.p2.y) + ' L' + svgNum(x1) + ',' + svgNum(y1) +
+         ' L' + svgNum(x2) + ',' + svgNum(y2) + ' Z';
+}
+/* 导出用：几何与屏幕同源，只把纵向偏移折进去（PNG / SVG 共用这一份） */
+function linkExportGeom(oy){
+  const dy = oy || 0;
+  return linkGeoms().map(o => {
+    const g = o.g, la = o.la || g.mid;
+    const mv = p => ({ x: p.x, y: p.y + dy });
+    return { lk: o.lk, la: mv(la),
+             g: { p1: mv(g.p1), p2: mv(g.p2), m1: mv(g.m1), m2: mv(g.m2), mid: mv(g.mid),
+                  k: g.k, s: g.s, chord: g.chord, len: g.len, near: g.near } };
+  });
+}
+/* ====== N11：联系 END ====== */
+
+/* ====== N12（v47）→ v50：节点图片「双份」 BEGIN ======
+   ① 图片仍是**节点的一个字段**（`n.img`），复制 / 粘贴 / 克隆 / 撤销 / 存档零改动带上；
+      但文档里只放**轻量副本**（`src` ≤ 320px / 96KB），专供缩略图与布局 ——
+      localStorage 仍装得下，撤销栈也不会被一张图吃光。
+   ② **原图字节**（不降采样、不重编码，GIF 动画也保留）按 `oid` 存进 IndexedDB，
+      只在「悬停预览 / 大图浮层 / PNG·SVG 导出」时取。`render()` 永远同步 ——
+      异步只允许出现在插入落盘、浮层换图、导出边界这三处。
+   ③ 导出到文件时把原图内联进 `IMG_DATA`（独立网页 .html）或 `images`（.json），
+      接收方启动后灌回自己那台机器的 IndexedDB —— **仍是单文件流转，一个文件都不用多带**。
+   ④ 浏览器不给用 IndexedDB（隐私模式 / 旧内核 / jsdom）时退回 v47 行为：
+      内存里留着本次会话的原图，刷新后只剩轻量副本，功能不残废。
+   ⑤ 旧存档（v47–v49，只有一份 1280px 图）照常读：`imgOk` 仍按 IMG_CAP 收，
+      只是这些图没有 oid，放大时用的还是当年那一份。
+   范围（本版刻意不做）：一个节点只放一张图；不做拖文件到节点 / 粘贴剪贴板图片；
+   Word / Excel / PPT 整图一页不带图；打印 PDF 走屏幕那张轻量副本。 */
+const IMG_THUMB_PX = 320;            // 轻量副本长边上限（缩略图 96px 高，2× 屏也够）
+const IMG_THUMB_CAP = 96 * 1024;     // 轻量副本 data URL 字符上限
+const IMG_CAP = 400 * 1024;          // 旧版唯一副本的上限：imgOk 仍按它收，别把老存档拒之门外
+const IMG_FILE_MAX = 24 * 1024 * 1024;
+const IMG_ORIG_CAP = 40 * 1024 * 1024;  // 导入内联原图的字符上限（挡住手改 JSON 塞天文数字）
+const IMG_THUMB_H = 96;              // 必须与 CSS .node .thumb 的 height 一致（导出按同一份几何画）
+const IMG_PAD_Y = 8, IMG_PAD_X = 12, IMG_GAP = 6;   // 与 .node 的 padding / .hasimg 的 gap 一致
+const IMG_MIME_RE = /^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=\s]+$/i;
+const IMG_ZOOM_MIN = 0.2, IMG_ZOOM_MAX = 8;
+const IMG_OID_RE = /^[A-Za-z0-9_-]{1,32}$/;
+/* 原图库名**固定**：导出件会换 STORE_KEY，但绝不能换它 —— 换了导出件一打开就找不到图。
+   与自动备份的 mindmap-autobackup 是两把独立的库，互不干扰。 */
+const IMG_DB = 'mindmap-studio-orig-v1', IMG_STORE = 'blobs';
+
+/* ---- 原图仓库：IndexedDB 持久化 + 内存 Map 一级缓存 ----
+   内存 Map 不是可有可无的优化：它让「刚插入 / 刚打开导出件」的图在 IDB 事务还没落地时
+   就能同步显示，render() 因而完全不用碰异步；IDB 只负责跨刷新 / 跨页签那一份。 */
+var imgOrigMem = new Map();      // oid -> 原图 data URL
+var imgFresh = new Set();        // 本次会话写过的 oid（GC 保护）
+var imgDbPending = null;
+function imgIdbOk(){ return typeof indexedDB !== 'undefined' && !!indexedDB; }
+function imgDb(){
+  if(!imgIdbOk()) return Promise.resolve(null);
+  if(imgDbPending) return imgDbPending;
+  imgDbPending = new Promise(res => {
+    let done = false, timer = 0;
+    const fin = v => { if(done) return; done = true; if(timer) clearTimeout(timer); res(v); };
+    try{
+      const r = indexedDB.open(IMG_DB, 1);
+      r.onupgradeneeded = () => {
+        try{ if(!r.result.objectStoreNames.contains(IMG_STORE)) r.result.createObjectStore(IMG_STORE); }catch(e){}
+      };
+      r.onsuccess = () => fin(r.result);
+      r.onerror = () => fin(null);
+      r.onblocked = () => fin(null);
+      timer = setTimeout(() => fin(null), 3000);   // 打不开就当没有，绝不把启动 / 导出吊死
+    }catch(e){ fin(null); }
+  });
+  return imgDbPending;
+}
+function imgDbReq(db, mode, fn){
+  return new Promise(res => {
+    let done = false;
+    const fin = v => { if(done) return; done = true; res(v); };
+    try{
+      const tx = db.transaction(IMG_STORE, mode);
+      const req = fn(tx.objectStore(IMG_STORE));
+      let val = null;
+      if(req) req.onsuccess = () => { val = req.result; };
+      tx.oncomplete = () => fin({ ok: true, val });
+      tx.onerror = () => fin({ ok: false, val: null });
+      tx.onabort = () => fin({ ok: false, val: null });
+    }catch(e){ fin({ ok: false, val: null }); }
+  });
+}
+/* 返回「是否已落盘」。没落盘也把 url 留在内存里：本次会话照样能放大 / 导出。 */
+async function imgOrigPut(oid, url){
+  if(!IMG_OID_RE.test(oid) || !IMG_MIME_RE.test(url)) return false;
+  imgOrigMem.set(oid, url);
+  imgFresh.add(oid);
+  const db = await imgDb();
+  if(!db) return false;
+  const r = await imgDbReq(db, 'readwrite', st => st.put(url, oid));
+  return !!r.ok;
+}
+async function imgOrigGet(oid){
+  if(!IMG_OID_RE.test(oid)) return null;
+  if(imgOrigMem.has(oid)) return imgOrigMem.get(oid);
+  const db = await imgDb();
+  if(!db) return null;
+  const r = await imgDbReq(db, 'readonly', st => st.get(oid));
+  const v = (r.ok && typeof r.val === 'string' && IMG_MIME_RE.test(r.val)) ? r.val : null;
+  if(v) imgOrigMem.set(oid, v);
+  return v;
+}
+/* 导出边界：把当前用到的原图读成 { oid: dataURL }，供内联进 HTML / JSON。
+   读不到（旧存档只有 oid 没原图）就跳过 —— 导出件退回轻量副本，图不会丢，只是不清。 */
+function imgCollectOids(node, set){
+  if(!node) return set;
+  if(node.img && node.img.oid) set.add(node.img.oid);
+  (node.children || []).forEach(c => imgCollectOids(c, set));
+  return set;
+}
+async function imgInlineFor(oids){
+  const out = {};
+  for(const oid of Array.from(oids)){
+    const u = await imgOrigGet(oid);
+    if(u) out[oid] = u;
+  }
+  return out;
+}
+function imgInlineRoot(){ return imgInlineFor(imgCollectOids(root, new Set())); }
+/* 接收边界：导出件 / .json 打开时，把内联的原图灌回本源。返回收下的张数。 */
+function imgBootInline(obj){
+  if(!obj || typeof obj !== 'object' || Array.isArray(obj)) return 0;
+  let n = 0;
+  Object.keys(obj).forEach(oid => {
+    const url = obj[oid];
+    if(IMG_OID_RE.test(oid) && typeof url === 'string' && url.length <= IMG_ORIG_CAP && IMG_MIME_RE.test(url)){
+      imgOrigMem.set(oid, url);
+      imgFresh.add(oid);
+      imgOrigPut(oid, url);       // 落本源的库；不 await，启动一毫秒都不等
+      n++;
+    }
+  });
+  return n;
+}
+/* 保守 GC：只删「任何存档 / 撤销快照 / 当前画布 / 本次会话都没引用」的原图。
+   宁可留几张孤儿，也绝不删掉「撤销一下还能撤回来」的那一张。 */
+function imgUsedOids(){
+  const used = new Set(imgFresh);
+  imgOrigMem.forEach((_, k) => used.add(k));
+  const scan = s => {
+    if(typeof s !== 'string') return;
+    const re = /"oid":"([A-Za-z0-9_-]{1,32})"/g;
+    let m; while((m = re.exec(s))) used.add(m[1]);
+  };
+  try{
+    for(let i = 0; i < localStorage.length; i++) scan(localStorage.getItem(localStorage.key(i)));
+  }catch(e){}
+  try{ undoStack.forEach(x => scan(JSON.stringify(x))); }catch(e){}
+  try{ redoStack.forEach(x => scan(JSON.stringify(x))); }catch(e){}
+  try{ scan(JSON.stringify(serialize(root))); }catch(e){}
+  try{ Object.keys(IMG_DATA || {}).forEach(k => used.add(k)); }catch(e){}
+  return used;
+}
+async function imgGc(){
+  const db = await imgDb();
+  if(!db) return 0;
+  const used = imgUsedOids();
+  const r = await imgDbReq(db, 'readonly', st => st.getAllKeys());
+  if(!r.ok || !Array.isArray(r.val)) return 0;
+  const dead = r.val.filter(k => typeof k === 'string' && !used.has(k));
+  if(!dead.length) return 0;
+  const d = await imgDbReq(db, 'readwrite', st => { dead.forEach(k => st.delete(k)); return null; });
+  return d.ok ? dead.length : 0;
+}
+/* 看图时用哪一份：内存里命中原图就用原图，否则先用轻量副本把画面顶上，再异步补。 */
+function imgViewOf(n, url){
+  if(!n || !n.img) return null;
+  return url
+    ? { src: url, w: n.img.ow || n.img.w, h: n.img.oh || n.img.h, orig: true }
+    : { src: n.img.src, w: n.img.w, h: n.img.h, orig: false };
+}
+function imgBestSync(n){
+  if(!n || !n.img) return null;
+  return imgViewOf(n, n.img.oid ? imgOrigMem.get(n.img.oid) : null);
+}
+async function imgBest(n){
+  if(!n || !n.img) return null;
+  return imgViewOf(n, n.img.oid ? await imgOrigGet(n.img.oid) : null);
+}
+/* 导出用原图：调用方先把原图准备好，绘制时再统一走 imgXSrc()。 */
+var imgXTable = null;
+async function imgPrepareExport(nodes){
+  const ids = new Set();
+  (nodes || []).forEach(n => { if(n && n.img && n.img.oid) ids.add(n.img.oid); });
+  imgXTable = await imgInlineFor(ids);
+  return imgXTable;
+}
+function imgXSrc(n){
+  if(!n || !n.img) return '';
+  return (imgXTable && n.img.oid && imgXTable[n.img.oid]) || n.img.src;
+}
+
+/* ---- 数据：收口只在这一处 ---- */
+function imgOk(o){
+  if(!o || typeof o !== 'object') return null;
+  const src = String(o.src == null ? '' : o.src);
+  if(!IMG_MIME_RE.test(src)) return null;                  // 只认内嵌的图片 data URL（外链会让「断网可用」失效）
+  if(src.length > IMG_CAP * 1.4) return null;              // 手改 JSON 塞进来的超大图直接不收
+  const w = Math.round(Number(o.w)), h = Math.round(Number(o.h));
+  if(!(w > 0 && h > 0) || w > 20000 || h > 20000) return null;
+  const one = { src, w, h };
+  const nm = bdTitle(o.n);
+  if(nm) one.n = nm;
+  /* v50：原图引用。oid 只是个短 id，不占存档空间；ow/oh 供大图浮层按原图尺寸缩放，
+     os 供显示文件体积。四个字段都可选 —— 没有它们就是 v47–v49 的旧图，照常能看。 */
+  if(typeof o.oid === 'string' && IMG_OID_RE.test(o.oid)) one.oid = o.oid;
+  const ow = Math.round(Number(o.ow)), oh = Math.round(Number(o.oh));
+  if(ow > 0 && oh > 0 && ow <= 40000 && oh <= 40000){ one.ow = ow; one.oh = oh; }
+  const os = Math.round(Number(o.os));
+  if(os > 0 && os <= 200 * 1024 * 1024) one.os = os;
+  return one;
+}
+/* 有图没字的节点在文本语境里要有个名字（大纲 / 复制为文本 / 拖拽幽灵都靠它） */
+function nodeLabel(n){
+  const t = String((n && n.text) || '');
+  if(t) return t;
+  return (n && n.img) ? tr('（图片）') : '';
+}
+/* v50：有原图就报原图尺寸 —— 用户放大时关心的是「这一张到底多少像素」。 */
+function imgDim(n){
+  if(!n || !n.img) return '';
+  const g = n.img;
+  return (g.ow && g.oh) ? (g.ow + '×' + g.oh) : (g.w + '×' + g.h);
+}
+function imgKb(g){ return Math.max(1, Math.round((g && g.src ? g.src.length : 0) / 1024)); }
+/* 缩略图在节点里的位置（节点本地坐标 → 世界坐标由调用方加 oy）。
+   与 CSS 是同一份数：上内边距 8、左右 12、固定高 96；文字从 8+96+6 往下排。 */
+function imgThumbBox(x, y, w, h){
+  const ny = y - h / 2;
+  return { x: x + IMG_PAD_X, y: ny + IMG_PAD_Y, w: Math.max(1, w - IMG_PAD_X * 2), h: IMG_THUMB_H };
+}
+
+/* ---- 图片元素缓存：屏幕 / PNG / SVG 共用同一批已解码的 Image ---- */
+var imgCache = new Map();
+function imgElOf(src){
+  let im = imgCache.get(src);
+  if(!im){
+    im = new Image();
+    im.decoding = 'async';
+    im.src = src;
+    imgCache.set(src, im);
+    /* 缓存无上限会跟着「换过多少张图」一路涨 —— 只留最近 24 张，够一屏用 */
+    if(imgCache.size > 24) imgCache.delete(imgCache.keys().next().value);
+  }
+  return im;
+}
+function imgReady(im){
+  if(im.complete && im.naturalWidth) return Promise.resolve(true);
+  return new Promise(res => {
+    let done = false;
+    const fin = ok => { if(done) return; done = true; im.removeEventListener('load', on); im.removeEventListener('error', off); res(ok); };
+    const on = () => fin(true), off = () => fin(false);
+    im.addEventListener('load', on); im.addEventListener('error', off);
+    setTimeout(() => fin(!!im.naturalWidth), 2500);        // 坏图不许把导出卡死
+  });
+}
+function imgPreload(nodes){
+  /* v50：导出前 imgPrepareExport() 已把原图灌进 imgXTable，这里等的就是那一份高清图 */
+  const list = (nodes || []).filter(n => n && n.img).map(n => imgReady(imgElOf(imgXSrc(n))));
+  return Promise.all(list);
+}
+
+/* ---- 插入：读文件 → 降采样 → 重编码 → 写进去 ---- */
+var imgTarget = null;
+function imgPick(n){
+  if(!n) return;
+  imgTarget = n;
+  const inp = document.getElementById('imgfile');
+  if(!inp) return;
+  inp.value = '';                                          // 同一张图再选一次也要能触发 change
+  inp.click();
+}
+function imgFileChange(){
+  const inp = document.getElementById('imgfile');
+  const f = inp && inp.files && inp.files[0];
+  const n = imgTarget;
+  imgTarget = null;
+  if(!f || !n) return;
+  imgRead(f, n);
+}
+function imgRead(file, n){
+  if(!/^image\//.test(String(file.type || ''))){
+    toastErr(tr('这不是图片文件'), tr('只能插入 JPG / PNG / WebP / GIF 这类图片'));
+    return;
+  }
+  if(file.size > IMG_FILE_MAX){
+    toastErr(trf('图片太大（{s} MB）', { s: Math.round(file.size / 1048576) }), tr('先压到 20 MB 以内再插入'));
+    return;
+  }
+  const fr = new FileReader();
+  fr.onerror = () => toastErr(tr('读取图片失败'), tr('换一张图试试，或先把图片存到本地再插入'));
+  fr.onload = () => {
+    /* v50：FileReader 给的就是**原文件字节**的 data URL —— 不经过 canvas，
+       分辨率、无损 PNG、GIF 动画全都保住，直接交给原图仓库。 */
+    const origUrl = String(fr.result || '');
+    const im = new Image();
+    im.onerror = () => toastErr(tr('这张图片解不开'), tr('有些 HEIC / RAW 格式浏览器不认识，先转成 JPG 或 PNG'));
+    im.onload = () => imgApplyTwo(n, im, file.name, origUrl, file.size);
+    im.src = origUrl;
+  };
+  fr.readAsDataURL(file);
+}
+/* 有没有透明像素：决定能不能转 JPEG（转 JPEG 会把透明填白，图标 / 截图会挂白底） */
+function imgHasAlpha(im){
+  try{
+    const cv = document.createElement('canvas');
+    const s = 64 / Math.max(im.naturalWidth || 1, im.naturalHeight || 1);
+    cv.width = Math.max(1, Math.round((im.naturalWidth || 1) * s));
+    cv.height = Math.max(1, Math.round((im.naturalHeight || 1) * s));
+    const c = cv.getContext && cv.getContext('2d');
+    if(!c) return false;
+    c.drawImage(im, 0, 0, cv.width, cv.height);
+    const d = c.getImageData(0, 0, cv.width, cv.height).data;
+    for(let i = 3; i < d.length; i += 4) if(d[i] < 250) return true;
+    return false;
+  }catch(e){ return false; }
+}
+function imgReencode(im, w, h, alpha, q){
+  try{
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    const c = cv.getContext && cv.getContext('2d');
+    if(!c) return '';
+    /* 透明图不铺白底；不透明图铺白底再编码 JPEG —— 否则半透明边缘会发黑 */
+    if(!alpha){ c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, h); }
+    c.drawImage(im, 0, 0, w, h);
+    return cv.toDataURL(alpha ? 'image/png' : 'image/jpeg', q);
+  }catch(e){ return ''; }
+}
+/* 轻量副本：长边 ≤ IMG_THUMB_PX、data URL ≤ IMG_THUMB_CAP，逐档试到达标为止。
+   **小图早退**：本来就小、格式也合法的图直接原样收，不再无条件走一遍 JPEG 0.82
+   —— v47 那个坑会把无损 PNG 变成有损 JPEG，明明没超任何上限也糊一层。 */
+function imgThumbOf(im, origUrl){
+  const w0 = im.naturalWidth || im.width, h0 = im.naturalHeight || im.height;
+  if(!(w0 > 0 && h0 > 0)) return null;
+  if(Math.max(w0, h0) <= IMG_THUMB_PX && origUrl.length <= IMG_THUMB_CAP && IMG_MIME_RE.test(origUrl))
+    return { src: origUrl, w: w0, h: h0, w0, h0 };
+  const alpha = imgHasAlpha(im);
+  const base = Math.min(1, IMG_THUMB_PX / Math.max(w0, h0));
+  const tries = alpha
+    ? [[1, 1], [0.8, 1], [0.62, 1], [0.45, 1], [0.32, 1]]        // 透明图不能转 JPEG，只能缩像素
+    : [[1, 0.86], [1, 0.72], [0.82, 0.68], [0.62, 0.58], [0.45, 0.5]];
+  let best = null;
+  for(const [k, q] of tries){
+    const w = Math.max(1, Math.round(w0 * base * k)), h = Math.max(1, Math.round(h0 * base * k));
+    const url = imgReencode(im, w, h, alpha, q);
+    if(!url) break;
+    best = { src: url, w, h, w0, h0 };
+    if(url.length <= IMG_THUMB_CAP) break;
+  }
+  return best;
+}
+/* 插入的唯一编排：生成轻量副本 → 原图进仓库 → 走同步的 imgApply() 写入口。
+   浏览器不认识的 data URL（如 SVG）不给 oid，退回 v47 的「只有一份副本」。 */
+function imgApplyTwo(n, im, name, origUrl, size){
+  const t = imgThumbOf(im, origUrl || '');
+  if(!t){ toastErr(tr('这张图片处理不了'), tr('浏览器没能把这个格式画出来，先转成 JPG 或 PNG')); return; }
+  const o = { src: t.src, w: t.w, h: t.h, n: name };
+  if(IMG_MIME_RE.test(origUrl || '') && origUrl.length <= IMG_ORIG_CAP){
+    o.oid = newId();
+    o.ow = t.w0; o.oh = t.h0; o.os = Math.round(size || origUrl.length);
+    imgOrigMem.set(o.oid, origUrl);      // 同步可见：插完立刻能放大 / 导出
+    imgFresh.add(o.oid);
+    imgOrigPut(o.oid, origUrl).then(ok => { if(ok) toast(tr('原图已按原样保存，放大和导出都用它')); });
+  }
+  imgApply(n, o, !!(n && n.img));
+}
+/* 老调用点 / 测试仍可只用一张解码好的 Image 走完整流程 */
+function imgApplyEncoded(n, im, name){ return imgApplyTwo(n, im, name, String(im.src || ''), 0); }
+/* 唯一的写入口：撤销 → 写字段 → 重画 → 存盘 → 提示。
+   测试也走这里（跳过「读文件 + canvas」那段浏览器专有的路）。 */
+function imgApply(n, o, replacing){
+  if(!n) return false;
+  const g = imgOk(o);
+  if(!g){ toastErr(tr('这张图片读不出可用数据'), tr('换一张 JPG / PNG 试试')); return false; }
+  pushUndo(trf(replacing ? '更换图片「{n}」' : '插入图片「{n}」', { n: clip(nodeLabel(n) || tr('节点'), 14) }));
+  n.img = g;
+  render(); save(); refreshBar();
+  const kb = Math.max(1, Math.round(g.src.length / 1024));
+  toast(trf('已插入图片（{w}×{h}，约 {k} KB）', { w: g.w, h: g.h, k: kb }));
+  return true;
+}
+function imgDel(n){
+  if(!n || !n.img) return;
+  pushUndo(trf('移除图片「{n}」', { n: clip(nodeLabel(n) || tr('节点'), 14) }));
+  delete n.img;
+  imgHoverHide();
+  render(); save(); refreshBar();
+  /* v50：原图**不在这里删** —— 一删，Ctrl+Z 撤回来的就只剩个空引用。
+     交给 imgGc() 在确认所有槽 / 快照都不再引用之后回收。 */
+  toast(tr('图片已移除（文字和子树都还在）'));
+}
+
+/* ---- 悬停预览：贴在缩略图边上的原图，滚轮缩放、单击看大图 ---- */
+var imgHoverEl = null, imgHoverNode = null, imgHoverTimer = 0, imgHoverScale = 1, imgHoverG = null;
+/* v53：拖动状态。这里**不记**「框相对锚点的偏移」—— 因为拖动时画布和缩略图一起移动，
+   框相对缩略图的几何关系一点没变。记了就变成双重计数：位置重算（滚轮缩放 / 异步换原图）
+   会拿「已经移动过的缩略图」再加一遍偏移，框直接跳出一整段。 */
+var hovDrag = null, hovMoved = false;
+/* v54：滚轮缩放「以指针为锚」需要的两项状态。
+   hovPointer 记最近一次真实指针位置（客户端坐标），只用于「收起之前复查指针还在不在框里」；
+   hovPinned 表示这张预览已经被手动缩放 / 拖过，异步换原图时别再把它贴回缩略图边上。 */
+var hovPointer = { x: -1, y: -1 }, hovPinned = false;
+function imgHoverBox(){ if(!imgHoverEl) imgHoverEl = document.getElementById('imghover'); return imgHoverEl; }
+function hovTrack(e){
+  if(Number.isFinite(e.clientX) && Number.isFinite(e.clientY)){
+    hovPointer.x = e.clientX; hovPointer.y = e.clientY;
+  }
+}
+function hovRect(el){
+  if(!el || !el.getBoundingClientRect) return null;
+  const r = el.getBoundingClientRect();
+  return { x: r.left, y: r.top, w: r.width, h: r.height };
+}
+/* 纯几何：缩放前后把「指针底下那一处画面」钉住，返回预览框该补的位移。
+   拿不到有效矩形（jsdom 的布局桩 / 还没排版）就返回 null，调用方一律不动位置 —— 绝不乱跳。 */
+function hovAnchorShift(before, after, px, py){
+  if(!before || !after || !(before.w > 0) || !(before.h > 0) || !(after.w > 0) || !(after.h > 0)) return null;
+  const ax = clamp((px - before.x) / before.w, 0, 1);
+  const ay = clamp((py - before.y) / before.h, 0, 1);
+  return { dx: (px - ax * after.w) - after.x, dy: (py - ay * after.h) - after.y };
+}
+/* 收起前的复查：布局自己动了一下（缩放 / 换原图）时浏览器可能先派一次 mouseleave，
+   但指针其实还压在预览上。图放大后会溢出框的边，所以框和图两个矩形都算「在里面」。 */
+function hovPointerInside(){
+  const box = imgHoverBox();
+  if(!box || !imgHoverNode || hovPointer.x < 0 || hovPointer.y < 0) return false;
+  const inR = r => !!(r && r.w > 0 && r.h > 0 &&
+    hovPointer.x >= r.x && hovPointer.x <= r.x + r.w &&
+    hovPointer.y >= r.y && hovPointer.y <= r.y + r.h);
+  return inR(hovRect(box)) || inR(hovRect(box.querySelector('img')));
+}
+function imgHoverCap(n){
+  const box = imgHoverBox(), g = imgHoverG || (n && n.img ? imgBestSync(n) : null);
+  if(!box || !n || !n.img || !g) return;
+  const cap = box.querySelector('.ih-cap');
+  if(cap) cap.textContent = (n.img.n || tr('图片')) + ' · ' + g.w + '×' + g.h +
+                            ' · ' + imgKb(g) + ' KB' + (g.orig ? ' · ' + tr('原图') : '');
+}
+/* 预览的「1 倍」= 当前这份图的像素尺寸；放不下就按视口缩到能看见全图 */
+function imgHoverFit(){
+  const box = imgHoverBox(), im = box && box.querySelector('img');
+  if(!im || !imgHoverNode || !imgHoverNode.img) return;
+  const maxW = Math.min(760, window.innerWidth * 0.64) - 18;
+  const maxH = window.innerHeight * 0.64 - 18;
+  const g = imgHoverG || imgBestSync(imgHoverNode);
+  if(!g) return;
+  imgHoverScale = Math.min(1, maxW / g.w, maxH / g.h);
+  if(!(imgHoverScale > 0)) imgHoverScale = 0.2;
+  imgHoverSize();
+}
+function imgHoverSize(){
+  const box = imgHoverBox(), im = box && box.querySelector('img');
+  if(!im || !imgHoverNode || !imgHoverNode.img) return;
+  const g = imgHoverG || imgBestSync(imgHoverNode);
+  if(!g) return;
+  im.style.width = Math.round(g.w * imgHoverScale) + 'px';
+  im.style.height = Math.round(g.h * imgHoverScale) + 'px';
+  /* 只改百分比那一格：提示文案是静态文本节点，要留给 i18n 的 DOM 走查去翻（写整个 .ih-tip
+     会让它的 __zh 变成「100% · 滚轮缩放…」，切语言时查不到词条，就永远停在中文）。 */
+  const pct = box.querySelector('#ih-pct');
+  if(pct) pct.textContent = Math.round(imgHoverScale * 100) + '%';
+}
+function imgHoverPlace(thumbEl){
+  const box = imgHoverBox();
+  if(!box || !thumbEl) return;
+  const r = thumbEl.getBoundingClientRect();
+  const bw = box.offsetWidth || 260, bh = box.offsetHeight || 200;
+  let x = r.right + 14, y = r.top + r.height / 2 - bh / 2;
+  if(x + bw > window.innerWidth - 10) x = r.left - bw - 14;
+  if(x < 10) x = Math.max(10, (window.innerWidth - bw) / 2);
+  y = Math.max(10, Math.min(window.innerHeight - bh - 10, y));
+  box.style.left = Math.round(x) + 'px';
+  box.style.top  = Math.round(y) + 'px';
+}
+function imgHoverShow(n, thumbEl){
+  const box = imgHoverBox();
+  if(!box || !n || !n.img) return;
+  imgHoverKeep();
+  const im = box.querySelector('img');
+  if(!im) return;
+  imgHoverNode = n;
+  hovPinned = false;                          // 新一次悬停：重新以缩略图为锚
+  /* v50：先用「已经能同步拿到的最好的那一份」把画面顶上，绝不等异步；
+     原图若还在 IndexedDB 里没进内存，取回来后再换一次高清图并重算尺寸。 */
+  imgHoverG = imgBestSync(n);
+  if(!imgHoverG) return;
+  if(im.getAttribute('src') !== imgHoverG.src) im.setAttribute('src', imgHoverG.src);
+  im.setAttribute('alt', n.img.n || tr('图片'));
+  imgHoverCap(n);
+  box.classList.add('show');
+  imgHoverFit();
+  imgHoverPlace(thumbEl);
+  if(n.img.oid && !imgHoverG.orig) imgBest(n).then(g => {
+    if(imgHoverNode !== n || !g || !g.orig) return;      // 用户已经移开 / 换了节点
+    imgHoverG = g;
+    im.setAttribute('src', g.src);
+    imgHoverCap(n);
+    imgHoverFit();
+    const th = n.el && n.el.querySelector('.thumb');
+    if(th && !hovPinned) imgHoverPlace(th);    // v54：已经手动缩过 / 拖过的，不许再拽回锚点
+  }).catch(() => {});
+}
+function imgHoverKeep(){ if(imgHoverTimer){ clearTimeout(imgHoverTimer); imgHoverTimer = 0; } }
+function imgHoverHideSoon(){
+  imgHoverKeep();
+  imgHoverTimer = setTimeout(() => { imgHoverTimer = 0; if(hovPointerInside() || hovDrag) return; imgHoverHide(); }, 140);
+}
+function imgHoverHide(){
+  imgHoverKeep();
+  imgHoverNode = null;
+  imgHoverG = null;
+  hovDrag = null;                              // 收起来时把拖动状态一起清掉，免得下一次「粘」在手上
+  hovMoved = false;
+  hovPinned = false;
+  const box = imgHoverBox();
+  if(box) box.classList.remove('show');
+}
+/* v54：滚轮缩放以指针为锚 —— 缩放前后指针底下还是同一处画面，预览框不会再从指针底下抽走。
+   旧版每滚一格都 imgHoverPlace(th) 重贴回缩略图：框一变大就纵向重居中、甚至横向翻到另一边，
+   指针掉出框 → mouseleave → 立刻收起（真 Chrome 量到：1280 宽、指针在右侧 85%，放大 1 格就没了）。
+   这里**绝不重贴锚点**，只按指针锚补一段位移；没有指针坐标（脚本直接调用）就纯改尺寸。 */
+function imgHoverZoom(f, clientX, clientY){
+  if(!imgHoverNode) return;
+  const box = imgHoverBox(), im = box && box.querySelector('img');
+  if(!box || !im) return;
+  const hasPt = Number.isFinite(clientX) && Number.isFinite(clientY);
+  if(hasPt){ hovPointer.x = clientX; hovPointer.y = clientY; }
+  /* 锚在**框**上，不是锚在 <img> 上：#imghover img 是 pointer-events:none，
+     放到一定倍数后图还会溢出 max-width 的框；只有框本身才是真正接滚轮 / mouseleave 的命中区。 */
+  const before = hasPt ? hovRect(box) : null;  // 写尺寸之前量，才是「上一帧」的框
+  imgHoverScale = clamp(imgHoverScale * f, IMG_ZOOM_MIN, IMG_ZOOM_MAX);
+  imgHoverSize();
+  if(before){
+    hovPinned = true;
+    const sh = hovAnchorShift(before, hovRect(box), clientX, clientY);
+    if(sh && (sh.dx || sh.dy)){
+      box.style.left = Math.round((parseFloat(box.style.left) || 0) + sh.dx) + 'px';
+      box.style.top  = Math.round((parseFloat(box.style.top)  || 0) + sh.dy) + 'px';
+    }
+  }
+  box.classList.toggle('zoom', imgHoverScale > 1);
+}
+
+/* ---- 大图浮层：− / ＋ / 适应窗口 / 原始大小，滚轮以指针为锚、拖动平移 ---- */
+var ivNode = null, ivScale = 1, ivElCache = null, ivG = null;
+/* v52：图拖到框边上之后还剩下的那点位移，用 transform 补上。
+   只用滚动条时，图比框小就一点都拖不动（「按住拖没反应」）；补一层偏移后，
+   任何缩放档位按住都能跟着手走，且在缩放 / 适应窗口时归零，不会把图永久推歪。 */
+var ivOff = { x: 0, y: 0 };
+function ivApplyOff(){
+  const im = ivImg();
+  if(!im) return;
+  im.style.transform = (ivOff.x || ivOff.y) ? 'translate(' + ivOff.x + 'px,' + ivOff.y + 'px)' : '';
+}
+function ivOffReset(){ ivOff.x = 0; ivOff.y = 0; ivApplyOff(); }
+function ivEl(){ if(!ivElCache) ivElCache = document.getElementById('imgview'); return ivElCache; }
+function ivImg(){ return document.getElementById('iv-img'); }
+function ivWrap(){ return document.getElementById('iv-wrap'); }
+function ivInfoText(n, g){
+  return (n.img.n || tr('图片')) + ' · ' + g.w + '×' + g.h + ' · ' + imgKb(g) + ' KB' +
+         (g.orig ? ' · ' + tr('原图') : '');
+}
+function openImgView(n){
+  if(!n || !n.img) return;
+  const el = ivEl();
+  if(!el) return;
+  imgHoverHide();
+  ivNode = n;
+  /* v50：同步先显示能立刻拿到的那一份（通常是轻量副本），随后异步换成原图。
+     换图会改像素尺寸，所以尺寸 / 信息 / 适应窗口三样都要跟着重算一遍。 */
+  ivG = imgBestSync(n);
+  if(!ivG) return;
+  const im = ivImg();
+  if(im){
+    im.setAttribute('src', ivG.src);
+    im.setAttribute('alt', n.img.n || tr('图片'));
+  }
+  const info = document.getElementById('iv-info');
+  if(info) info.textContent = ivInfoText(n, ivG);
+  el.classList.add('show');
+  dlgOpenEl(el, '#iv-close');
+  ivFit();                                   // 先给「看得见全图」的那一档，再让用户自己放大
+  if(n.img.oid && !ivG.orig) imgBest(n).then(g => {
+    if(ivNode !== n || !g || !g.orig || !el.classList.contains('show')) return;
+    ivG = g;
+    im.setAttribute('src', g.src);
+    if(info) info.textContent = ivInfoText(n, g);
+    ivFit();
+  }).catch(() => {});
+}
+function closeImgView(){
+  const el = ivEl();
+  if(!el) return;
+  el.classList.remove('show');
+  document.body.classList.remove('iv-drag');
+  ivOffReset();                              // 临时偏移不跨次
+  ivNode = null;
+  ivG = null;
+  dlgCloseEl(el);
+}
+/* 缩放：width/height 直接改（不是 transform）→ 放大不糊，滚动条也真实可用。
+   给了指针坐标就以那个点为锚（缩放前后指针底下还是同一处画面）。
+   注意比例一律用 `n.img.w × ivScale` 算，**不读 clientWidth** —— 刚写进去的样式要重排才量得到，
+   读回来会是上一帧的宽度（jsdom 里更是恒定的桩值），锚点就会算偏。 */
+function ivScaleTo(s, clientX, clientY){
+  const n = ivNode, im = ivImg(), wrap = ivWrap();
+  if(!n || !im || !wrap) return;
+  s = clamp(s, 0.05, 8);
+  /* 缩放 / 适应窗口都从「没有临时偏移」的状态重新算锚点，否则偏移会被带进 ax/ay 里。 */
+  ivOffReset();
+  /* v50：用「当前显示的那一份」的像素尺寸。原图与轻量副本尺寸不同，
+     拿 n.img.w 去算会把高清图的 100% 显示成 4 倍大。 */
+  const g = ivG || imgBestSync(n);
+  if(!g) return;
+  const oldW = Math.max(1, Math.round(g.w * ivScale));
+  const oldH = Math.max(1, Math.round(g.h * ivScale));
+  const r = wrap.getBoundingClientRect();
+  const px = (clientX === undefined || clientX === null) ? wrap.clientWidth / 2 : clientX - r.left;
+  const py = (clientY === undefined || clientY === null) ? wrap.clientHeight / 2 : clientY - r.top;
+  const ax = (wrap.scrollLeft + px) / oldW;
+  const ay = (wrap.scrollTop + py) / oldH;
+  ivScale = s;
+  const newW = Math.max(1, Math.round(g.w * s));
+  const newH = Math.max(1, Math.round(g.h * s));
+  im.style.width  = newW + 'px';
+  im.style.height = newH + 'px';
+  wrap.scrollLeft = Math.round(ax * newW - px);
+  wrap.scrollTop  = Math.round(ay * newH - py);
+  const pct = document.getElementById('iv-pct');
+  if(pct) pct.textContent = Math.round(s * 100) + '%';
+}
+function ivFit(){
+  const n = ivNode, wrap = ivWrap();
+  if(!n || !wrap) return;
+  const g = ivG || imgBestSync(n);
+  if(!g) return;
+  const pad = 30;
+  const s = Math.min(1, (wrap.clientWidth - pad) / g.w, (wrap.clientHeight - pad) / g.h);
+  ivScaleTo(s > 0 ? s : 1);
+}
+function ivStep(f, clientX, clientY){ ivScaleTo(ivScale * f, clientX, clientY); }
+
+/* 事件接线：缩略图（悬停 / 触屏点开）、悬停层（滚轮 / 单击 / 离开）、大图浮层（按钮 / 滚轮 / 拖动） */
+(function bindImgUI(){
+  const inp = document.getElementById('imgfile');
+  if(inp) inp.addEventListener('change', imgFileChange);
+  /* v54：记下真实指针位置，供「延迟收起」在回调里复查。捕获阶段监听，不受浮层拦截影响。 */
+  document.addEventListener('mousemove', hovTrack, true);
+  document.addEventListener('pointermove', hovTrack, true);
+
+  /* #nodes 是一层委托：缩略图是每次 render 重建的，逐个挂监听会跟着节点数一起漏 */
+  if(nodesLayer) nodesLayer.addEventListener('mouseover', e => {
+    const t = e.target && e.target.closest ? e.target.closest('.thumb') : null;
+    if(!t) return;
+    const n = t.__node;
+    if(n && n.img) imgHoverShow(n, t);
+  });
+  if(nodesLayer) nodesLayer.addEventListener('mouseout', e => {
+    const t = e.target && e.target.closest ? e.target.closest('.thumb') : null;
+    if(!t) return;
+    const to = e.relatedTarget;
+    if(to && to.closest && to.closest('#imghover')) return;      // 移到预览上：继续开着
+    imgHoverHideSoon();
+  });
+
+  const hb = imgHoverBox();
+  if(hb){
+    hb.addEventListener('mouseenter', imgHoverKeep);
+    hb.addEventListener('mouseover', imgHoverKeep);   // v54：从框内一个孩子移到另一个也别让待收起计时器漏下来
+    /* v54：改成宽限收起。缩放 / 异步换图让浏览器误派一次 mouseleave 时，
+       140ms 后的回调会复查指针是否还在框里；真离开才收。拖动中另有 hovDrag 兜着。 */
+    hb.addEventListener('mouseleave', () => { if(!hovDrag) imgHoverHideSoon(); });
+    hb.addEventListener('wheel', e => {
+      if(!imgHoverNode) return;
+      e.preventDefault();
+      imgHoverKeep();                                // 正在缩放，别让上一次「移开」的计时器把关掉
+      hovTrack(e);
+      imgHoverZoom(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX, e.clientY);
+    }, { passive: false });
+    /* v53：按住预览拖动 —— 预览框跟手走，背后的画布同时平移。
+       和大图浮层里的拖动同一套语义，只是这层没有遮罩，边拖边看得见画布挪到哪儿。
+       位移不到 3px 仍按「单击」处理，照旧打开大图。 */
+    hb.addEventListener('pointerdown', e => {
+      if(!imgHoverNode || e.button !== 0) return;
+      if(e.target && e.target.closest && e.target.closest('button,a')) return;
+      hovTrack(e);
+      hovMoved = false;                        // 新的一下手势，先把上一次的「拖过」标记消费掉
+      hovDrag = { x: e.clientX, y: e.clientY,
+                  l: parseFloat(hb.style.left) || 0, t: parseFloat(hb.style.top) || 0,
+                  tx0: tx, ty0: ty, moved: false };
+      document.body.classList.add('ih-drag');
+      try{ hb.setPointerCapture(e.pointerId); }catch(_){}
+    });
+    hb.addEventListener('pointermove', e => {
+      const D = hovDrag;
+      if(!D) return;
+      hovTrack(e);
+      const dx = e.clientX - D.x, dy = e.clientY - D.y;
+      if(!D.moved){
+        if(Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+        D.moved = true; hovMoved = true;
+      }
+      hovPinned = true;                        // 拖过的位置不许被异步换图贴回去
+      e.preventDefault();
+      hb.style.left = Math.round(D.l + dx) + 'px';
+      hb.style.top  = Math.round(D.t + dy) + 'px';
+      tx = D.tx0 + dx; ty = D.ty0 + dy; applyTransform();
+    });
+    const ihEnd = () => {
+      if(!hovDrag) return;
+      hovDrag = null;
+      document.body.classList.remove('ih-drag');
+      /* 这里**不清** hovMoved：紧随其后的那次 click 还要读它。它在下一次 pointerdown
+         或 click 时被消费 —— 不清就不会因为计时器顺序不同而误开大图。 */
+    };
+    hb.addEventListener('pointerup', ihEnd);
+    hb.addEventListener('pointercancel', ihEnd);
+    hb.addEventListener('click', () => {
+      if(hovMoved){ hovMoved = false; return; }   // 刚才那下是拖，不是点
+      if(imgHoverNode) openImgView(imgHoverNode);
+    });
+  }
+
+  const close = document.getElementById('iv-close');
+  if(close){
+    close.addEventListener('click', closeImgView);
+    close.addEventListener('keydown', e => {
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); closeImgView(); }
+    });
+  }
+  const okBtn = document.getElementById('iv-ok');
+  if(okBtn) okBtn.addEventListener('click', closeImgView);
+  const out = document.getElementById('iv-out');
+  if(out) out.addEventListener('click', () => ivStep(1 / 1.25));
+  const inBtn = document.getElementById('iv-in');
+  if(inBtn) inBtn.addEventListener('click', () => ivStep(1.25));
+  const fit = document.getElementById('iv-fit');
+  if(fit) fit.addEventListener('click', ivFit);
+  const one = document.getElementById('iv-one');
+  if(one) one.addEventListener('click', () => ivScaleTo(1));
+  const wrap = ivWrap();
+  if(wrap){
+    wrap.addEventListener('wheel', e => {
+      if(!ivNode) return;
+      e.preventDefault();
+      ivStep(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX, e.clientY);
+    }, { passive: false });
+    /* 拖动平移（v52）：
+       ① 图先跟着手走 —— 滚动条吃得下的交给 scroll，吃不下（图比框小 / 已经到边）的
+          用临时 transform 补，于是任何缩放档位按住都拖得动，不再是「图一缩小就拖不动」；
+       ② 背后的导图同步平移同样的距离（tx/ty）—— 遮罩很淡，边拖边能看见画布挪到哪儿；
+       ③ 松手即停、不回弹、不入撤销栈，和直接在画布上拖是同一套语义。 */
+    let pan = null;
+    wrap.addEventListener('pointerdown', e => {
+      if(!ivNode || e.button !== 0) return;
+      if(e.target !== ivImg() && e.target !== wrap) return;
+      pan = { x: e.clientX, y: e.clientY, l: wrap.scrollLeft, t: wrap.scrollTop, cx: 0, cy: 0 };
+      document.body.classList.add('iv-drag');
+      try{ wrap.setPointerCapture(e.pointerId); }catch(_){}
+      e.preventDefault();
+    });
+    wrap.addEventListener('pointermove', e => {
+      if(!pan) return;
+      const dx = e.clientX - pan.x, dy = e.clientY - pan.y;
+      const wantL = pan.l - dx, wantT = pan.t - dy;
+      wrap.scrollLeft = wantL;                       // 浏览器自己夹到合法区间
+      wrap.scrollTop  = wantT;
+      /* 滚动没吃掉的那截 = 想要的 - 实际拿到的，用 transform 补上（上限 35% 框宽内）。
+         反向拖回来时它会自己收敛回 0，不会越拖越歪。 */
+      const mx = Math.round(wrap.clientWidth  * 0.35);
+      const my = Math.round(wrap.clientHeight * 0.35);
+      ivOff.x = clamp(Math.round(wrap.scrollLeft - wantL), -mx, mx);
+      ivOff.y = clamp(Math.round(wrap.scrollTop  - wantT), -my, my);
+      ivApplyOff();
+      /* 画布跟着走：按增量累加，避免多帧误差；画布本身没有边界，所以不需要夹 */
+      tx += dx - pan.cx; ty += dy - pan.cy;
+      pan.cx = dx; pan.cy = dy;
+      applyTransform();
+    });
+    const end = () => { pan = null; document.body.classList.remove('iv-drag'); };
+    wrap.addEventListener('pointerup', end);
+    wrap.addEventListener('pointercancel', end);
+  }
+})();
+
+/* ====== N12：节点图片 END ====== */
+
+/* ====== P2：概要（Summary） BEGIN ======
+   三句话的设计前提：
+   ① 概要主题就是父节点 children 里的一个**普通节点**，只多一个 { sum:{a,b} } 标记 ——
+      选中 / 双击编辑 / 加子节点 / 上色 / 复制 / 撤销 / 导出遍历全部白拿，一行不用写；
+   ② 它和它的子树**不进全局列**（colX / colW）—— 括线落在两级之间，硬塞进某一列
+      会把整张图的列宽撑歪；它自成一片，x 由「覆盖区间的右沿」现推；
+   ③ 区间是**索引**（a..b 指向真实子节点），不是引用 —— 本工具节点没有 id，
+      所以任何结构改动后都要 clamp：越界自动收窄，收没了概要自己消失。
+   范围（本版刻意不做）：跨父区间、不连续区间、概要的概要不保证好看。 */
+
+const isSum    = n => !!(n && n.sum);
+const realKids = n => (n && n.children ? n.children.filter(c => !c.sum) : []);
+const sumKids  = n => (n && n.children ? n.children.filter(c => c.sum) : []);
+/* 概要子树在**布局**意义上的子节点：折叠 / 被层级截断时为空（与外框包围盒同一套口径） */
+function subKids(n){
+  if(!n || n.collapsed || n.__cut) return [];
+  return n.children.filter(c => !c.sum);
+}
+
+/* 概要节点必须排在 children 末尾 —— 这样 realKids 的下标与 children 前段一一对应，
+   而且「新增子节点」永远是 push 到真实节点之后、概要之前，不会插进区间里 */
+function normalizeSumOrder(p){
+  const sums = p.children.filter(c => c.sum);
+  if(!sums.length) return false;
+  const first = p.children.indexOf(sums[0]);
+  if(first === p.children.length - sums.length) return false;
+  p.children = p.children.filter(c => !c.sum).concat(sums);
+  return true;
+}
+/* 区间收口：a/b 夹进 [0, 真实子节点数 - 1]；一个真实子节点都不剩就把概要摘掉。
+   返回是否动过数据 —— render 开头无条件跑一次，于是 15 处结构改动点都不用各自记得调。 */
+function clampSums(p){
+  const rk = realKids(p);
+  let changed = false;
+  for(let i = p.children.length - 1; i >= 0; i--){
+    const s = p.children[i];
+    if(!s.sum) continue;
+    if(!rk.length){ p.children.splice(i, 1); changed = true; continue; }
+    const a = Math.max(0, Math.min(rk.length - 1, s.sum.a | 0));
+    const b = Math.max(a, Math.min(rk.length - 1, s.sum.b | 0));
+    if(a !== s.sum.a || b !== s.sum.b){ s.sum.a = a; s.sum.b = b; changed = true; }
+  }
+  return changed;
+}
+function clampTree(n){
+  let changed = normalizeSumOrder(n);
+  if(clampSums(n)) changed = true;
+  n.children.forEach(c => { if(clampTree(c)) changed = true; });
+  return changed;
+}
+/* 插入 / 删除一个真实子节点后，把受影响的区间挪一挪。
+   at = 该位置在**真实子节点数组**里的下标（插入取新位置，删除取旧位置）。
+   规则：插在区间前 → 整体后移；插在区间内 → 只有尾端扩张（紧接尾端之后插入不算，
+   与 XMind 一致：在最后一个被概括的主题后面按 Enter 新建，新主题不进概要）。 */
+function sumShiftInsert(p, at){
+  if(!p) return;
+  sumKids(p).forEach(s => {
+    if(at <= s.sum.a){ s.sum.a++; s.sum.b++; }
+    else if(at <= s.sum.b){ s.sum.b++; }
+  });
+}
+function sumShiftRemove(p, at){
+  if(!p) return;
+  sumKids(p).forEach(s => {
+    if(at < s.sum.a){ s.sum.a--; s.sum.b--; }
+    else if(at <= s.sum.b){ s.sum.b--; }
+  });
+}
+/* 概要覆盖的真实子节点（已 clamp 过；x 还没算出来的排除掉） */
+function sumCover(s){
+  const p = s.parent;
+  if(!p) return [];
+  const rk = realKids(p);
+  if(!rk.length) return [];
+  const a = Math.max(0, Math.min(rk.length - 1, s.sum.a));
+  const b = Math.max(a, Math.min(rk.length - 1, s.sum.b));
+  const out = [];
+  for(let i = a; i <= b; i++) if(rk[i] && rk[i].x !== undefined) out.push(rk[i]);
+  return out;
+}
+
+/* ---------- 布局：概要主题与它的子树自成一片 ---------- */
+/* 横向：概要素材在竖直方向占多高（兄弟堆叠） */
+function subH(n){
+  const ks = subKids(n);
+  if(!ks.length) return 0;
+  let t = 0;
+  ks.forEach((c, i) => { t += Math.max(c.h || MIN_H, subH(c)); if(i < ks.length - 1) t += GAP_Y; });
+  return t;
+}
+/* 纵向：概要素材在竖直方向占多高（一层一层往下） */
+function subVH(n){
+  const ks = subKids(n);
+  if(!ks.length) return 0;
+  let rowH = 0, deep = 0;
+  ks.forEach(c => { rowH = Math.max(rowH, c.h || MIN_H); deep = Math.max(deep, subVH(c)); });
+  return rowH + (deep ? ORG_GAP_Y + deep : 0);
+}
+/* 横向排法：每层 x = 上一层最宽 + GAP_X；y 以概要主题为中心上下铺开 */
+function placeSubY(n, yTop){
+  const ks = subKids(n);
+  const h = n.h || MIN_H;
+  if(!ks.length){ n.y = yTop + h / 2; return h; }
+  let cursor = yTop;
+  ks.forEach((c, i) => { cursor += placeSubY(c, cursor); if(i < ks.length - 1) cursor += GAP_Y; });
+  let total = cursor - yTop;
+  if(total < h){
+    ks.forEach(c => shiftSubtree(c, (h - total) / 2));
+    total = h;
+  }
+  n.y = (ks[0].y + ks[ks.length - 1].y) / 2;
+  return total;
+}
+function placeSumSubMind(s){
+  const ks = subKids(s);
+  if(!ks.length) return;
+  const lv = [];
+  (function w(n, d){ (lv[d] || (lv[d] = [])).push(n); subKids(n).forEach(c => w(c, d + 1)); })(s, 0);
+  let x = s.x;
+  for(let d = 1; d < lv.length; d++){
+    let mw = 0;
+    lv[d - 1].forEach(n => { mw = Math.max(mw, n.w || NODE_W); });
+    x += mw + GAP_X;
+    lv[d].forEach(n => { n.x = x; });
+  }
+  const H = subH(s);
+  let cursor = s.y - H / 2;
+  ks.forEach((c, i) => { cursor += placeSubY(c, cursor); if(i < ks.length - 1) cursor += GAP_Y; });
+}
+/* 纵向排法：概要主题的 x 由括线中点定死，子节点围绕它居中铺开，一层一层往下 */
+function placeSumSubVert(s){
+  const ks = subKids(s);
+  if(!ks.length) return;
+  const span = new Map();
+  (function m(n){
+    const w = n.w || NODE_W;
+    let total = w;
+    const cs = subKids(n);
+    if(cs.length){
+      let acc = 0;
+      cs.forEach((c, i) => { acc += m(c); if(i < cs.length - 1) acc += GAP_X; });
+      total = Math.max(w, acc);
+    }
+    span.set(n, total);
+    return total;
+  })(s);
+  (function place(n, cx){
+    const cs = subKids(n);
+    if(!cs.length) return;
+    let W = 0;
+    cs.forEach((c, i) => { W += span.get(c) || 0; if(i < cs.length - 1) W += GAP_X; });
+    let cur = cx - W / 2;
+    const yTop = n.y + (n.h || MIN_H) / 2 + ORG_GAP_Y;
+    cs.forEach((c, i) => {
+      const sp = span.get(c) || (c.w || NODE_W);
+      c.x = cur + (sp - (c.w || NODE_W)) / 2;
+      c.y = yTop + (c.h || MIN_H) / 2;
+      place(c, cur + sp / 2);
+      cur += sp + (i < cs.length - 1 ? GAP_X : 0);
+    });
+  })(s, s.x + (s.w || NODE_W) / 2);
+}
+/* 括线几何。屏幕 / PNG / SVG 三处共用这一份 —— 各画各的必然画成三个样。
+   横向：竖线贴着「区间右沿 + SUM_BRACKET」，两端朝左勾 6px，中间一条短线接到概要主题。
+   纵向：同一条线转 90°，贴着「区间下沿」横着躺。
+   v49：外侧沿必须站在**所有框之外**。旧版只认「被覆盖兄弟自己带外框」，于是父外框、
+   分组框、孙节点的外框这三种情况下，灰括线整段画在框的淡底色里，甚至贴着虚线走
+   （用户报的「概要和框线重复」）。父框与组框只贡献外侧那条沿、不并进跨度 ——
+   否则括线会从「只括这几个兄弟」变成「括住整支」。 */
+function placeSumOne(s){
+  const cover = sumCover(s);
+  if(!cover.length){
+    /* 兜底：覆盖的兄弟一个都看不见时，把概要摆在父节点右侧，别让它留在旧坐标上 */
+    const p = s.parent || root;
+    s.x = (p.x || 0) + (p.w || NODE_W) + GAP_X;
+    s.y = p.y || 0;
+    s.__br = null;
+    return;
+  }
+  /* 跨度的口径与 v48 一致：卡片 + 子树里全部框 + 自己那层框。
+     一个框都没有时 contentRect 与旧的 subtreeRect 逐位相同，pad 也是 0 —— 零位移。 */
+  let x1 = Infinity, x2 = -Infinity, y1 = Infinity, y2 = -Infinity;
+  cover.forEach(c => {
+    /* 这里量的是「被覆盖的这几个兄弟自己占多宽多高」，只算它们自己的框；
+       不能用 frameBox() 的避让结果 —— 那会把别的分支的卡片也并进跨度，
+       括线就从「只括几个兄弟」变成「括住整支」（v49 ⑤ 号反证守的正是这条）。 */
+    const t = contentRect(c), pad = framePadOf(c);
+    if(t.x1 - pad < x1) x1 = t.x1 - pad;
+    if(t.x2 + pad > x2) x2 = t.x2 + pad;
+    if(t.y1 - pad < y1) y1 = t.y1 - pad;
+    if(t.y2 + pad > y2) y2 = t.y2 + pad;
+  });
+  /* 外侧沿：父节点的外框、成员所在的分组框，都用与 renderFrames 同一份几何现算。
+     flat 在 render() 里先于 placeSums() 建好，所以 groupRect() 这里是可用的。 */
+  let outerX2 = x2, outerY2 = y2;
+  const p = s.parent;
+  if(p && p.bd){
+    const B = bdFrameBox(p);
+    outerX2 = Math.max(outerX2, B.x2);
+    outerY2 = Math.max(outerY2, B.y2);
+  }
+  const gids = new Set(cover.map(c => c.gb).filter(Boolean));
+  gids.forEach(gid => {
+    const B = gbFrameBox(gid);
+    if(!B) return;
+    outerX2 = Math.max(outerX2, B.x2);
+    outerY2 = Math.max(outerY2, B.y2);
+  });
+  if(isVert()){
+    const by = outerY2 + SUM_BRACKET;
+    s.y = by + SUM_LINK + (s.h || MIN_H) / 2;
+    s.x = (x1 + x2) / 2 - (s.w || NODE_W) / 2;
+    s.__br = { vert: true, y: by, x1, x2, mid: (x1 + x2) / 2 };
+    placeSumSubVert(s);
+  }else{
+    const bx = outerX2 + SUM_BRACKET;
+    s.x = bx + SUM_LINK;
+    s.y = (y1 + y2) / 2;
+    s.__br = { vert: false, x: bx, y1, y2, mid: s.y };
+    placeSumSubMind(s);
+  }
+}
+/* 必须按 flat 的先序跑：概要主题的 x 依赖兄弟节点的最终坐标，
+   而它自己的子树坐标又要在它的 x 定下来之后才排 —— 先序天然满足这个次序。 */
+function placeSums(){
+  for(let i = 0; i < flat.length; i++){
+    const s = flat[i];
+    if(s.sum) placeSumOne(s);
+  }
+}
+/* 括线路径（喂给 <svg>，PNG 用它同款几何另画） */
+const SUM_COLOR = '#8894a6';
+function sumPaths(){
+  let p = '';
+  flat.forEach(s => {
+    if(!s.sum || !s.__br) return;
+    const b = s.__br;
+    if(b.vert){
+      p += '<path d="M' + b.x1 + ',' + (b.y - 6) + ' L' + b.x1 + ',' + b.y + ' L' + b.x2 + ',' + b.y +
+           ' L' + b.x2 + ',' + (b.y - 6) + '" fill="none" stroke="' + SUM_COLOR + '" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>';
+      p += '<path d="M' + b.mid + ',' + b.y + ' L' + b.mid + ',' + (s.y - (s.h || MIN_H) / 2) +
+           '" fill="none" stroke="' + SUM_COLOR + '" stroke-width="1.4" stroke-linecap="round"/>';
+    }else{
+      p += '<path d="M' + (b.x - 6) + ',' + b.y1 + ' L' + b.x + ',' + b.y1 + ' L' + b.x + ',' + b.y2 +
+           ' L' + (b.x - 6) + ',' + b.y2 + '" fill="none" stroke="' + SUM_COLOR + '" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>';
+      p += '<path d="M' + b.x + ',' + b.mid + ' L' + s.x + ',' + b.mid +
+           '" fill="none" stroke="' + SUM_COLOR + '" stroke-width="1.4" stroke-linecap="round"/>';
+    }
+  });
+  return p;
+}
+
+/* ---------- 概要的增 / 删 / 改 ---------- */
+/* 谁能建概要：选中的是一批**同一个父节点下的真实子节点**，且至少两个 */
+function sumTargets(){
+  const list = selectionList().filter(n => n && n.parent && !n.sum);
+  if(list.length < 2) return null;
+  const p = list[0].parent;
+  if(!list.every(n => n.parent === p)) return null;
+  const rk = realKids(p);
+  const idx = list.map(n => rk.indexOf(n)).filter(i => i >= 0).sort((a, b) => a - b);
+  if(idx.length < 2) return null;
+  return { p, a: idx[0], b: idx[idx.length - 1], n: idx.length };
+}
+function sumAdd(){
+  const t = sumTargets();
+  if(!t){
+    toast(tr('请先选中同一个父节点下的 2 个以上节点（Ctrl+点击可加选）'));
+    return;
+  }
+  if(editing) commitEdit();
+  pushUndo(trf('加概要（概括 {c} 个节点）', { c: t.b - t.a + 1 }));
+  const s = build({ text: tr('概要'), children: [] }, t.p.depth + 1);
+  s.sum = { a: t.a, b: t.b };
+  s.parent = t.p;
+  s.__new = true;                       // 新建即进编辑；Esc 取消时能被 cancelEdit 干净回收
+  t.p.children.push(s);
+  selected = s; selectedSet = new Set([s]);
+  revealDepth(s);
+  render(); save(); refreshBar();
+  ensureVisible(s);
+  startEdit(s);
+}
+function sumDel(n){
+  n = n || selected;
+  if(!n || !n.sum) return;
+  const p = n.parent;
+  pushUndo(trf('删概要「{n}」', { n: clip(n.text, 14) }));
+  if(p) p.children.splice(p.children.indexOf(n), 1);
+  selected = p || null;
+  selectedSet = selected ? new Set([selected]) : new Set();
+  render(); save(); refreshBar();
+  toast(tr('概要已删 · 被它概括的那些节点都还在'));
+}
+function sumEdit(n){
+  n = n || selected;
+  if(!n || !n.sum) return;
+  render();
+  selectNode(n);
+  startEdit(n);
+}
+/* 概要主题的子树里还有概要时，内层的括线要能跟着走 —— 交给 placeSums 的先序即可，
+   这里只提供一个「这个节点是不是任何概要覆盖范围内的兄弟」的小查询（测试与菜单用）。 */
+function sumOf(n){ return n && n.sum ? n : null; }
+
+/* ====== P2：概要 END ====== */
 function toggleNode(n){
   const oldY = n.y;
   n.collapsed = !n.collapsed;
@@ -5653,13 +8367,14 @@ function drawEdges(){
   const b = bounds();
   svg.setAttribute('width',  b.maxX + 60);
   svg.setAttribute('height', (b.maxY - b.minY) + 80);
-  let p = '';
+  let p = sumPaths();                        // P2：括线先画，压在连线与节点之下
   flat.forEach(n => {
     /* 被「显示到第 N 层」截断的节点，它的子节点根本不在画面里，
        此时若照画连线，用的是上一次布局留下的旧坐标，会甩出一堆指向错误位置的线 */
     if(n.collapsed || n.__cut || n.__fcut || !n.children.length) return;
     const col = (n.depth === 0) ? '#9db4e8' : (hlColorOf(n) || branchColor(n));
     n.children.forEach(c => {
+      if(c.sum) return;                      // P2：概要不从父节点拉一条线，它走括线
       const g = edgeGeom(n, c);                  // C3：方向由布局决定，这里不再硬编码
       p += '<path d="M' + g.x1 + ',' + g.y1 + ' C' + g.m1x + ',' + g.m1y + ' ' + g.m2x + ',' + g.m2y + ' ' + g.x2 + ',' + g.y2 +
            '" fill="none" stroke="' + col + '" stroke-width="1.7" stroke-opacity="0.8"/>';
@@ -5737,14 +8452,14 @@ function nodeDragMove(e){
   const bad = !t || t === d.node || isSelfOrDescendant(d.node, t);
   if(d.target && d.target !== t){ const p = d.target.el; if(p){ p.classList.remove('drop-into'); p.classList.remove('drop-bad'); } }
   d.target = t;
-  let label = d.node.text, okDrop = false;
+  let label = nodeLabel(d.node), okDrop = false;   // N12：只有图的节点也有名字
   if(t && !bad){
     t.el.classList.add('drop-into');
     label = trf('挂到「{n}」下', { n: clip(t.text, 16) });
     okDrop = true;
   }else if(t && bad && t !== d.node){
     t.el.classList.add('drop-into'); t.el.classList.add('drop-bad');
-    label = t === d.node ? d.node.text : tr('不能挂到自己的下级');
+    label = t === d.node ? nodeLabel(d.node) : tr('不能挂到自己的下级');
   }else{
     label = d.node.text;
   }
@@ -5789,11 +8504,16 @@ function nodeDragEnd(e){
 /* 把 n（连同整棵子树）从原来的父节点摘下来，挂到 target 下面 */
 function attachNode(n, target){
   if(!n || !target || n === root || n === target) return;
+  if(n.sum){ toast(tr('概要主题不能整个拖走（它属于那个父节点）')); return; }
   if(isSelfOrDescendant(n, target)){ toast(tr('不能把节点挂到它自己的下级里')); return; }
   if(editing) commitEdit();
   pushUndo(trf('移动节点「{n}」', { n: clip(n.text, 14) }));
   const old = n.parent;
-  if(old) old.children.splice(old.children.indexOf(n), 1);
+  if(old){
+    const at = realKids(old).indexOf(n);       // 摘之前取，摘完就不在数组里了
+    old.children.splice(old.children.indexOf(n), 1);
+    if(at >= 0) sumShiftRemove(old, at);       // P2：区间跟着收缩
+  }
   target.children.push(n);                // 挂在末尾；若本来就在它下面，等于挪到最后一位
   n.parent = target;
   target.collapsed = false;
@@ -5855,7 +8575,7 @@ function copySubtree(n){
 function subtreeToText(n){
   const out = [];
   (function w(x, d){
-    out.push('  '.repeat(d) + x.text);
+    out.push('  '.repeat(d) + (nodeLabel(x) || ''));   // N12：只有图的节点给一句「（图片）」，不然这行是空的
     /* C2：备注跟着走（缩进一级，加个「备注：」前缀，粘到别处也不会和节点文字混在一起） */
     if(x.note) String(x.note).split('\n').forEach(ln => out.push('  '.repeat(d + 1) + tr('备注：') + ln));
     x.children.forEach(c => w(c, d + 1));
@@ -5867,7 +8587,8 @@ function subtreeToMd(n){
   (function w(x, d){
     /* N3：与「导出 Markdown」同一个 mdLinkText，复制出去的也是真链接 */
     const href = (linkKind(linkOf(x)) === 'url') ? linkHref(linkOf(x)) : '';
-    out.push('#'.repeat(Math.max(1, Math.min(6, d + 1))) + ' ' + (href ? mdLinkText(x.text, href) : x.text));
+    const lb = nodeLabel(x) || '';                     // N12：同上，标题不能空
+    out.push('#'.repeat(Math.max(1, Math.min(6, d + 1))) + ' ' + (href ? mdLinkText(lb, href) : lb));
     if(x.note) out.push('> ' + tr('备注：') + String(x.note).replace(/\r?\n/g, '\n> '));
     if(!href && linkOut(x)) out.push('> ' + tr('链接：') + linkOut(x));
     x.children.forEach(c => w(c, d + 1));
@@ -5903,6 +8624,7 @@ function pasteSubtree(n){
   if(editing) commitEdit();
   pushUndo(trf('粘贴「{n}」', { n: clip(clipTree.text, 14) }));
   const c = build(JSON.parse(JSON.stringify(clipTree)), n.depth + 1);
+  stripUid(c);                                   // N11：粘出来的副本不能再顶着原来的 uid
   c.parent = n;
   n.children.push(c); n.collapsed = false;
   fixDepth(root, 0);
@@ -5964,8 +8686,10 @@ function cloneNode(n){
   pushUndo(trf('克隆「{n}」', { n: clip(n.text, 14) }));
   const p = n.parent, i = p.children.indexOf(n);
   const c = build(JSON.parse(JSON.stringify(serialize(n))), n.depth);
+  stripUid(c);                                   // N11：克隆体另发新 id（联系不会指到两个节点上）
   c.parent = p;
   p.children.splice(i + 1, 0, c);
+  sumShiftInsert(p, realKids(p).indexOf(c));   // P2：克隆进区间就跟着扩张
   fixDepth(root, 0);
   selected = c;
   revealDepth(c);
@@ -6156,7 +8880,9 @@ function deleteSelection(){
   pushUndo(trf('删除 {c} 个节点（连同子树）', { c: roots.length }));
   roots.forEach(n => {
     const p = n.parent; if(!p) return;
+    const at = realKids(p).indexOf(n);       // P2：每次现算 —— 前一个删除已经反映在数组里
     const i = p.children.indexOf(n); if(i >= 0) p.children.splice(i, 1);
+    if(at >= 0) sumShiftRemove(p, at);
   });
   fixDepth(root, 0);
   selectNode(null);
@@ -6229,6 +8955,7 @@ function revealDepth(n){
 }
 function addSibling(n){
   if(!n){ toast(tr('请先选中一个节点')); return; }
+  if(n.sum){ toast(tr('概要主题不能再加同级（删了重挂概要即可）')); return; }
   if(!n.parent){ addChild(n); return; }
   if(editing) commitEdit();
   pushUndo(trf('新增同级（{n} 之后）', { n: clip(n.text, 14) }));
@@ -6236,6 +8963,7 @@ function addSibling(n){
   const p = n.parent, i = p.children.indexOf(n);
   s.parent = p; s.__new = true;
   p.children.splice(i + 1, 0, s); p.collapsed = false;
+  sumShiftInsert(p, realKids(p).indexOf(s));   // P2：插在区间中间就把它撑大
   selected = s;
   revealDepth(s);
   render(); save(); refreshBar();
@@ -6250,7 +8978,9 @@ function deleteNode(n){
   if(editing) commitEdit();
   pushUndo(trf('删除「{n}」及其 {c} 个下级', { n: clip(n.text, 14), c: cnt }));
   const p = n.parent;
+  const at = realKids(p).indexOf(n);         // P2：摘之前取下标，删的是概要时是 -1
   p.children.splice(p.children.indexOf(n), 1);
+  if(at >= 0) sumShiftRemove(p, at);
   selected = null;
   render(); save(); refreshBar();
   toast(tr('已删除') + (cnt ? trf('（含 {c} 个下级）', { c: cnt }) : ''));
@@ -6321,8 +9051,10 @@ function setLayout(v){
 
 function moveNode(n, dir){
   if(!n || !n.parent){ toast(tr('根节点不能移动')); return; }
+  if(n.sum){ toast(tr('概要主题的位置由它概括的节点决定，不能上下移')); return; }
   const p = n.parent, i = p.children.indexOf(n), j = i + dir;
   if(j < 0 || j >= p.children.length){ toast(dir < 0 ? tr('已经在最前面了') : tr('已经在最后面了')); return; }
+  if(p.children[j] && p.children[j].sum){ toast(tr('再往下就是概要主题了')); return; }
   if(editing) commitEdit();
   pushUndo(dir < 0 ? trf('上移「{n}」', { n: clip(n.text, 14) }) : trf('下移「{n}」', { n: clip(n.text, 14) }));
   p.children[i] = p.children[j];
@@ -6447,6 +9179,53 @@ function showCtx(x, y){
   if(!clipTree) ctxMenu.querySelector('[data-act="paste"]').setAttribute('disabled', '1');
   /* N3：没挂链接就别让「打开链接」能点（灰掉比点了弹一句「没有链接」更省事） */
   if(!linkOf(selected)) ctxMenu.querySelector('[data-act="openlink"]').setAttribute('disabled', '1');
+  /* N12：没图时「查看大图 / 移除图片」无事可做；有图时「插入图片」变成「更换图片」 */
+  ['imgview', 'imgdel'].forEach(a => {
+    const el = ctxMenu.querySelector('[data-act="' + a + '"]');
+    if(!el) return;
+    if(selected && selected.img) el.removeAttribute('disabled'); else el.setAttribute('disabled', '1');
+  });
+  const imgAddAct = ctxMenu.querySelector('[data-act="imgadd"]');
+  if(imgAddAct && imgAddAct.firstChild && imgAddAct.firstChild.nodeType === 3)
+    imgAddAct.firstChild.nodeValue = tr((selected && selected.img) ? '更换图片…' : '插入图片…');
+  /* N8：没有外框时，「编辑标题 / 删除 / 清除颜色」三项目前无事可做 —— 置灰比点了没反应好 */
+  ['bdedit', 'bddel', 'bdclr'].forEach(a => {
+    const el = ctxMenu.querySelector('[data-act="' + a + '"]');
+    if(!el) return;
+    if(selected.bd) el.removeAttribute('disabled'); else el.setAttribute('disabled', '1');
+  });
+  /* N11：联系至少要两个能当端点的对象，否则点了也是白点 */
+  const rlkBtn = ctxMenu.querySelector('[data-act="rlkadd"]');
+  if(rlkBtn){ if(rlkOptions().length >= 2) rlkBtn.removeAttribute('disabled'); else rlkBtn.setAttribute('disabled', '1'); }
+  /* P2：「添加概要」要求选中的是同一父节点下的 2 个以上**真实**子节点；
+     「编辑 / 删除概要」只在选中的本身就是概要主题时可用 */
+  const sAdd = ctxMenu.querySelector('[data-act="sumadd"]');
+  if(sAdd){ if(sumTargets()) sAdd.removeAttribute('disabled'); else sAdd.setAttribute('disabled', '1'); }
+  ['sumedit', 'sumdel'].forEach(a => {
+    const el = ctxMenu.querySelector('[data-act="' + a + '"]');
+    if(!el) return;
+    if(selected && selected.sum) el.removeAttribute('disabled'); else el.setAttribute('disabled', '1');
+  });
+  /* N9：分组框 —— 「加」要求多选里至少两个可入组的节点；其余三项要求当前节点已在某个组里。
+     两个"加"并存但不打架：外框（bdadd）永远可用，管的是「这个节点 + 它的后代」。 */
+  const gAdd = ctxMenu.querySelector('[data-act="gbadd"]');
+  if(gAdd){ if(gbTargets().length >= 2) gAdd.removeAttribute('disabled'); else gAdd.setAttribute('disabled', '1'); }
+  ['gbedit', 'gbdel', 'gbclr'].forEach(a => {
+    const el = ctxMenu.querySelector('[data-act="' + a + '"]');
+    if(!el) return;
+    if(selected && selected.gb) el.removeAttribute('disabled'); else el.setAttribute('disabled', '1');
+  });
+  /* N9：分组框色板同样圈出当前那一支 */
+  const g = selected && selected.gb ? (root.groups || []).find(x => x.id === selected.gb) : null;
+  const curGb = g ? gbColorOf(g) : '';
+  ctxMenu.querySelectorAll('#ctx-gb .sw[data-color]').forEach(d => {
+    d.classList.toggle('on', !!curGb && d.getAttribute('data-color') === curGb);
+  });
+  /* N8：外框色板把当前那一支圈出来（与「高亮」那排同一套 .on 视觉） */
+  const curBd = selected.bd ? bdColorOf(selected) : '';
+  ctxMenu.querySelectorAll('#ctx-bd .sw[data-color]').forEach(d => {
+    d.classList.toggle('on', !!curBd && d.getAttribute('data-color') === curBd);
+  });
   /* N5：把当前节点已有的标记高亮出来，用户一眼知道它是哪一档 */
   const curMark = selected.mark || '';
   ctxMenu.querySelectorAll('.mk[data-mark]').forEach(d => {
@@ -6483,7 +9262,24 @@ ctxMenu.addEventListener('click', e => {
   else if(a === 'note') openNote(selected);
   else if(a === 'link') openLinkDlg(selected);        // N3
   else if(a === 'openlink') openLink(selected);       // N3
+  else if(a === 'imgadd')  imgPick(selected);         // N12：插入 / 更换图片
+  else if(a === 'imgview') openImgView(selected);
+  else if(a === 'imgdel')  imgDel(selected);
   else if(a === 'done') setNodeDone(selected);
+  else if(a === 'bdadd')  bdAdd(selected);            // N8：外框
+  else if(a === 'bdedit') editBdOf(selected);
+  else if(a === 'bddel')  bdDel(selected);
+  else if(a === 'bdcolor') bdSetColor(selected, d.getAttribute('data-color'));
+  else if(a === 'bdclr')  bdSetColor(selected, null);
+  else if(a === 'rlkadd')  openRlinkDlg();             // N11：联系
+  else if(a === 'gbadd')   gbAdd();                   // N9：分组框
+  else if(a === 'gbedit')  editGbOf(selected);
+  else if(a === 'gbdel')   gbDel(selected);
+  else if(a === 'gbcolor') gbSetColor(selected, d.getAttribute('data-color'));
+  else if(a === 'gbclr')   gbSetColor(selected, null);
+  else if(a === 'sumadd')  sumAdd();                  // P2：概要
+  else if(a === 'sumedit') sumEdit(selected);
+  else if(a === 'sumdel')  sumDel(selected);
   else if(a === 'up') moveNode(selected, -1);
   else if(a === 'down') moveNode(selected, 1);
   else if(a === 'delkids') deleteChildren(selected);
@@ -6510,6 +9306,36 @@ ctxMenu.addEventListener('click', e => {
     s.setAttribute('data-act', 'color');
     s.setAttribute('data-color', c);
     s.title = '把这条分支高亮成这个颜色';
+    row.appendChild(s);
+  });
+})();
+/* N9：分组框色板 —— 与上面外框色板同一套 .sw 视觉与数据属性，只有 data-act 不同。
+   只在「当前节点已在某个组里」时可用（没组的时候改色无从谈起，置灰就行）。 */
+(function buildGbSwatches(){
+  const row = document.getElementById('ctx-gb');
+  if(!row) return;
+  BD_COLORS.forEach(c => {
+    const s = document.createElement('span');
+    s.className = 'sw';
+    s.style.background = c;
+    s.setAttribute('data-act', 'gbcolor');
+    s.setAttribute('data-color', c);
+    s.title = '把分组框改成这个颜色';   // 走 applyLang 的运行时翻译（#ctx 不在 I18N_SKIP 里），别在这里 tr()
+    row.appendChild(s);
+  });
+})();
+/* N8：外框色板（与「高亮」同一套 .sw 视觉，但走独立的 data-act='bdcolor'，
+   点下去 = 定色；没框的时候顺手就把框加上，省一次往返） */
+(function buildBdSwatches(){
+  const row = document.getElementById('ctx-bd');
+  if(!row) return;
+  BD_COLORS.forEach(c => {
+    const s = document.createElement('span');
+    s.className = 'sw';
+    s.style.background = c;
+    s.setAttribute('data-act', 'bdcolor');
+    s.setAttribute('data-color', c);
+    s.title = '把外框改成这个颜色';
     row.appendChild(s);
   });
 })();
@@ -6690,6 +9516,9 @@ arrowChainEl.addEventListener('change', () => { arrowChainPref = arrowChainEl.ch
 
 /* 统一入口：把一棵树装进画布（会留撤销点） */
 function applyImportedTree(tree, name){
+  /* v50：.json 里内联的原图在**建树之前**灌回本源，之后放大 / 导出立刻就能命中。
+     树本身只带 oid，build() 不认识 images，会自动忽略这个字段。 */
+  if(tree && tree.images && typeof tree.images === 'object') imgBootInline(tree.images);
   if(root && root.children.length) pushUndo(trf('导入「{n}」', { n: name || tr('导图') }));
   root = build(tree, 0);
   selected = null;
@@ -6707,7 +9536,8 @@ function readFile(f){
     if(/\.json$/i.test(f.name)){
       try{
         const obj = JSON.parse(txt);
-        /* C5：工作区包也是 .json —— 先认 kind，别当成单张导图把画布替换掉 */
+        /* C5：工作区包也是 .json —— 先认 kind，别当成单张导图把画布替换掉。
+           v50：内联原图的回灌收口在 applyImportedTree / wsImportObject 两个函数里，这里不重复调。 */
         if(obj && obj.kind === WS_KIND && Array.isArray(obj.slots)){
           const n = wsImportObject(obj);
           closeModal(); closeWelcome();
@@ -7427,21 +10257,83 @@ function xlsxParts(tree){
 function xmindParts(tree){
   let seq = 0;
   const nextId = () => 'n' + (++seq);
+  const idOf = new Map();                       // 节点 → XMind 主题 id（联系要在 sheet 上引用它）
   function topic(node){
     const t = { id: nextId(), class: 'topic', title: node.text || '' };
+    idOf.set(node, t.id);
     if(node.note) t.notes = { plain: { content: node.note } };   // C2：XMind Zen 的备注字段
     /* N2：完成态写成 XMind 自己的「任务已完成」标记（XMind / XMind Zen 都认 task-done） */
     if(node.done === true) t.marker = [{ markerId: 'task-done' }];
     /* N3：XMind 的 topic 自带 href 字段，网页与本机路径它都能接。
        linkKind 挡掉危险协议 —— XMind 文件也是会发给别人的。 */
     if(linkOf(node) && linkKind(linkOf(node)) !== 'bad') t.href = linkOf(node);
-    if(node.children && node.children.length) t.children = { attached: node.children.map(topic) };
+    if(node.children && node.children.length){
+      const attached = node.children.map(topic);
+      t.children = { attached };
+      /* P3：概要 → XMind 原生 summary。XMind 的概要挂在**父主题**上：
+         summaries:[{range, topicId}]，topicId 指向那个概要主题（它照旧排在 attached 里）。
+         range 与 boundary 同口径：0 基、闭区间，指向被概括的那几个真实子主题。
+         少了这一段，XMind 打开后概要就只是一个「末尾多出来的孤立子主题」—— 内容在、语义没了。 */
+      const sm = [];
+      node.children.forEach((c, i) => {
+        if(!c.sum) return;
+        const tid = attached[i] && attached[i].id;
+        if(!tid) return;
+        const last = node.children.length - 1;
+        const a0 = Math.max(0, Math.min(c.sum.a | 0, last));
+        const b0 = Math.max(a0, Math.min(c.sum.b | 0, last));
+        sm.push({ id: nextId(), class: 'summary', range: '(' + a0 + ',' + b0 + ')', topicId: tid });
+      });
+      if(sm.length) t.summaries = sm;
+    }
+    /* N9：分组框 → XMind 原生 boundary。XMind 的 boundary 挂在**父主题**上，用
+       range:"(a,b)" 表示「第 a..b 个子主题」—— 所以只有「组成员正好是同一父节点下
+       一段连续的真实子节点」才能原样表达；跨父节点 / 不连续的组导出时跳过
+       （宁可这条框没有，也不要在 XMind 里圈错范围）。
+       N8：单节点外框同样能表达 —— range 退化成单点 "(i,i)"，圈住「这一个 + 它的子树」。
+       下标按 node.children 原顺序算（概要主题排在真实子节点之后，不影响真实子节点的下标）。 */
+    if(node.children && node.children.length){
+      const bl = [];
+      if(root && root.groups && root.groups.length){
+        root.groups.forEach(g => {
+          const idx = [];
+          node.children.forEach((c, i) => { if(!c.sum && c.gb === g.id) idx.push(i); });
+          if(idx.length < 2) return;
+          if(idx.length !== idx[idx.length - 1] - idx[0] + 1) return;     // 不连续
+          bl.push({ id: nextId(), range: '(' + idx[0] + ',' + idx[idx.length - 1] + ')', title: g.t || undefined });
+        });
+      }
+      node.children.forEach((c, i) => {
+        if(c.bd) bl.push({ id: nextId(), range: '(' + i + ',' + i + ')', title: c.bd.t || undefined });
+      });
+      if(bl.length) t.boundaries = bl;
+    }
     return t;
   }
-  const content = JSON.stringify([{
-    id: 'sheet1', class: 'sheet', title: (tree.text || '思维导图').slice(0, 60),
-    rootTopic: topic(tree)
-  }], null, 2);
+  const rootTopic = topic(tree);
+  /* N11：联系 → XMind 原生 relationship（挂在 sheet 上，两端各引一个主题 id）。
+     分组框本身不是主题，用它的**第一个成员**当落点 —— 宁可在 XMind 里指到组里的一个节点，
+     也不要整条联系凭空消失。 */
+  const endId = ep => {
+    if(!ep) return null;
+    if(ep.k === 'grp'){
+      let m = null;
+      (function w(n){ if(m) return; if(n.gb === ep.id) m = n; n.children.forEach(w); })(tree);
+      return m ? idOf.get(m) : null;
+    }
+    let hit = null;
+    (function w(n){ if(hit) return; if(n.uid === ep.id) hit = n; n.children.forEach(w); })(tree);
+    return hit ? idOf.get(hit) : null;
+  };
+  const rels = [];
+  (tree.links || []).forEach(l => {
+    const a = endId(l.a), b = endId(l.b);
+    if(!a || !b || a === b) return;
+    rels.push({ id: nextId(), end1Id: a, end2Id: b, title: l.t || '' });
+  });
+  const sheet = { id: 'sheet1', class: 'sheet', title: (tree.text || '思维导图').slice(0, 60), rootTopic };
+  if(rels.length) sheet.relationships = rels;
+  const content = JSON.stringify([sheet], null, 2);
   const meta = JSON.stringify({ creator: { name: 'MindMap', version: '1.0' } }, null, 2);
   const manifest = JSON.stringify({ 'file-entries': { 'content.json': {}, 'metadata.json': {} } }, null, 2);
   return [
@@ -8208,10 +11100,163 @@ function roundRectPath(ctx, x, y, w, h, r){
   ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
 }
+/* N9：分组框。与 paintBdFrames 只差两处：圆角 18（对得上 .gbf）、标题在**左下角外侧**
+   （单节点框的标题在左上 —— 两者同框时不叠在一起）。批量填/描走一条 path 复用，
+   和屏幕上「一行一个 div」不是一回事，但几何同源（都来自 groupRect）。 */
+function paintGbFrames(ctx, frames){
+  if(!frames || !frames.length) return;
+  ctx.save();
+  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = 2.6;
+  frames.forEach(f => {
+    ctx.strokeStyle = frameEdge(f.col);
+    ctx.fillStyle = hexA(f.col, FRAME_FILL_GB);
+    roundRectPath(ctx, f.x, f.y, f.w, f.h, 18);
+    ctx.fill(); ctx.stroke();
+    if(f.title){
+      ctx.setLineDash([]);
+      const fs = 11.5, tw = estTextW(f.title, fs), bw = tw + 16, bh = 19;
+      const bx = f.x + (f.w - bw) / 2, by = f.y + 1;     // 框内顶部居中（与 .gbft 同一处）
+      ctx.fillStyle = '#ffffff';
+      roundRectPath(ctx, bx, by, bw, bh, 9); ctx.fill();
+      ctx.strokeStyle = hexA(f.col, 0.55); ctx.lineWidth = 1;
+      roundRectPath(ctx, bx, by, bw, bh, 9); ctx.stroke();
+      ctx.fillStyle = frameEdge(f.col);
+      ctx.font = '700 ' + fs + 'px ' + uiFontStack();
+      ctx.textBaseline = 'middle';
+      ctx.fillText(f.title, bx + 8, by + bh / 2 + .5);
+      ctx.setLineDash([6, 4]); ctx.lineWidth = 2.6;
+    }
+  });
+  ctx.restore();
+}
+/* N8：外框画在最底层（与屏幕上同一个层次：框 → 连线 → 节点）。
+   frames: [{x,y,w,h,col,title}] —— 坐标已含整体偏移，title 为空就只画框不画标题。 */
+function paintBdFrames(ctx, frames){
+  if(!frames || !frames.length) return;
+  ctx.save();
+  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = 2.4;
+  frames.forEach(f => {
+    ctx.strokeStyle = frameEdge(f.col);
+    ctx.fillStyle = hexA(f.col, FRAME_FILL_BD);
+    roundRectPath(ctx, f.x, f.y, f.w, f.h, 16);
+    ctx.fill(); ctx.stroke();
+    if(f.title){
+      ctx.setLineDash([]);
+      const fs = 11.5, tw = estTextW(f.title, fs), bw = tw + 16, bh = 19;
+      const bx = f.x + 12, by = f.y - 11;
+      ctx.fillStyle = '#ffffff';
+      roundRectPath(ctx, bx, by, bw, bh, 9); ctx.fill();
+      ctx.strokeStyle = hexA(f.col, 0.55); ctx.lineWidth = 1;
+      roundRectPath(ctx, bx, by, bw, bh, 9); ctx.stroke();
+      ctx.fillStyle = frameEdge(f.col);
+      ctx.font = '700 ' + fs + 'px ' + uiFontStack();
+      ctx.textBaseline = 'middle';
+      ctx.fillText(f.title, bx + 8, by + bh / 2 + .5);
+      ctx.setLineDash([6, 4]); ctx.lineWidth = 2.4;
+    }
+  });
+  ctx.restore();
+}
+/* N11：联系 —— canvas 版（与屏幕同一条几何：linkExportGeom）
+   标签画成白底药丸，和屏幕上那颗一致；没写说明的就不画（屏幕上那也只是弱化提示）。 */
+function paintLinkPaths(ctx, list){
+  if(!list || !list.length) return;
+  ctx.save();
+  ctx.globalAlpha = 1;                       // 原来 0.85 会把加深的颜色又冲淡
+  ctx.strokeStyle = RLK_COLOR;
+  ctx.lineWidth = RLK_W;
+  ctx.lineCap = 'round';
+  list.forEach(o => {
+    const g = o.g;
+    ctx.setLineDash(linkDashArr(g));         // 与屏幕同一条虚线（7 实 5 空；短线头画实线）
+    ctx.beginPath();
+    ctx.moveTo(g.p1.x, g.p1.y);
+    ctx.bezierCurveTo(g.m1.x, g.m1.y, g.m2.x, g.m2.y, g.p2.x, g.p2.y);
+    ctx.stroke();
+  });
+  ctx.setLineDash([]);                       // 箭头是实心的，别继承虚线
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = RLK_COLOR;
+  list.forEach(o => {
+    const g = o.g;
+    const AL = clamp((g.len || 40) * 0.28, 5.5, 10), AW = AL * 0.5;
+    const a = Math.atan2(g.p2.y - g.m2.y, g.p2.x - g.m2.x);
+    ctx.beginPath();
+    ctx.moveTo(g.p2.x, g.p2.y);
+    ctx.lineTo(g.p2.x - Math.cos(a) * AL + Math.sin(a) * AW, g.p2.y - Math.sin(a) * AL - Math.cos(a) * AW);
+    ctx.lineTo(g.p2.x - Math.cos(a) * AL - Math.sin(a) * AW, g.p2.y - Math.sin(a) * AL + Math.cos(a) * AW);
+    ctx.closePath(); ctx.fill();
+  });
+  /* 标签最后画，压在自己的曲线之上 */
+  ctx.globalAlpha = 1;
+  list.forEach(o => {
+    const t = (o.lk && o.lk.t) || '';
+    if(!t) return;
+    const g = o.g, la = o.la || g.mid, fs = 11.5, tw = estTextW(t, fs), bw = tw + 16, bh = 19;
+    const bx = la.x - bw / 2, by = la.y - bh / 2;
+    ctx.fillStyle = '#ffffff';
+    roundRectPath(ctx, bx, by, bw, bh, 8); ctx.fill();
+    ctx.strokeStyle = RLK_COLOR; ctx.lineWidth = 1; ctx.globalAlpha = 0.55;
+    roundRectPath(ctx, bx, by, bw, bh, 8); ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = RLK_COLOR;
+    ctx.font = '700 ' + fs + 'px ' + uiFontStack();
+    ctx.textBaseline = 'middle';
+    ctx.fillText(t, bx + 8, by + bh / 2 + .5);
+  });
+  ctx.restore();
+}
+/* P2：概要素的导出几何。与屏幕上的 sumPaths() 同一份口径（同一个 __br），
+   只是这里把纵向偏移 oy 折进去 —— PNG / SVG 都从这里取，不会画成两个样。 */
+function sumExportGeom(oy){
+  const dy = oy || 0;
+  const out = [];
+  flat.forEach(s => {
+    if(!s.sum || !s.__br) return;
+    const b = s.__br;
+    if(b.vert){
+      out.push({ vert: true, x1: b.x1, x2: b.x2, y: b.y + dy, mid: b.mid,
+                 sx: s.x, sy: s.y + dy - (s.h || MIN_H) / 2 });
+    }else{
+      out.push({ vert: false, x: b.x, y1: b.y1 + dy, y2: b.y2 + dy, mid: b.mid + dy,
+                 sx: s.x, sy: s.y + dy });
+    }
+  });
+  return out;
+}
+/* 括线（canvas 版）：与屏幕上同一条折线，只是 canvas 得自己 moveTo / lineTo */
+function paintSumPaths(ctx, sums){
+  if(!sums || !sums.length) return;
+  ctx.save();
+  ctx.strokeStyle = SUM_COLOR;
+  ctx.lineWidth = 1.4;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  sums.forEach(b => {
+    if(b.vert){
+      ctx.beginPath();
+      ctx.moveTo(b.x1, b.y - 6); ctx.lineTo(b.x1, b.y); ctx.lineTo(b.x2, b.y); ctx.lineTo(b.x2, b.y - 6);
+      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(b.mid, b.y); ctx.lineTo(b.mid, b.sy); ctx.stroke();
+    }else{
+      ctx.beginPath();
+      ctx.moveTo(b.x - 6, b.y1); ctx.lineTo(b.x, b.y1); ctx.lineTo(b.x, b.y2); ctx.lineTo(b.x - 6, b.y2);
+      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(b.x, b.mid); ctx.lineTo(b.sx, b.mid); ctx.stroke();
+    }
+  });
+  ctx.restore();
+}
 /* nodes: [{x,y,h,text,depth,color,bg,hasKids,kids:[{x,y}]}] —— 坐标已含整体偏移 */
-function paintPng(ctx, nodes, nodeW){
+function paintPng(ctx, nodes, nodeW, gframes, frames, sums, rlinks){
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
   ctx.lineWidth = 1.7;
+  paintGbFrames(ctx, gframes);               // N9：分组框在最外（背景中的背景）
+  paintBdFrames(ctx, frames);                // N8：外框（连线与节点之下）
+  paintSumPaths(ctx, sums);                  // P2：括线（同样在连线之下）
+  paintLinkPaths(ctx, rlinks);               // N11：联系（节点之下、连线之上）
   const W = n => n.w || nodeW;              // 「宽度=自适应」时每个节点按自己的实测宽度画
   nodes.forEach(n => {
     (n.kids || []).forEach(k => {
@@ -8223,23 +11268,48 @@ function paintPng(ctx, nodes, nodeW){
   ctx.globalAlpha = 1;
   nodes.forEach(n => {
     const x = n.x, y = n.y - n.h / 2, w = W(n), h = n.h;
+    /* P2：概要是药丸形 —— 圆角取半个高度（与屏幕上 .node.sum 的 999px 等效），
+       并且不再画左边 4px 色条：整圈描边已经是分支色了，色条只会让胶囊破个口。 */
+    const rr = n.sum ? h / 2 : 9;
+    const tx = x + (n.sum ? 20 : 14);
     ctx.fillStyle = n.bg || '#ffffff';
-    roundRectPath(ctx, x, y, w, h, 9); ctx.fill();
-    ctx.save(); roundRectPath(ctx, x, y, w, h, 9); ctx.clip();
-    ctx.fillStyle = n.color; ctx.fillRect(x, y, 4, h);
-    ctx.restore();
+    roundRectPath(ctx, x, y, w, h, rr); ctx.fill();
+    if(!n.sum){
+      ctx.save(); roundRectPath(ctx, x, y, w, h, rr); ctx.clip();
+      ctx.fillStyle = n.color; ctx.fillRect(x, y, 4, h);
+      ctx.restore();
+    }
     /* 框线跟着分支色走（原来是死值 #e3e8ef，导出来几乎看不见） */
     ctx.strokeStyle = n.bd || '#c2cddf'; ctx.lineWidth = 1.4;
-    roundRectPath(ctx, x + .7, y + .7, w - 1.4, h - 1.4, 9); ctx.stroke();
+    roundRectPath(ctx, x + .7, y + .7, w - 1.4, h - 1.4, Math.max(1, rr - .7)); ctx.stroke();
+    /* N12：缩略图画在卡片里（与屏幕上 .thumb 同一份几何：上 8、左右 12、高 96）。
+       有图时文字从图下面开始排、最多两行 —— 与 CSS 的 -webkit-line-clamp:2 对齐。 */
+    if(n.img && n.imgEl){
+      const tb = imgThumbBox(x, y + h / 2, w, h);
+      ctx.save();
+      roundRectPath(ctx, tb.x, tb.y, tb.w, tb.h, 6); ctx.clip();
+      const sc = Math.min(tb.w / n.img.w, tb.h / n.img.h);
+      const dw = Math.max(1, n.img.w * sc), dh = Math.max(1, n.img.h * sc);
+      try{
+        ctx.drawImage(n.imgEl, tb.x + (tb.w - dw) / 2, tb.y + (tb.h - dh) / 2, dw, dh);
+      }catch(e){}
+      ctx.restore();
+      ctx.strokeStyle = '#d7dee9'; ctx.lineWidth = 1;
+      roundRectPath(ctx, tb.x + .5, tb.y + .5, tb.w - 1, tb.h - 1, 6); ctx.stroke();
+    }
     /* 字号 / 字重都从页面的 CSS 变量读，跟屏幕上的节点一模一样 —— 不会出现"屏幕一个样、图片又一个样" */
     const fs = pngFontSize(n.depth);
     ctx.font = pngFontWeight(n.depth, n.hasKids) + ' ' + fs + 'px ' + uiFontStack();
     ctx.fillStyle = n.depth === 0 ? '#ffffff' : '#1f2328';
-    const lines = wrapText(ctx, n.text, w - 28, 4);
+    const hasImg = !!n.img;
+    const lines = wrapText(ctx, n.text, w - (n.sum ? 40 : 28), hasImg ? 2 : 4);
     const lh = fs * 1.35;
-    let ty = n.y - (lines.length - 1) * lh / 2;
+    /* 有图：文字压在缩略图下面（顶部对齐）；没图：还是垂直居中 —— 与屏幕上同一套排版 */
+    let ty = hasImg
+      ? (y + IMG_PAD_Y + IMG_THUMB_H + IMG_GAP + lh / 2)
+      : (n.y - (lines.length - 1) * lh / 2);
     lines.forEach(l => {
-      ctx.fillText(l, x + 14, ty);
+      ctx.fillText(l, tx, ty);
       /* N2：完成的节点在每一行文字上画一条删除线（canvas 没有 text-decoration，
          所以按 measureText 的真实宽度自己画，长短和字一样齐） */
       if(n.done === true){
@@ -8248,7 +11318,7 @@ function paintPng(ctx, nodes, nodeW){
         ctx.globalAlpha = .55;
         ctx.strokeStyle = n.depth === 0 ? '#ffffff' : '#1f2328';
         ctx.lineWidth = 1.3;
-        ctx.beginPath(); ctx.moveTo(x + 14, ty); ctx.lineTo(x + 14 + tw, ty); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx + tw, ty); ctx.stroke();
         ctx.restore();
       }
       ty += lh;
@@ -8339,7 +11409,13 @@ function linkArcs(bx, by){
 
 /* ---- 各格式导出 ---- */
 async function exportJson(){
-  const r = await saveOut(suggestName() + '.json', JSON.stringify(serialize(root), null, 2), 'application/json;charset=utf-8');
+  /* v50：.json 也要自包含 —— 原图放进同级的 images 表，对方「打开」时灌回自己的库。
+     build() 不认识 images 字段，会自然忽略，老版本工具打开也不会报错。
+     **快照必须在任何 await 之前取**：「备份并新建」这类操作会在 await 的空隙里换掉 root。 */
+  const doc = serialize(root);
+  const inline = await imgInlineFor(imgCollectOids(doc, new Set()));
+  const payload = Object.keys(inline).length ? Object.assign({}, doc, { images: inline }) : doc;
+  const r = await saveOut(suggestName() + '.json', JSON.stringify(payload, null, 2), 'application/json;charset=utf-8');
   if(r === 'download') toast(tr('已导出 .json，可随时用「打开」继续编辑（若系统提示被安全设置阻止，右键文件 → 属性 → 解除锁定）'));
   else if(r === 'fs')  toast(tr('已保存 .json，可随时用「打开」继续编辑'));
 }
@@ -8487,6 +11563,7 @@ async function exportXmind(){
 function pngNodeBg(n){
   if(n.depth === 0) return '#2f6fed';
   const hl = hlColorOf(n), c = hl || branchColor(n);
+  if(n.sum) return mix(c, '#ffffff', .70);          // P2：概要主题 —— 与 nodeSkin 同一档着色
   if(hl) return mix(c, '#ffffff', .88);
   return n.depth === 1 ? tint(c, .07) : '#ffffff';
 }
@@ -8494,6 +11571,7 @@ function pngNodeBg(n){
 function pngNodeBd(n){
   if(n.depth === 0) return '#2f6fed';
   const hl = hlColorOf(n), c = hl || branchColor(n);
+  if(n.sum) return c;                               // 概要：整圈实色（屏幕上 .node.sum 同一个口径）
   return hl ? c : mix(c, '#ffffff', .35);
 }
 async function exportPng(){
@@ -8502,6 +11580,12 @@ async function exportPng(){
   const accept = { description: 'PNG 图片', accept: { 'image/png': ['.png'] } };
   const pre = await savePick(name, 'image/png', accept);
   if(pre === 'cancel') return;
+  /* v50：先把原图从 IndexedDB 取回来灌进 imgXTable，再等解码 —— 导出用的是高清那一份。
+     取不到就自动回落到轻量副本，导出不会因此失败。 */
+  await imgPrepareExport(flat);
+  /* N12：图片是异步解码的 —— 先把这一屏用到的图都等出来（坏图最多等 2.5 秒就放弃，
+     宁可在图里留个空位，也不让「导出」按钮点了没反应） */
+  await imgPreload(flat);
   /* C2：只给「看得见的」带备注节点编号（折叠起来的不在画面里，编号也没意义） */
   const visNotes = flat.filter(n => n.note);
   const noteIdx = new Map(visNotes.map((n, i) => [n, i + 1]));
@@ -8514,9 +11598,12 @@ async function exportPng(){
     color: (n.depth === 0) ? '#2f6fed' : (hlColorOf(n) || branchColor(n)),
     bg: pngNodeBg(n),
     bd: pngNodeBd(n),
+    sum: !!n.sum,                              // P2：概要主题画成药丸形（屏幕 / PNG / SVG 三处同一个判断）
+    img: n.img || null,                        // N12：缩略图（w/h 是存下来的像素尺寸）
+    imgEl: n.img ? imgElOf(imgXSrc(n)) : null, // v50：解码的是原图，画的还是 imgThumbBox 那块地方
     hasKids: n.children.length > 0,
     /* 折叠的、被层级截断的、被「只看命中」挡住的，都不该再画连线（子节点不在画面里，坐标是旧的） */
-    kids: (n.collapsed || n.__cut || n.__fcut) ? [] : n.children.map(c => ({ x: c.x, y: c.y, w: c.w || NODE_W, h: c.h }))
+    kids: (n.collapsed || n.__cut || n.__fcut) ? [] : n.children.filter(c => !c.sum).map(c => ({ x: c.x, y: c.y, w: c.w || NODE_W, h: c.h }))
   }));
   const b = bounds(), pad = 40;
   const W = Math.ceil(b.maxX + pad * 2);
@@ -8534,12 +11621,16 @@ async function exportPng(){
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W * dpr, H * dpr);
   ctx.scale(dpr, dpr);
   const oy = pad - b.minY;
+  /* N8：外框 —— 与节点同一套坐标（含 oy 偏移），折叠 / 截断的子树不进包围盒，
+     所以「只画看得见的部分」在图片里也是自动成立的 */
+  const frames = bdExportFrames(oy);
+  const gframes = gbExportFrames(oy);          // N9：分组框（比单节点外框更低一层）
   paintPng(ctx, nodes.map(n => ({
     x: n.x, y: n.y + oy, h: n.h, w: n.w || NODE_W, text: n.text, depth: n.depth, note: n.note, mark: n.mark,
-    done: n.done,
+    done: n.done, img: n.img, imgEl: n.imgEl,
     color: n.color, bg: n.bg, bd: n.bd, hasKids: n.hasKids,
     kids: n.kids.map(k => ({ x: k.x, y: k.y + oy, w: k.w, h: k.h }))
-  })), NODE_W);
+  })), NODE_W, gframes, frames, sumExportGeom(oy), linkExportGeom(oy));
   /* C2：备注清单画在导图下方 */
   if(legendH) paintNoteLegend(ctx, visNotes, pad, (b.maxY - b.minY) + pad * 2 + 6, W - pad * 2 - 26);
   cv.toBlob(async blob => {
@@ -8583,10 +11674,65 @@ function buildSvg(){
   const oy = pad - b.minY;
   const ff = svgFontFamily();
   let s = '<?xml version="1.0" encoding="UTF-8"?>\n' +
-          '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H +
+          '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + W + '" height="' + H +
           '" viewBox="0 0 ' + W + ' ' + H + '">\n' +
           '<title>' + xmlEsc(suggestName()) + '</title>\n' +
           '<rect width="100%" height="100%" fill="#ffffff"/>\n';
+  /* N9：分组框 —— 排在外框之前（更低的层），几何与屏幕同源（groupRect），
+     所以「组里某个分支折叠了 → 框跟着缩」在导出里也自动成立。 */
+  const gbList = gbExportFrames(oy);
+  if(gbList.length){
+    s += '<g data-groups="1">\n';
+    gbList.forEach(f => {
+      s += '<rect x="' + svgNum(f.x) + '" y="' + svgNum(f.y) + '" width="' + svgNum(f.w) + '" height="' + svgNum(f.h) +
+           '" rx="18" fill="' + hexA(f.col, FRAME_FILL_GB) + '" stroke="' + frameEdge(f.col) +
+           '" stroke-width="2.6" stroke-dasharray="6 4"/>\n';
+      if(f.title){
+        const fs = 11.5, bw = estTextW(f.title, fs) + 16, bh = 19, bx = f.x + (f.w - bw) / 2, by = f.y + 2;
+        s += '<rect x="' + svgNum(bx) + '" y="' + svgNum(by) + '" width="' + svgNum(bw) + '" height="' + bh +
+             '" rx="9" fill="#ffffff" stroke="' + hexA(f.col, 0.45) + '" stroke-width="1"/>\n' +
+             '<text x="' + svgNum(bx + 8) + '" y="' + svgNum(by + 13.5) + '" font-family="' + xmlEsc(ff) +
+             '" font-size="' + fs + '" font-weight="700" fill="' + f.col + '">' + xmlEsc(f.title) + '</text>\n';
+      }
+    });
+    s += '</g>\n';
+  }
+  /* N8：外框（排在连线之前 → 与屏幕上一样，框在最底层）。
+     折叠 / 截断 / 过滤掉的后代不进包围盒，所以导出的框自动只包住看得见的部分。 */
+  const bdList = bdExportFrames(oy);
+  if(bdList.length){
+    s += '<g>\n';
+    bdList.forEach(f => {
+      s += '<rect x="' + svgNum(f.x) + '" y="' + svgNum(f.y) + '" width="' + svgNum(f.w) + '" height="' + svgNum(f.h) +
+           '" rx="16" fill="' + hexA(f.col, FRAME_FILL_BD) + '" stroke="' + frameEdge(f.col) +
+           '" stroke-width="2.4" stroke-dasharray="6 4"/>\n';
+      if(f.title){
+        const fs = 11.5, bw = estTextW(f.title, fs) + 16, bh = 19, bx = f.x + 12, by = f.y - 11;
+        s += '<rect x="' + svgNum(bx) + '" y="' + svgNum(by) + '" width="' + svgNum(bw) + '" height="' + bh +
+             '" rx="9" fill="#ffffff" stroke="' + hexA(f.col, 0.45) + '" stroke-width="1"/>\n' +
+             '<text x="' + svgNum(bx + 8) + '" y="' + svgNum(by + 13.5) + '" font-family="' + xmlEsc(ff) +
+             '" font-size="' + fs + '" font-weight="700" fill="' + f.col + '">' + xmlEsc(f.title) + '</text>\n';
+      }
+    });
+    s += '</g>\n';
+  }
+  /* P2：括线 —— 与屏幕上同一份几何（sumExportGeom），排在连线之前，压在它下面 */
+  const sumList = sumExportGeom(oy);
+  if(sumList.length){
+    s += '<g data-sums="1" fill="none" stroke="' + SUM_COLOR + '" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">\n';
+    sumList.forEach(b => {
+      if(b.vert){
+        s += '<path d="M' + svgNum(b.x1) + ',' + svgNum(b.y - 6) + ' L' + svgNum(b.x1) + ',' + svgNum(b.y) +
+             ' L' + svgNum(b.x2) + ',' + svgNum(b.y) + ' L' + svgNum(b.x2) + ',' + svgNum(b.y - 6) + '"/>\n' +
+             '<path d="M' + svgNum(b.mid) + ',' + svgNum(b.y) + ' L' + svgNum(b.mid) + ',' + svgNum(b.sy) + '"/>\n';
+      }else{
+        s += '<path d="M' + svgNum(b.x - 6) + ',' + svgNum(b.y1) + ' L' + svgNum(b.x) + ',' + svgNum(b.y1) +
+             ' L' + svgNum(b.x) + ',' + svgNum(b.y2) + ' L' + svgNum(b.x - 6) + ',' + svgNum(b.y2) + '"/>\n' +
+             '<path d="M' + svgNum(b.x) + ',' + svgNum(b.mid) + ' L' + svgNum(b.sx) + ',' + svgNum(b.mid) + '"/>\n';
+      }
+    });
+    s += '</g>\n';
+  }
   /* 连线：与屏幕上同一条贝塞尔曲线；折叠 / 被层级截断 / 被搜索筛选挡住的不画（子节点不在画面里，坐标是旧的） */
   s += '<g fill="none" stroke-linecap="round" stroke-opacity="0.85">\n';
   flat.forEach(n => {
@@ -8594,40 +11740,86 @@ function buildSvg(){
     const col = (n.depth === 0) ? '#9db4e8' : (hlColorOf(n) || branchColor(n));
     let d = '';
     n.children.forEach(c => {
+      if(c.sum) return;                          // P2：概要不拉线，它走括线
       const g = edgeGeom(n, c);                  // C3：同一个端点函数，方向由布局决定
       const x1 = g.x1, y1 = g.y1 + oy, x2 = g.x2, cy = g.y2 + oy;
       d += 'M' + svgNum(x1) + ',' + svgNum(y1) +
            ' C' + svgNum(g.m1x) + ',' + svgNum(g.m1y + oy) + ' ' + svgNum(g.m2x) + ',' + svgNum(g.m2y + oy) +
            ' ' + svgNum(x2) + ',' + svgNum(cy) + ' ';
     });
+    if(!d) return;
     s += '<path d="' + d.trim() + '" stroke="' + col + '" stroke-width="1.7"/>\n';
   });
   s += '</g>\n';
+  /* N11：联系 —— 排在连线之后、节点之前（与屏幕同一层），几何与屏幕同源 */
+  const rlkList = linkExportGeom(oy);
+  if(rlkList.length){
+    s += '<g data-rlinks="1" fill="none" stroke="' + RLK_COLOR + '" stroke-opacity="1" stroke-linecap="round">\n';
+    rlkList.forEach(o => {
+      const dash = linkDashArr(o.g).join(' ');
+      s += '<path d="' + linkPathD(o.g) + '" stroke-width="' + RLK_W + '"' +
+           (dash ? ' stroke-dasharray="' + dash + '"' : '') + '/>\n';
+      s += '<path d="' + linkArrowD(o.g) + '" fill="' + RLK_COLOR + '" fill-opacity="1" stroke="none"/>\n';
+    });
+    s += '</g>\n';
+    /* 标签单独一组：白底药丸 + 文字，压在自己的曲线之上 */
+    s += '<g data-rlklabels="1">\n';
+    rlkList.forEach(o => {
+      const t = (o.lk && o.lk.t) || '';
+      if(!t) return;
+      const fs = 11.5, bw = estTextW(t, fs) + 16, bh = 19;
+      const la = o.la || o.g.mid;
+      const bx = la.x - bw / 2, by = la.y - bh / 2;
+      s += '<rect x="' + svgNum(bx) + '" y="' + svgNum(by) + '" width="' + svgNum(bw) + '" height="' + bh +
+           '" rx="8" fill="#ffffff" stroke="' + RLK_COLOR + '" stroke-opacity="0.55" stroke-width="1"/>\n' +
+           '<text x="' + svgNum(bx + 8) + '" y="' + svgNum(by + 13.5) + '" font-family="' + xmlEsc(ff) +
+           '" font-size="' + fs + '" font-weight="700" fill="' + RLK_COLOR + '">' + xmlEsc(t) + '</text>\n';
+    });
+    s += '</g>\n';
+  }
   /* 节点：圆角矩形 + 左侧色条 + 多行文字 */
   s += '<g>\n';
   flat.forEach(n => {
     const w = n.w || NODE_W, h = n.h, x = n.x, y = n.y + oy - h / 2;
     const col = (n.depth === 0) ? '#2f6fed' : (hlColorOf(n) || branchColor(n));
+    /* P2：概要是药丸形（rx = 半高，与屏幕 / PNG 同一个判断），且不画左边色条 */
+    const rr = n.sum ? h / 2 : 9, tx = x + (n.sum ? 20 : 14);
     s += '<rect x="' + svgNum(x) + '" y="' + svgNum(y) + '" width="' + svgNum(w) + '" height="' + svgNum(h) +
-         '" rx="9" fill="' + pngNodeBg(n) + '" stroke="' + pngNodeBd(n) + '" stroke-width="1.4"/>\n';
+         '" rx="' + svgNum(rr) + '" fill="' + pngNodeBg(n) + '" stroke="' + pngNodeBd(n) + '" stroke-width="1.4"/>\n';
     /* 左侧色条：跟着圆角走，只包住左边 4px */
-    s += '<path d="M' + svgNum(x + 9) + ',' + svgNum(y) +
-         ' A9,9 0 0 0 ' + svgNum(x) + ',' + svgNum(y + 9) +
-         ' L' + svgNum(x) + ',' + svgNum(y + h - 9) +
-         ' A9,9 0 0 0 ' + svgNum(x + 9) + ',' + svgNum(y + h) +
-         ' L' + svgNum(x + 4) + ',' + svgNum(y + h) +
-         ' L' + svgNum(x + 4) + ',' + svgNum(y) + ' Z" fill="' + col + '"/>\n';
+    if(!n.sum)
+      s += '<path d="M' + svgNum(x + 9) + ',' + svgNum(y) +
+           ' A9,9 0 0 0 ' + svgNum(x) + ',' + svgNum(y + 9) +
+           ' L' + svgNum(x) + ',' + svgNum(y + h - 9) +
+           ' A9,9 0 0 0 ' + svgNum(x + 9) + ',' + svgNum(y + h) +
+           ' L' + svgNum(x + 4) + ',' + svgNum(y + h) +
+           ' L' + svgNum(x + 4) + ',' + svgNum(y) + ' Z" fill="' + col + '"/>\n';
+    /* N12：缩略图用 <image> 内嵌（data URL，导出文件自己就是完整的，换台机器也能打开）。
+       几何与屏幕 / PNG 同一份：上 8、左右 12、高 96；preserveAspectRatio=meet 等价于 CSS 的 contain。 */
+    if(n.img){
+      const tb = imgThumbBox(x, n.y + oy, w, h);
+      const src = xmlEsc(imgXSrc(n));          // v50：导出优先内联原图
+      /* 只写 xlink:href：它和 href 写两份等于把整张图在文件里存两遍（300KB 就变 600KB），
+         而 xlink 在浏览器 / Office / Illustrator 里都认 —— 根节点已声明该命名空间。 */
+      s += '<image x="' + svgNum(tb.x) + '" y="' + svgNum(tb.y) + '" width="' + svgNum(tb.w) +
+           '" height="' + svgNum(tb.h) + '" preserveAspectRatio="xMidYMid meet" xlink:href="' + src + '"/>\n';
+      s += '<rect x="' + svgNum(tb.x) + '" y="' + svgNum(tb.y) + '" width="' + svgNum(tb.w) +
+           '" height="' + svgNum(tb.h) + '" rx="6" fill="none" stroke="#d7dee9" stroke-width="1"/>\n';
+    }
     const fs = pngFontSize(n.depth), fw = pngFontWeight(n.depth, n.children.length > 0);
-    const lines = svgWrap(n.text, fs, fw, w - 28, 4);
+    const hasImg = !!n.img;
+    const lines = svgWrap(n.text, fs, fw, w - (n.sum ? 40 : 28), hasImg ? 2 : 4);
     const lh = fs * 1.35;
-    const ty = n.y + oy - (lines.length - 1) * lh / 2 + fs * 0.35;
-    s += '<text x="' + svgNum(x + 14) + '" y="' + svgNum(ty) + '" font-family="' + xmlEsc(ff) +
+    const ty = hasImg
+      ? (n.y + oy - h / 2 + IMG_PAD_Y + IMG_THUMB_H + IMG_GAP + lh / 2 + fs * 0.35)
+      : (n.y + oy - (lines.length - 1) * lh / 2 + fs * 0.35);
+    s += '<text x="' + svgNum(tx) + '" y="' + svgNum(ty) + '" font-family="' + xmlEsc(ff) +
          '" font-size="' + fs + '" font-weight="' + fw + '" fill="' + (n.depth === 0 ? '#ffffff' : (n.done === true ? '#8a94a6' : '#1f2328')) + '"' +
          /* N2：SVG 自带 text-decoration，比画线更准（跟着字形走，不会长短不一） */
          (n.done === true ? ' text-decoration="line-through"' : '') + '>' +
          xmlEsc(lines[0] || '');
     for(let i = 1; i < lines.length; i++)
-      s += '<tspan x="' + svgNum(x + 14) + '" dy="' + svgNum(lh) + '">' + xmlEsc(lines[i]) + '</tspan>';
+      s += '<tspan x="' + svgNum(tx) + '" dy="' + svgNum(lh) + '">' + xmlEsc(lines[i]) + '</tspan>';
     s += '</text>\n';
     /* C2：有备注的节点右上角打编号角标（N3：有链接时往左让 23px，与 PNG / 屏幕一致） */
     if(n.note){
@@ -8690,6 +11882,7 @@ async function exportSvg(){
   const accept = { description: 'SVG 矢量图', accept: { 'image/svg+xml': ['.svg'] } };
   const pre = await savePick(name, 'image/svg+xml', accept);
   if(pre === 'cancel') return;
+  await imgPrepareExport(flat);              // v50：SVG 里内联的是原图，不再是 320px 轻量副本
   const svg = buildSvg();
   const r = await saveOut(name, svg, 'image/svg+xml;charset=utf-8', accept, pre);
   if(r === 'cancel') return;
@@ -8739,7 +11932,7 @@ function printView(){
 
 /* 把当前导图写回页面源码，生成一份新的独立 HTML（含全部编辑能力）。
    用克隆节点而不是实时 DOM：自动备份会频繁调用它，不能顺手把弹层关掉、也不能带上粘贴框里的原文。 */
-function buildStandaloneHtml(){
+function buildStandaloneHtml(inline, doc){
   const clone = document.documentElement.cloneNode(true);
   clone.querySelectorAll('.overlay').forEach(o => o.classList.remove('show'));
   /* 只清状态、不删元素：脚本启动时会对这些元素绑定事件，删掉会让生成的文件直接报错 */
@@ -8750,14 +11943,35 @@ function buildStandaloneHtml(){
     if(el){ if(el.tagName === 'TEXTAREA') el.textContent = ''; else el.removeAttribute('value'); }
   });
   const pn = clone.querySelector('#print-notes'); if(pn) pn.textContent = '';
+  /* v50：大图浮层 / 悬停预览此刻可能正显示**原图** data URL。不清掉的话，
+     导出件会把原图再内联一份（一张几十 MB 的图白白翻一倍）；说明行里也还是
+     上一位用户的运行时文本。只清内容、不删元素 —— 启动时要给它们绑事件。 */
+  ['#iv-img', '#ih-img'].forEach(sel => {
+    const el = clone.querySelector(sel);
+    if(el){ el.removeAttribute('src'); el.setAttribute('alt', ''); }
+  });
+  ['#iv-info', '#ih-cap'].forEach(sel => {
+    const el = clone.querySelector(sel);
+    if(el) el.textContent = '';
+  });
   let html = '<!DOCTYPE html>\n' + clone.outerHTML;
   const start = html.indexOf('const DATA = ');
   if(start < 0) throw new Error('未找到数据块');
   const end = html.indexOf('\n};', start);
   if(end < 0) throw new Error('未找到数据块结尾');
   // end 指向 “};” 前面那个换行；end+3 正好跳过 “\n};”，兼容 LF / CRLF
-  let out = html.slice(0, start) + 'const DATA = ' + JSON.stringify(serialize(root), null, 2) + ';' + html.slice(end + 3);
-  // 换一个存储钥匙，导出件不会因为本机缓存而串味
+  /* doc 是调用方在任何 await 之前同步取好的快照；不传才现取（保持老调用点可用） */
+  let out = html.slice(0, start) + 'const DATA = ' + JSON.stringify(doc || serialize(root), null, 2) + ';' + html.slice(end + 3);
+  /* v50：把当前导图引用的原图整块内联。换台机器 / 换浏览器 / 换源打开，图依然是原始字节，
+     而且仍然是**一个 HTML 文件** —— 单文件流转的体验一点不丢。 */
+  const s2 = out.indexOf('const IMG_DATA = ');
+  const e2 = s2 >= 0 ? out.indexOf('/*<<IMG_DATA_END>>*/', s2) : -1;
+  if(e2 >= 0){
+    /* 用标记而不是 `\n};` 收尾：替换后的 IMG_DATA 是**单行**，导出件再次导出时
+       按换行找结尾会扑空，新插的图就悄悄留在了旧文件里。标记留在输出里，可反复替换。 */
+    out = out.slice(0, s2) + 'const IMG_DATA = ' + JSON.stringify(inline || {}) + ';\n' + out.slice(e2);
+  }
+  // 换一个存储钥匙，导出件不会因为本机缓存而串味（**原图库 IMG_DB 不能跟着换**）
   const key = 'mm-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   out = out.replace(/const STORE_KEY = '[^']*';/, "const STORE_KEY = '" + key + "';");
   return out;
@@ -8767,7 +11981,8 @@ async function exportHtml(){
   hideCtx(); closeModal(); closeWelcome(); closeExport();
   document.querySelectorAll('.overlay').forEach(o => o.classList.remove('show'));
   try{
-    const out = buildStandaloneHtml();
+    const doc = serialize(root);                       // 快照先取，再 await 原图
+    const out = buildStandaloneHtml(await imgInlineFor(imgCollectOids(doc, new Set())), doc);
     const r = await saveOut((sourceName || suggestName()) + tr('-思维导图.html'), out, 'text/html;charset=utf-8',
       { description: '网页', accept: { 'text/html': ['.html', '.htm'] } });
     if(r !== 'cancel') toast(tr('已导出独立 HTML（含全部内容与编辑能力）'));
@@ -8880,7 +12095,9 @@ async function bkWriteNow(manual){
     if(await bkPerm(bkDir, !!manual) !== 'granted'){ bkState = 'paused'; bkUpdateUI(); return false; }
     /* 注意：这里千万不能 commitEdit() —— 那会把用户正在打字的编辑框连根拔掉。
        备份应当「看见」正在输入的内容，但不打断输入。 */
-    const html = withLiveEdit(() => buildStandaloneHtml());
+    const doc = withLiveEdit(() => serialize(root));   // 快照先取（含正在输入的内容），再 await 原图
+    const inline = await imgInlineFor(imgCollectOids(doc, new Set()));
+    const html = withLiveEdit(() => buildStandaloneHtml(inline, doc));
     const cnt  = totalNodes(root);
     const base = bkFileName();
     let name = base + '.html';
@@ -10247,6 +13464,9 @@ if(__prefs){
   lang = LANG_OK.test(__prefs.lang || '') ? __prefs.lang : 'zh';
 }
 applyPrefs(); syncPrefsUI();
+/* v50：导出件里内联的原图先灌回本源 —— 之后任何放大 / 导出都直接命中内存，
+   不用等 IndexedDB 事务落地，也不会因为「对方从没插过图」而丢图。 */
+imgBootInline(IMG_DATA);
 const __savedTree = loadSaved();
 root = build(__savedTree || localizeTree(DATA), 0);
 syncHeader();
@@ -10265,6 +13485,9 @@ setInterval(touchSlot, 10000);
 window.addEventListener('beforeunload', releaseSlot);
 window.addEventListener('pagehide', releaseSlot);
 document.addEventListener('visibilitychange', () => { if(!document.hidden) touchSlot(); });
+/* v50：保守回收没有任何存档 / 快照 / 当前画布引用的原图。本次会话写过的永不删，
+   浏览器不给用 IndexedDB 时连定时器都不排 —— 启动路径零异步。 */
+if(imgIdbOk()) setTimeout(() => { imgGc().catch(() => {}); }, 8000);
 </script>
 </body>
 </html>

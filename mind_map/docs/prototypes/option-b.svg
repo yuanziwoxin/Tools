@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="方案 B：纯文本投影加行内片段原型">
+<rect x="0" y="0" width="900" height="520" fill="#ffffff"/>
+<g font-family="-apple-system, Segoe UI, Microsoft YaHei, sans-serif">
+<text x="32" y="40" font-size="22" font-weight="700" fill="#0f172a">方案 B · 纯文本投影 + 行内片段（推荐）</text>
+<text x="32" y="66" font-size="13" fill="#475569">n.text 永远是纯字符串；另挂一个只在有样式时出现的 n.rich 片段数组</text>
+
+<rect x="32" y="88" width="270" height="356" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="50" y="115" font-size="13" font-weight="700" fill="#475569">① 双击编辑，拖选任意几个字</text>
+<rect x="50" y="130" width="234" height="58" rx="8" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="62" y="166" font-size="16" fill="#0f172a">项目</text>
+<rect x="98" y="142" width="66" height="34" rx="3" fill="#bfdbfe"/>
+<text x="104" y="166" font-size="16" font-weight="700" fill="#0f172a">里程碑</text>
+<text x="168" y="166" font-size="16" fill="#0f172a">计划</text>
+
+<rect x="62" y="202" width="212" height="38" rx="8" fill="#1e293b"/>
+<text x="74" y="227" font-size="13" font-weight="700" fill="#ffffff">B</text>
+<text x="100" y="227" font-size="13" font-style="italic" fill="#ffffff">I</text>
+<text x="122" y="227" font-size="13" text-decoration="underline" fill="#ffffff">U</text>
+<text x="146" y="227" font-size="13" text-decoration="line-through" fill="#ffffff">S</text>
+<text x="172" y="227" font-size="13" fill="#ffffff">A+</text>
+<text x="206" y="227" font-size="13" fill="#ffffff">A−</text>
+<circle cx="248" cy="222" r="7" fill="#dc2626"/>
+<path d="M131 202 L131 196 L138 196 L138 202" fill="#1e293b"/>
+
+<text x="50" y="272" font-size="12" fill="#64748b">样式白名单</text>
+<text x="50" y="294" font-size="12.5" fill="#334155">b / i / u / s / fs（−2…+3）</text>
+<text x="50" y="316" font-size="12.5" fill="#334155">c（5 个主题色 token）</text>
+<text x="50" y="338" font-size="12" fill="#64748b">不放行：任意 hex / 字体族 / 绝对 px</text>
+<line x1="50" y1="354" x2="284" y2="354" stroke="#e2e8f0"/>
+<text x="50" y="378" font-size="12" fill="#64748b">选区存成纯数据</text>
+<text x="50" y="400" font-size="12.5" fill="#334155">(片段索引, 段内偏移)</text>
+<text x="50" y="424" font-size="12" fill="#64748b">render 重建 DOM 后原样还原</text>
+
+<rect x="320" y="88" width="252" height="356" rx="12" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.5"/>
+<text x="338" y="115" font-size="13" font-weight="700" fill="#6d28d9">② 数据契约</text>
+<rect x="338" y="130" width="216" height="180" rx="8" fill="#ffffff" stroke="#ddd6fe"/>
+<text x="350" y="154" font-size="11.5" fill="#7c3aed">n.text = '项目里程碑计划'</text>
+<text x="350" y="180" font-size="11.5" fill="#334155">n.rich = [</text>
+<text x="358" y="202" font-size="11.5" fill="#334155">{ t: '项目' },</text>
+<text x="358" y="224" font-size="11.5" font-weight="700" fill="#dc2626">{ t: '里程碑', b:1,</text>
+<text x="366" y="244" font-size="11.5" font-weight="700" fill="#dc2626">c:'red' },</text>
+<text x="358" y="266" font-size="11.5" fill="#334155">{ t: '计划' }</text>
+<text x="350" y="290" font-size="11.5" fill="#334155">]</text>
+<text x="338" y="336" font-size="12" fill="#64748b">无样式时根本不写 rich</text>
+<text x="338" y="358" font-size="12" fill="#64748b">旧存档 / 8 处 typeof 校验不破</text>
+<text x="338" y="380" font-size="12" fill="#64748b">搜索 / 替换 / 批量 / 剪贴板</text>
+<text x="338" y="402" font-size="12" fill="#64748b">统一读 plainText(n) 投影</text>
+<text x="338" y="426" font-size="12" fill="#64748b">外框 n.bd.rich，组框 g.rich</text>
+
+<rect x="590" y="88" width="278" height="356" rx="12" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5"/>
+<text x="608" y="115" font-size="13" font-weight="700" fill="#047857">③ 渲染结果</text>
+<rect x="608" y="130" width="242" height="76" rx="8" fill="#ffffff" stroke="#94a3b8"/>
+<text x="622" y="176" font-size="16" fill="#0f172a">项目</text>
+<text x="662" y="176" font-size="16" font-weight="700" fill="#dc2626">里程碑</text>
+<text x="734" y="176" font-size="16" fill="#0f172a">计划</text>
+<text x="608" y="230" font-size="12" fill="#64748b">逐个 createElement('span')</text>
+<text x="608" y="252" font-size="12" fill="#64748b">+ textContent 挂载</text>
+<text x="608" y="274" font-size="12" font-weight="700" fill="#b91c1c">绝不 innerHTML = richHtml</text>
+<line x1="608" y1="292" x2="850" y2="292" stroke="#a7f3d0"/>
+<text x="608" y="316" font-size="12" fill="#64748b">统一调整走右侧面板（L1–L3）</text>
+<text x="608" y="338" font-size="12" fill="#64748b">局部调整走浮选工具栏（L4）</text>
+<text x="608" y="360" font-size="12" font-weight="700" fill="#047857">局部优先级更高</text>
+<text x="608" y="392" font-size="12" fill="#64748b">导出：无损 / 可拆 run / 明确降级</text>
+<text x="608" y="414" font-size="12" fill="#64748b">12 路按能力分档，不假装都带样式</text>
+
+<rect x="32" y="462" width="836" height="42" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+<text x="52" y="489" font-size="13" fill="#1d4ed8">改动面：约 70–85 处函数、12 路导出分档、新 1 套 60+ 条断言、改约 20 套、10 颗反证、真 Chrome 45 条；建议分 P1→P3 三期</text>
+</g>
+</svg>

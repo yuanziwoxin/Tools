@@ -17,12 +17,12 @@
   &nbsp;
   <img src="https://img.shields.io/badge/layout-mind%20%7C%20org-0ea5a4" alt="two layouts"/>
   &nbsp;
-  <img src="https://img.shields.io/badge/tests-38%20suites%20%2F%202850%20assertions-7c3aed" alt="test suite scale"/>
+  <img src="https://img.shields.io/badge/tests-49%20suites%20%2F%203770%20assertions-7c3aed" alt="test suite scale"/>
   &nbsp;
   <img src="https://img.shields.io/badge/UI-bilingual%20%C2%B7%20%E4%B8%AD%E8%8B%B1%E5%8F%8C%E8%AF%AD-0f9d8f" alt="bilingual interface"/>
 </p>
 
-Most mind-mapping tools want an account, a desktop client, a yearly subscription — or they keep your map on someone else's server. This one is **a single ~493 KB HTML file**: double-click to run, works with the network unplugged, and the map lives on your own disk.
+Most mind-mapping tools want an account, a desktop client, a yearly subscription — or they keep your map on someone else's server. This one is **a single ~756 KB HTML file**: double-click to run, works with the network unplugged, and the map lives on your own disk.
 
 > **Sharing is the install**: send the HTML file to anyone; they double-click it and hold exactly the same full tool — view it, edit it, export from it. No package, no login, no server.
 >
@@ -89,6 +89,31 @@ Big maps don't hurt because you can't draw them; they hurt because you can't fin
 - **Statistics**: level distribution, branch share, badge summary, and last render time — so "is it slow?" becomes a number
 - **Search** `Ctrl+F`: highlighted hits, "only matches" mode, **notes are searched too**, case / whole-word / regex, plus batch replace
 - **Two layouts**: **horizontal** (mind map, default) and **vertical** (org chart, reporting lines read top-down). Switching changes no data, arrow keys and fold dots follow, and exports use the current layout
+- **Boundaries**: a dashed frame that groups a branch with its visible descendants — right-click to add / title / recolour / remove. It travels with the node (copy, paste, move, delete), tightens when you fold or filter, never eats a click, and lands in PNG / SVG / PDF and in the map data. The border is the frame colour darkened 45% and drawn 2.4–2.6px thick, the inside carries the same colour at 20–24% — so the region reads at a glance without competing with the text
+- **Summaries**: select two or more siblings, right-click **Add summary**, and a bracket wraps them with a summary topic that states the shared point. The summary topic is a real node — it can grow sub-nodes of its own, and the range follows inserts and deletes
+- **Group frames**: select a few nodes — **across branches if you like** — and right-click **Group the selected nodes** to wrap them in one dashed frame. It is a background layer: it never moves a node horizontally, but it does ask for a small vertical gap between neighbours so its dashed border always runs through empty space instead of under a node card. It dissolves by itself when only one member is left, and exports to XMind as a native boundary
+- **Relationships**: pick any two objects on the canvas — **node, boundary, summary or group frame** — and right-click **Add relationship** to draw a labelled dashed curve between them. **Drag the curve** to pull it clear of anything covering it (a 2.2px dashed line carries a 16px invisible hit band so it is easy to grab) — in any direction: sideways pushes the arc aside, along the line slides it forward or back, and it follows up to ±900px. Labels avoid cards, boundaries and group frames; when the whole curve is buried the label is pushed out along the normal instead of sitting on top of something. **If the line is too short to grab, drag the label** — on short links it is the handle. Short links still draw their ends: instead of collapsing into a bump inside the gap they **loop out through the 20px gap** between the cards, and the emptier side is chosen when the link is created; below 30px the line turns solid with a smaller arrowhead. Double-click the label to describe the relationship, `×` to delete it. The start and end default in the order node → summary → boundary → group frame, so the one you picked first is the start. In XMind it becomes a native `relationship`
+- **Node images**: right-click a node → **Insert image…** and the picture lands on the node as a 96px thumbnail, with the text unchanged below it — image and text together in one node, or either one alone. **Hover** the thumbnail to see the original, scroll to zoom it, click for the full-size view (fit / actual size / pointer-anchored wheel zoom, drag to pan — **dragging the image pans the map behind it too**, with a pale backdrop, and it drags at any zoom level). **The original is kept byte-for-byte**: the node stores only a 320px lightweight copy for layout, while the original goes to IndexedDB (no re-encoding, no GIF frames lost), so 100% zoom, PNG and SVG all show the real pixels; small images are kept as-is with zero re-encoding. Exporting a **standalone .html / map .json** inlines the originals, so **handing someone a single HTML file still shows them the original** — single-file sharing is intact. Only **inline** images are accepted, so it still works offline; images ride along with copy / paste / undo / saving, and a text-only export keeps the “（图片）” placeholder
+
+<p align="center">
+  <img src="screenshots/mindmap-boundary.en.png" width="820" alt="Boundaries: one branch titled "Core scope", another showing only the dashed border"/>
+</p>
+
+<p align="center">
+  <img src="screenshots/mindmap-summary.en.png" width="820" alt="Summaries: a bracket around the first two branches, the summary topic carrying two sub-nodes of its own"/>
+</p>
+
+<p align="center">
+  <img src="screenshots/mindmap-group.en.png" width="820" alt="Group frames: one dashed frame across branches around the second and third items, with the group name inside its top edge"/>
+</p>
+
+<p align="center">
+  <img src="screenshots/mindmap-rlink.en.png" width="820" alt="Relationships: a labelled curve drawn from one branch to another, its label sitting clear of the node cards"/>
+</p>
+
+<p align="center">
+  <img src="screenshots/mindmap-image.en.png" width="820" alt="Node images: a 96px thumbnail on one node with its label below it, and a second node showing an image only"/>
+</p>
 
 <p align="center">
   <img src="screenshots/mindmap-org.en.png" width="780" alt="Vertical (org chart) layout: levels share a centre line, reporting reads top-down"/>
@@ -104,13 +129,13 @@ The **Export ▾** panel groups formats by purpose — **Images / Office / Data 
 
 | Format | Typical use | How notes travel |
 | --- | --- | --- |
-| **PNG** / **SVG** / **PDF** | Documents, slides, sharp at any zoom | Numbered badge + a note list under the map |
+| **PNG** / **SVG** / **PDF** | Documents, slides, sharp at any zoom | Numbered badge + a note list under the map; **boundaries, summaries, group frames and relationships drawn** |
 | **PPT · one slide** | The map as vector shapes on one slide, still recolourable | A small grey line inside the shape |
 | **PPT · paged outline** | Cover + one page per top-level branch | A small grey line after the node |
 | **Word** | Numbered headings by level, keep writing | A grey paragraph one level in |
 | **Excel** | One row per node with level / parent / full path | A dedicated "Note" column |
 | **Markdown** | A standard `#` outline for notes apps | A `> 备注：…` blockquote — **re-imports onto the node** |
-| **XMind** / **OPML** | Continue in XMind / Mubu / Workflowy / Feishu | `notes` / `_note` fields |
+| **XMind** / **OPML** | Continue in XMind / Mubu / Workflowy / Feishu | `notes` / `_note` fields; **boundaries, group frames and summaries become native XMind objects, relationships too** |
 | **Standalone page** | Double-click to open, complete **and still editable** | Included in the data |
 | **Map data `.json`** | The main backup format; open it later to continue | Included in the data |
 
@@ -144,7 +169,7 @@ Recent versions of Edge, Chrome, Firefox or Safari.
 The interface is **bilingual (Chinese / English)** — one click on `EN` / `中文` in the top-right corner. The button shows *what it will switch to*, so you never have to guess the current language.
 
 - **Chinese users** get Chinese on first open, with nothing to configure.
-- **English users** click `EN` once: the toolbar, menus, context menu, all 14 panels, every toast, and the shortcut cheat sheet switch over. Exported Markdown / Word / Excel / PPT / standalone pages follow too, table headers and captions included.
+- **English users** click `EN` once: the toolbar, menus, context menu, all 16 panels, every toast, and the shortcut cheat sheet switch over. Exported Markdown / Word / Excel / PPT / standalone pages follow too, table headers and captions included.
 - **Your own content never changes.** Node text, notes, links and the map names you typed stay exactly as written, however often you switch. Switching back to Chinese restores every label byte-for-byte — originals are kept on the DOM instead of reverse-looked-up, so an ambiguous word can never leak into the wrong panel.
 - Language is a **preference**: remembered locally, never written into the map data, and it never pushes an undo step.
 - On a still-untouched canvas the central topic follows the language too (“中心主题” ↔ “Central topic”).
@@ -198,7 +223,7 @@ A few deliberate decisions:
 
 ## Under the hood
 
-**10,258 lines, ~582 KB, zero external dependencies.** A few things worth pointing at:
+**13,493 lines, ~756 KB, zero external dependencies.** A few things worth pointing at:
 
 **Layout**
 A hand-written tidy-tree (left→right) and a vertical org chart (top→bottom) share one coordinate convention (`x` = node's left edge, `y` = vertical centre), so positioning, bounds, fit-to-window, minimap and rubber-band selection all run from a single implementation. Collapsed subtrees never enter layout.
@@ -213,9 +238,9 @@ Office and XMind files are **hand-written OOXML / ZIP** (an internal store + CRC
 The search switches (`Aa` / whole word / regex) are not three matchers: one `findCompile()` turns "keyword + switches" into a single `{test, replace}` shared by search and replace, so they can't drift. An invalid regex degrades to literal matching and marks the input, instead of throwing.
 
 **How it is verified**
-jsdom loads the real page and runs end-to-end interaction tests — **38 suites, 2850 assertions** — then real Chrome headless covers what jsdom cannot: computed styles and true layout, real `PointerEvent` pinch zoom with anchor maths, real `elementFromPoint` hit testing (proving the mobile drawer isn't swallowed by the scrim), minimap canvas pixels, and genuinely filling localStorage to 5 MB to exercise quota recovery. Exports are unpacked and checked independently with Python `zipfile` and `python-pptx`.
+jsdom loads the real page and runs end-to-end interaction tests — **49 suites, 3770 assertions** — then real Chrome headless covers what jsdom cannot: computed styles and true layout, real `PointerEvent` pinch zoom with anchor maths, real `elementFromPoint` hit testing (proving the mobile drawer isn't swallowed by the scrim), minimap canvas pixels, and genuinely filling localStorage to 5 MB to exercise quota recovery. Exports are unpacked and checked independently with Python `zipfile` and `python-pptx`.
 
-Every fix also gets a **counter-proof**: temporarily restore the old behaviour and confirm the same assertions **really turn red** — otherwise the test had no teeth (23 falsification scripts, each verifying the restored file with sha1), plus 21 real-Chrome probes for what jsdom cannot measure. One command: `python _test/runall.py`.
+Every fix also gets a **counter-proof**: temporarily restore the old behaviour and confirm the same assertions **really turn red** — otherwise the test had no teeth (44 falsification scripts, each verifying the restored file with sha1), plus 34 real-Chrome probes for what jsdom cannot measure. One command: `python _test/runall.py`.
 
 ---
 
@@ -228,6 +253,10 @@ docs/USAGE.zh-CN.md      ← full user guide (简体中文)
 docs/feature-map.en.svg  ← capability map (English)
 docs/feature-map.svg     ← capability map (中文)
 docs/移动端适配改造方案.md ← mobile roadmap and design notes (中文)
+docs/外框与概要-改造方案.md ← boundary & summary plan: cost, risks, phasing (中文)
+docs/外框原型.html       ← clickable boundary prototype (patched build, screen-only)
+docs/文字样式改造方案.md  ← text-styling assessment, three prototypes and phasing (中文, planned)
+docs/prototypes/         ← the four prototype figures for that plan (SVG)
 screenshots/             ← README images: *.png (Chinese UI) / *.en.png (English UI)
 CHANGELOG.md             ← release notes, newest first (English)
 CHANGELOG.zh-CN.md       ← release notes, newest first (中文)
@@ -239,6 +268,8 @@ _test/_artifacts/        ← their output (snapshots, probe pages, exports, prof
 
 Nothing in `_test/_artifacts/` is needed to run the tests: every snapshot, probe page and
 exported sample there is regenerated on the next run, so the folder can be deleted at any time.
+
+> **Next up (planned, not implemented)**: a text-styling overhaul — uniform fonts for all three object types plus per-character styling on any selected substring. See `docs/文字样式改造方案.md` for the assessment, cost estimate and three prototypes. No product code changed in this round; the online release is still v48.
 
 ---
 

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="900" height="460" role="img" aria-label="方案 C：直接把 HTML 存进 text 的代价">
+<rect x="0" y="0" width="900" height="460" fill="#ffffff"/>
+<g font-family="-apple-system, Segoe UI, Microsoft YaHei, sans-serif">
+<text x="32" y="40" font-size="22" font-weight="700" fill="#0f172a">方案 C · 直接把 HTML 存进 text（不推荐）</text>
+<text x="32" y="66" font-size="13" fill="#475569">编辑换成 contenteditable，选字后包一层 span，把 innerHTML 当文字落盘</text>
+
+<rect x="32" y="88" width="252" height="292" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="50" y="115" font-size="13" font-weight="700" fill="#475569">编辑态</text>
+<rect x="50" y="130" width="216" height="60" rx="8" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="62" y="166" font-size="15" fill="#0f172a">项目</text>
+<text x="98" y="166" font-size="15" font-weight="700" fill="#dc2626">里程碑</text>
+<text x="161" y="166" font-size="15" fill="#0f172a">计划</text>
+<text x="50" y="216" font-size="12" fill="#64748b">document.execCommand 或</text>
+<text x="50" y="238" font-size="12" fill="#64748b">手动包 span style="..."</text>
+<text x="50" y="272" font-size="12" fill="#64748b">看起来省掉片段模型：</text>
+<text x="50" y="294" font-size="12" fill="#64748b">主改约 20 处函数</text>
+<text x="50" y="330" font-size="12" fill="#64748b">实际把 HTML 变成</text>
+<text x="50" y="352" font-size="12" font-weight="700" fill="#b91c1c">数据层协议</text>
+
+<path d="M292 234 L322 234" stroke="#94a3b8" stroke-width="2"/>
+<path d="M316 228 L323 234 L316 240" fill="none" stroke="#94a3b8" stroke-width="2"/>
+
+<rect x="330" y="88" width="252" height="292" rx="12" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.5"/>
+<text x="348" y="115" font-size="13" font-weight="700" fill="#b91c1c">落盘内容</text>
+<rect x="348" y="130" width="216" height="96" rx="8" fill="#ffffff" stroke="#fecaca"/>
+<text x="358" y="154" font-size="11.5" fill="#7f1d1d">n.text =</text>
+<text x="358" y="176" font-size="11.5" fill="#7f1d1d">'项目&lt;b&gt;里程碑&lt;/b&gt;计划'</text>
+<text x="358" y="204" font-size="11.5" fill="#64748b">不再是纯字符串语义</text>
+<text x="348" y="252" font-size="12" fill="#64748b">旧存档里的 &lt; &gt; 要重新净化</text>
+<text x="348" y="274" font-size="12" fill="#64748b">用户手打标签也会被当样式</text>
+<text x="348" y="300" font-size="12" fill="#64748b">搜索命中跨标签时断掉</text>
+<text x="348" y="322" font-size="12" fill="#64748b">复制 / 导出要先剥或先转</text>
+<text x="348" y="352" font-size="12" font-weight="700" fill="#b91c1c">回滚困难、不可逆</text>
+
+<path d="M590 234 L620 234" stroke="#94a3b8" stroke-width="2"/>
+<path d="M614 228 L621 234 L614 240" fill="none" stroke="#94a3b8" stroke-width="2"/>
+
+<rect x="628" y="88" width="240" height="292" rx="12" fill="#fff7ed" stroke="#fdba74" stroke-width="1.5"/>
+<text x="646" y="115" font-size="13" font-weight="700" fill="#c2410c">连锁代价</text>
+<text x="646" y="146" font-size="12.5" fill="#334155">1 · 8 处 typeof text 校验要重写</text>
+<text x="646" y="174" font-size="12.5" fill="#334155">2 · escapeHtml 净化重写，XSS 面放大</text>
+<text x="646" y="202" font-size="12.5" fill="#334155">3 · 12 路导出全部要解析 HTML</text>
+<text x="646" y="230" font-size="12.5" fill="#334155">4 · stripInline 会把样式洗掉</text>
+<text x="646" y="258" font-size="12.5" fill="#334155">5 · i18n 把用户 HTML 当 key</text>
+<text x="646" y="286" font-size="12.5" fill="#334155">6 · 撤销快照 / 存档格式全变</text>
+<text x="646" y="314" font-size="12.5" fill="#334155">7 · 大纲 input 只能显示纯文本</text>
+<text x="646" y="342" font-size="12.5" fill="#334155">8 · 主题切换无法统一改字色</text>
+<text x="646" y="368" font-size="12" font-weight="700" fill="#c2410c">总工作量反而最大</text>
+
+<rect x="32" y="398" width="836" height="42" rx="8" fill="#fef2f2" stroke="#fca5a5"/>
+<text x="52" y="425" font-size="13" fill="#b91c1c">结论：省掉的只是「片段模型」这一个小结构，换来的是整条主干的数据格式迁移；不建议采用</text>
+</g>
+</svg>
