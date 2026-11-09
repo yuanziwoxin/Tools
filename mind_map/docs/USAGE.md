@@ -22,7 +22,7 @@
 | --- | --- |
 | [1 Overview](#1-overview) | The big picture, feature list |
 | [2 Getting started](#2-getting-started) | Opening the file, generating from a document, templates, opening existing maps |
-| [3 Editing](#3-editing) | Node operations, multi-select, drag-to-reparent, fold/level, notes, badges, links, **boundaries**, **summaries**, **group frames**, **relationships**, **images** |
+| [3 Editing](#3-editing) | Node operations, multi-select, drag-to-reparent, fold/level, notes, badges, links, **boundaries**, **summaries**, **group frames**, **relationships**, **images**, **text style** |
 | [4 Finding & organizing](#4-finding--organizing) | Search, replace, text cleanup, outline view, statistics |
 | [5 View & navigation](#5-view--navigation) | Pan/zoom, two layouts, full screen, minimap, hint box |
 | [6 Appearance](#6-appearance) | Fonts, sizes, themes, palettes, backgrounds, **interface language** |
@@ -121,6 +121,7 @@ This is the most used entry. Click **Import document** in the toolbar, or drop a
 
 - Files: `.md` `.markdown` `.txt` `.json` (exported by this tool), `.xmind` (XMind export), `.opml` (outlines from XMind / Mubu / Workflowy / Feishu)
 - Paste: copy text from Word / PDF / a web page into the paste box (those formats can't be read as files; copy-paste is faster anyway)
+- **XMind attachments (v64)**: `boundaries` (outer / group frames), `summaries`, `relationships` and `image` + `resources/` are all rebuilt as canvas objects. Files from XMind and files exported by this tool take the same path; a relationship's curve offset comes back too.
 
 **Structures it recognizes**
 
@@ -429,7 +430,7 @@ Where it travels:
 | **PNG** / **SVG** / **PDF** (printed from the screen) | Bracket and summary topic drawn together |
 | **Map data `.json`** | Kept in the data, so a saved map comes back with it |
 | Markdown / Word / Excel / OPML / PPT paged outline | **Exported as an ordinary child** — a summary has content, so dropping it from an outline would lose information |
-| XMind | As an ordinary sub-topic (this version does not use XMind's native summary marker) |
+| XMind | Exported as a **native summary** (`summaries` on the parent + the summary topic inside `children.summary`, so XMind / XMind Zen recognize the bracket semantics) |
 
 ---
 
@@ -589,7 +590,7 @@ The lightweight copy is an ordinary node field, so copying a subtree, cloning, p
 | **Map data `.json` / workspace `.json`** | the lightweight copy stays on the node; originals go in a sibling `images` table keyed by id |
 | Markdown / Word / Excel / OPML / PPT outline | **deliberately omitted**; an image-only node keeps the “（图片）” placeholder |
 | Copy as text / indented text | same — the placeholder stays |
-| XMind | travels with the topic |
+| **XMind** `.xmind` | the original (or the lightweight copy) is packed into `resources/`, with only an `xap:` reference on the topic; read back on import (v64) |
 
 **Small tips**
 
@@ -597,6 +598,38 @@ The lightweight copy is an ordinary node field, so copying a subtree, cloning, p
 - The "about N KB" toast is the **lightweight copy**, not the original — the original does not consume `localStorage` quota.
 - **Export ▾ → Standalone .html** is the self-contained one: send that file and the recipient sees the originals. Sending the `mind_map.html` source alone gives an empty canvas — the program is not the data.
 - To just peek at the detail you do not need the overlay — hovering is enough.
+
+### 3.15 Text style (scoped settings + just a few selected characters)
+
+Click **Aa Text style** in the toolbar. The panel has two halves.
+
+**Top - scoped settings**: three scopes
+
+| Scope | Affects | Saved into the map file |
+| --- | --- | --- |
+| Global | Every node, boundary title and group-frame title | No (a local display preference) |
+| By type | Only the kind of text you pick | No |
+| This object | Just the selected node / boundary / group frame | Yes (travels with the file, undo and copy) |
+
+Options: bold, italic, underline, strikethrough, relative size -2 to +3, and six colours (follow theme / blue / red / green / amber). This is a **whitelist** - arbitrary colours, font families and absolute sizes are deliberately excluded so dark mode and every export stay consistent.
+
+**Bottom - inline runs**: select any characters in the input box, then click a style button to change only those characters. The dropdown switches between **current node text / boundary title / group-frame title / relationship label**. Double-clicking a node also pops the same mini toolbar above the selection, and `Ctrl+B` / `Ctrl+I` / `Ctrl+U` work there too.
+
+Worth remembering:
+
+- Node text is always a plain string; styling lives separately in `rich`. If the text changes so the run indices no longer match, the styling is dropped with a visible notice - better to lose styling than characters.
+- JSON / standalone HTML / printed PDF / Word / PPT / PNG / SVG carry the styles. Markdown / OPML / XMind / Excel / copy-as-text are plain-text only: the export panel marks them `Plain text` and shows a toast when styles really exist.
+- Global and by-type are **preferences** (not saved, no undo entry); this-object and inline runs are **content** (saved, undoable, copied).
+
+### 3.16 Interface details (long text, toolbar, hint box)
+
+**Styled long nodes grow to fit**: as soon as node text carries any font styling - a whole-text setting, a few styled characters, or a global / per-type preference - the fixed 4-line clamp is lifted and the node grows to show the full text; boundaries, connectors and exports follow. Plain long nodes keep the original 4-line (2 with an image) clamp and the `...` marker; double-click to read everything, so a few long labels cannot blow up a large map.
+
+**A one-row command bar with your own pinned buttons**: the desktop header is a single row - title + your pinned command buttons + **⋯ More tools**, **⚙ Look & view** and **EN** at the right. The "settings" (depth, layout, font, size, weight, width, theme, background, palette) all live in the **⚙ Look & view** drawer (changes apply instantly, exports follow); the other 26 commands are in **⋯ More tools**, grouped into File / Data / Panels / Edit / View / Look with a type-to-filter box at the top. If a narrow window cannot fit the pinned buttons, they auto-retreat into More tools and come back when the window widens - never horizontal scrolling, never wrapping. To change what stays pinned, open **⋯ → 🛠 Customize toolbar…**: all 34 commands are listed, check the ones you want, reorder with ↑↓, then **Done**. Reordering is fully visible: checked commands come first and the number beside each row IS its toolbar position - click ↑↓ and the row moves to its new spot right away, all numbers re-number live, the moved row flashes briefly, and ↑↓ disable at the boundaries instead of silently doing nothing. The list is stored in local preferences and survives refresh, and **Reset** returns the factory 8. Phones keep the hamburger drawer with ⋯/⚙/EN inside it. *(Dropdowns named below - width / depth / layout / weight / theme - are in the ⚙ drawer; commands like 🕘 History, Aa Text style, 📐 Templates live in ⋯ More tools - type a name to filter.)*
+
+**Hint box in the bottom-left, one labelled row per topic**: the guide is split into 10 rows, each with a **caption** on the left (e.g. "Select & edit", "View & zoom") and the points for that topic on the right, separated by dashed lines so the hierarchy reads at a glance. Clicking **Hide** collapses immediately to the `?` badge; move the pointer away and back onto the badge for a temporary peek, then away again to collapse. Click the `?` badge to pin it open. The hide button is Tab-focusable and responds to Enter / Space.
+
+**Layout self-checks after refresh**: at startup the page re-checks each card's real rendered size once resources have settled, and re-lays-out once if it disagrees with the first pass. Maps with images no longer show image nodes covering boundary / group frame dashes, or flicker between broken and correct across reloads.
 
 ---
 
@@ -845,7 +878,7 @@ Click **Export ▾**. Formats are **grouped by purpose** (Images / Office / Data
 | **PPT · paged outline** `.pptx` | Cover + one page per top-level branch, for presenting page by page | All nodes | A small grey line after the node; top-level notes included |
 | **Word** `.docx` | Numbered headings by level, ready to keep writing | All nodes | A grey italic paragraph one level in |
 | **Excel** `.xlsx` | One row per node with level / parent / full path, easy to filter | All nodes | A dedicated "Note" column |
-| **XMind** `.xmind` | Continue editing in XMind, Mubu, etc. | All nodes | The topic's `notes` field (readable back) |
+| **XMind** `.xmind` | Continue in XMind, Mubu, etc.; boundaries / group frames / summaries / relationships / images all become native XMind objects and import back too (v64) | All nodes | The topic's `notes` field (readable back) |
 | **OPML outline** `.opml` | The lingua franca of outlines: XMind / Mubu / Workflowy / Feishu all open it, and it imports back | All nodes | The `_note` attribute (line breaks encoded correctly) |
 | **Markdown** `.md` | A standard `#` outline for notes apps | All nodes | A `> 备注：…` blockquote (**re-imports onto the node**) |
 | **Image** `.png` | 2× bitmap for documents, slides, chat | What you see | Numbered badges plus a note list below the map; **boundaries and summaries drawn** |

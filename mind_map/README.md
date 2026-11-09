@@ -17,12 +17,12 @@
   &nbsp;
   <img src="https://img.shields.io/badge/layout-mind%20%7C%20org-0ea5a4" alt="two layouts"/>
   &nbsp;
-  <img src="https://img.shields.io/badge/tests-49%20suites%20%2F%203770%20assertions-7c3aed" alt="test suite scale"/>
+  <img src="https://img.shields.io/badge/tests-57%20suites%20%2F%204336%20assertions-7c3aed" alt="test suite scale"/>
   &nbsp;
   <img src="https://img.shields.io/badge/UI-bilingual%20%C2%B7%20%E4%B8%AD%E8%8B%B1%E5%8F%8C%E8%AF%AD-0f9d8f" alt="bilingual interface"/>
 </p>
 
-Most mind-mapping tools want an account, a desktop client, a yearly subscription — or they keep your map on someone else's server. This one is **a single ~756 KB HTML file**: double-click to run, works with the network unplugged, and the map lives on your own disk.
+Most mind-mapping tools want an account, a desktop client, a yearly subscription — or they keep your map on someone else's server. This one is **a single ~852 KB HTML file**: double-click to run, works with the network unplugged, and the map lives on your own disk.
 
 > **Sharing is the install**: send the HTML file to anyone; they double-click it and hold exactly the same full tool — view it, edit it, export from it. No package, no login, no server.
 >
@@ -135,7 +135,7 @@ The **Export ▾** panel groups formats by purpose — **Images / Office / Data 
 | **Word** | Numbered headings by level, keep writing | A grey paragraph one level in |
 | **Excel** | One row per node with level / parent / full path | A dedicated "Note" column |
 | **Markdown** | A standard `#` outline for notes apps | A `> 备注：…` blockquote — **re-imports onto the node** |
-| **XMind** / **OPML** | Continue in XMind / Mubu / Workflowy / Feishu | `notes` / `_note` fields; **boundaries, group frames and summaries become native XMind objects, relationships too** |
+| **XMind** / **OPML** | Continue in XMind / Mubu / Workflowy / Feishu | `notes` / `_note` fields; **boundaries, group frames, summaries, relationships and images** all become native XMind objects — and since v64 all four are read back on import |
 | **Standalone page** | Double-click to open, complete **and still editable** | Included in the data |
 | **Map data `.json`** | The main backup format; open it later to continue | Included in the data |
 
@@ -223,7 +223,7 @@ A few deliberate decisions:
 
 ## Under the hood
 
-**13,493 lines, ~756 KB, zero external dependencies.** A few things worth pointing at:
+**15,156 lines, ~852 KB, zero external dependencies.** A few things worth pointing at:
 
 **Layout**
 A hand-written tidy-tree (left→right) and a vertical org chart (top→bottom) share one coordinate convention (`x` = node's left edge, `y` = vertical centre), so positioning, bounds, fit-to-window, minimap and rubber-band selection all run from a single implementation. Collapsed subtrees never enter layout.
@@ -238,9 +238,9 @@ Office and XMind files are **hand-written OOXML / ZIP** (an internal store + CRC
 The search switches (`Aa` / whole word / regex) are not three matchers: one `findCompile()` turns "keyword + switches" into a single `{test, replace}` shared by search and replace, so they can't drift. An invalid regex degrades to literal matching and marks the input, instead of throwing.
 
 **How it is verified**
-jsdom loads the real page and runs end-to-end interaction tests — **49 suites, 3770 assertions** — then real Chrome headless covers what jsdom cannot: computed styles and true layout, real `PointerEvent` pinch zoom with anchor maths, real `elementFromPoint` hit testing (proving the mobile drawer isn't swallowed by the scrim), minimap canvas pixels, and genuinely filling localStorage to 5 MB to exercise quota recovery. Exports are unpacked and checked independently with Python `zipfile` and `python-pptx`.
+jsdom loads the real page and runs end-to-end interaction tests — **57 suites, 4336 assertions** — then real Chrome headless covers what jsdom cannot: computed styles and true layout, real `PointerEvent` pinch zoom with anchor maths, real `elementFromPoint` hit testing (proving the mobile drawer isn't swallowed by the scrim), minimap canvas pixels, and genuinely filling localStorage to 5 MB to exercise quota recovery. Exports are unpacked and checked independently with Python `zipfile` and `python-pptx`.
 
-Every fix also gets a **counter-proof**: temporarily restore the old behaviour and confirm the same assertions **really turn red** — otherwise the test had no teeth (44 falsification scripts, each verifying the restored file with sha1), plus 34 real-Chrome probes for what jsdom cannot measure. One command: `python _test/runall.py`.
+Every fix also gets a **counter-proof**: temporarily restore the old behaviour and confirm the same assertions **really turn red** — otherwise the test had no teeth (60 falsification scripts, each verifying the restored file with sha1), plus 42 real-Chrome probes for what jsdom cannot measure. One command: `python _test/runall.py`.
 
 ---
 
@@ -255,7 +255,7 @@ docs/feature-map.svg     ← capability map (中文)
 docs/移动端适配改造方案.md ← mobile roadmap and design notes (中文)
 docs/外框与概要-改造方案.md ← boundary & summary plan: cost, risks, phasing (中文)
 docs/外框原型.html       ← clickable boundary prototype (patched build, screen-only)
-docs/文字样式改造方案.md  ← text-styling assessment, three prototypes and phasing (中文, planned)
+docs/文字样式改造方案.md  ← text-styling assessment, prototypes, decision and P1-P3 delivery record (Chinese)
 docs/prototypes/         ← the four prototype figures for that plan (SVG)
 screenshots/             ← README images: *.png (Chinese UI) / *.en.png (English UI)
 CHANGELOG.md             ← release notes, newest first (English)
@@ -269,7 +269,7 @@ _test/_artifacts/        ← their output (snapshots, probe pages, exports, prof
 Nothing in `_test/_artifacts/` is needed to run the tests: every snapshot, probe page and
 exported sample there is regenerated on the next run, so the folder can be deleted at any time.
 
-> **Next up (planned, not implemented)**: a text-styling overhaul — uniform fonts for all three object types plus per-character styling on any selected substring. See `docs/文字样式改造方案.md` for the assessment, cost estimate and three prototypes. No product code changed in this round; the online release is still v48.
+> **Text styling (shipped in v56-v58)**: node text, boundary titles, group-frame titles and relationship labels all support global / by-type / per-object styling, plus styling just a few selected characters. PNG / SVG / Word / PPT / JSON / standalone HTML keep the styles; plain-text formats show a visible downgrade hint. See `docs/文字样式改造方案.md` for the assessment, prototypes and per-phase verification. **The online release is still v48** — this round is not published.
 
 ---
 

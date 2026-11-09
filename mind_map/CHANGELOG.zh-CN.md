@@ -10,9 +10,236 @@
 
 ---
 
+## v64 · 2026-11-08（XMind 导入 / 导出补齐外框、概要、联系、插图）
+
+用户反馈：XMind 的**导入与导出**都带不动外框、概要、联系和插图。盘点后：导出侧概要（v63 已修）、外框 / 分组框、联系本来就有原生字段，但都缺 XMind 的 `class` 标记，**插图完全没写**；导入侧 `xmindJsonTopic()` 只读标题 / 备注 / 完成 / 链接 / 子节点，四类**一个都不认** —— 所以「导出再导入」必然丢光。
+
+### 取证：继续拆本机 XMind app.asar
+
+沿用 v63 的路子，从 `resources/app.asar` 抽出 `/renderer/3112.js`，把 content.json 导入器的字段链逐条读出来（这次不靠猜）：
+
+| 附件 | XMind 官方字段 |
+| --- | --- |
+| 外框 / 分组框 | `topic.boundaries:[{id, class:"boundary", title, range:"(a,b)"}]` —— 单点 `(i,i)` 圈一个主题子树，多点圈连续子主题 |
+| 概要 | `topic.summaries:[{id, class:"summary", range, topicId}]` + 概要主题住 `topic.children.summary` |
+| 联系 | `sheet.relationships:[{id, class:"relationship", end1Id, end2Id, title}]` —— 两端 id 必须能映射到已注册主题 |
+| 插图 | `topic.image:{src:"xap:resources/<n>.<ext>", width:number, height:number}` |
+| 资源 | 图片字节进 zip 的 `resources/`，且**必须**在 `manifest.json` 的 `file-entries` 里登记 —— 26.x 加载器对未登记条目按 `{path,encrypted:true}` 兜底，会把图片当密文解不开 |
+
+官方生成器的 manifest 写法正是本轮采用的 `{"file-entries":{"resources/x.png":{}}}`（取证 `renderer/6192.js` 的 `toJSON()`）。
+
+### 导出侧
+
+- 四类字段补齐 `class`；`xmindParts()` 不再偷用全局 `root`，改读传入的 `tree.groups`。
+- **插图**：新增 `xmDataUrlBytes()` / `xmBytesDataUrl()` 二进制桥，把原图（拿不到就退回轻量副本）写成 `resources/xmN.<ext>`，`topic.image` 只留 `xap:` 引用；`manifest['file-entries']` 登记每一份资源；同一张图被多个节点引用只打包一份。`exportXmind()` 先 `await imgPrepareExport()` 备齐 IndexedDB 里的原图，`xmindParts()` 本身仍保持同步。
+- **联系的弧度不丢**：XMind 的 relationship 没有 bend / shift 这一维，拖好的弧线放进 `sheet.extensions` 的 `mindmap-studio` 命名空间（官方扩展字段），本工具再导入时按端点匹配复原；没拖过的联系不写扩展。
+
+### 导入侧
+
+- `xmindJsonTopic(t, ctx)` 双模式：**不带 ctx 仍是 v63 的纯文本回读**（既有断言与外部调用一字不改）；带 ctx 时把 `children.attached` 收为真实子主题、`children.summary` + `summaries` 还原成 `sum:{a,b}` 概要节点（排真实子节点之后）、`boundaries` 还原成单节点 `bd` 或根上的 `groups` + 成员 `gb`、`image` 还原成节点 `img` 并把原图灌进 `tree.images`（`applyImportedTree` → `imgBootInline`）。`xmSheetLinks()` 把 `relationships` 变成 `links`，只给真正被调用的端点发 `uid`。
+- **大图不破净化口径**：`build()` 的 `imgOk` 有 `src` 长度上限，原图太长时先记在不可枚举的 `__xmBig` 上，`readXmindFile()` 用 `Image` + `imgThumbOf()` 异步缩一张轻量副本再建树；解码不了也绝不拖死导入。
+- 老版 `content.xml` 也补了主题 id 登记、`<relationship>` 与 `<image>` 的读取；危险 `image.src`、越界 range、找不到 topicId 的概要、悬空端点的联系一律跳过而不是抛错。
+
+### 验收（四步全过）
+
+新增 `v64.js` **58 条 / 0 失败**（内置 v64 扩展版「导入器模拟器」：逐字段跑完 gObj / gArr / gStr / gNum 断言链，还校验资源在 manifest 与 zip 里都存在；再跑「本工具导出 → 本工具导入」与「手写外部 XMind 文件」两条往返）。`_falsify_v64.py` **16 颗全咬**、`_falsify_chrome_v64.py` **5 颗全咬**，覆盖四类导出、四类导入、class、manifest 登记、资源字节、扩展弧度、v63 老病回归守卫。全量 **57 套 / 4336 条 / 0 失败**；真 Chrome `_chrome_v64.py` **28 条 / 0 失败**：真跑 `exportXmind → zipStore` 打包，同一份 ZIP 再塞回 `File` 走 `FileReader → unzip → applyImportedTree → serialize(root)` 看四类是否真落在画布上，另造一份 1 MB+ 噪声 PNG 的 `.xmind` 验证「超大原图异步缩略 + 原图回灌」降级路径，最后用 Python 标准库 `zipfile` 独立解包对照。反证后复跑 28/0、58/0，sha1 `6e931cb5bb87` 还原一致。
+
+产品 **15156 行 / 871916 字节（约 852 KB）**；反证脚本 **60 份**、真 Chrome 探针 **42 组**。文档七件套、本地发布副本同步；**2026-11-09 用户明确说「发布」后已上线 v64**（沿用原分享链接 `mindmap-tool-30044.app.workbuddy.host`，覆盖原 v62），v56–v64 仍未提交 Git。
+
 ---
 
-> **规划中 · 2026-11-07（第 63 轮，未实现）**：「外框标题 / 分组框标题 / 节点文字」的字体样式改造已完成**只读评估 + 三方案原型**，推荐方案 B「纯文本投影 + 行内片段」，拟分 P1–P3 三期，详见 [docs/文字样式改造方案.md](docs/文字样式改造方案.md)（含 4 张原型图）。本轮**没有改动产品代码**，也不涉及四步验收（那是实现轮的事）；同期建立首个 Git 基线提交，把 v49–v55 与全部文档、配图、测试源码固化下来。线上仍为 v48。
+## v63 · 2026-11-08（修复「导出的 XMind 文件打不开」：概要主题搬进 children.summary）
+
+用户实锤：导出的 `.xmind` 在 XMind（26.x）里直接报 `Error: Not a JSON array: undefined` 打不开。取证方式是硬核的：直接从用户本机 XMind 安装目录的 `app.asar` 里抽出报错的 `renderer/3112.js`，按报错栈列号逐字解剖导入器源码，拿到了铁证 —— XMind 解析父主题的 `summaries` 时硬性执行 `p(_(g(parent.children).summary).find(t => g(t).id === topicId))`：**概要主题必须住在父主题的 `children.summary` 数组里**。旧导出把概要主题塞在 `children.attached` 里、`children.summary` 缺省 → 图里只要有概要就必崩（没有概要的图反而能开，所以一直没暴露）。
+
+### 修复三件套
+
+- **概要主题搬进 `children.summary`**：真实子主题照旧进 `children.attached`，概要主题住 `children.summary`，父主题用 `summaries:[{range, topicId}]` 指过去 —— 这才是 XMind Zen / 2020+ 的规范模型，XMind 打开后能认出括线的原生语义（顺带修正 range 收口按真实子主题数计算，不再把概要主题算进下标）。
+- **`marker` → `markers`**：XMind 读的字段名是 `markers`，旧名导致完成标记（task-done）在导出里被静默丢弃；导入侧同步改成**双认**（新 `markers` / 旧 `marker` 都能读回完成态）。
+- **metadata.json 补 `dataStructureVersion: "2"` + `layoutEngineVersion: "4"`**：官方版本判定字段，与实测可被 XMind 26.5 打开的生成器口径一致。
+
+### 验收方式（重点：导入器模拟器）
+
+新专项 `v63.js` 内置一个**逐字复刻 XMind 导入器严格断言链的「导入器模拟器」**（`g(children).summary` → `_(...)` → `find(topicId)`），直接跑在导出产物上 —— 断言名字就是用户看到的报错。真 Chrome 探针 `_chrome_v63.py` 再跑**完整导出链**（`exportXmind` → 真打包 ZIP → python 解包 → 结构逐层校验 + 模拟器），做到「真打包产物与 XMind 解析器逐字兼容」。
+
+**验收**：`v63.js` **22 条 / 0 失败**；`_falsify_v63.py` **4 颗全咬**（①概要搬回 attached ②markers 退回旧名 ③拆版本字段 ④导入侧拆双认）；真 Chrome `_chrome_v63.py` **14 条 / 0 失败**（真打包产物）；`_falsify_chrome_v63.py` **1 颗咬住**（真打包产物上老病复发必红）；全量 **56 套 / 4278 条 / 0 失败**；反证后复跑 14/0、sha1 `6b272bbd24b9` 一致。产品 **14911 行 / 858570 字节（约 838 KB）**；反证 **60 份**、真 Chrome 探针 **42 组**。测试侧同期修掉三颗假绿根因：断言名带「：」被反证解析器截断（第二次踩）、反证拆坏后新断言取值未兜底崩套件、topicId 收集池没有只认规范位置。
+
+---
+
+## v62 · 2026-11-08（工具栏「A · 单行命令栏」落地 + 自定义常用按钮；使用指南按功能分行分层）
+
+用户点名两件事：①工具栏按上一轮产出的「A · 单行命令栏」原型方案调整优化，并新增「用户自定义常用按钮」；②左下角使用指南不要挤成一坨，按功能分行、层次清晰。
+
+### 工具栏：A 方案单行命令栏
+
+- **一行 52px**：桌面顶栏从此只有一行 —— 标题 + 常驻命令 + 右端「⋯ 更多工具」「⚙ 外观与视图」「EN」。9 个设置下拉（层级 / 布局 / 字体 / 字号 / 粗细 / 宽度 / 主题 / 背景 / 配色）整体搬进新浮层 **「⚙ 外观与视图」**（第 18 张浮层，`#setdrawer`），改完立即生效、导出跟着变；其余 26 个命令住进 **「⋯ 更多工具」**（`#morepanel`，6 个语义分组：文件 / 数据 / 面板 / 编辑 / 视图 / 外观，顶部有筛选框，打字即过滤）。
+- **自定义常用按钮**：更多工具底部「🛠 自定义常用按钮…」打开第 19 张浮层（`#hcpanel`）：34 个命令全在名册里（`HDR_CMDS`），勾选哪些常驻、用 ↑↓ 调先后，点「完成」才写回偏好；「恢复默认」一键回到出厂 8 个。名单经 `hdrNormPrimary()` 白名单净化（只认名册 id、去重、保序），存进偏好 `hdrPrimary` 字段 —— 不进导图数据、不压撤销栈，刷新后原样恢复。
+- **搬 DOM 不克隆**：`hdrAssign()` 按用户名单把命令按钮 re-parent 到常驻栏或命令池 —— id 唯一、事件监听不丢、`getElementById` 照常可用。期间踩了一个大坑并已写进产品注释：**必须先抓全全部按钮引用、再 `replaceChildren()` 清池** —— 顺序反了，按钮脱离文档后就再也找不到，34 个按钮全部蒸发（`refreshBar` 直接 null 崩溃）。
+- **放不下自动退、拉宽自动回**：`hdrBalance()` 每次先全量归位再量 `scrollWidth > clientWidth + 1`，从用户顺序**队尾**逐个退回更多工具；80ms 幂等复核 + ResizeObserver 兜住 resize 中间态。绝不按宽度缓存提前返回（v60.1 老病不许复发）。
+
+### 使用指南按功能分行
+
+左下角指南从两大段挤在一起的 `hint.main` / `hint.view` 重构为 **10 行 `.hint-sec`**：每行 = 组名（76px 固定列）+ 要点，行间虚线分隔，层次一眼可读；中英双语同构（EN 分片同步改成结构化 HTML）。`data-i18n-html` 键名不变，「不翻用户内容」的双保险不受影响。
+
+### 窄屏
+
+⋯/⚙/EN 跟着常驻栏一起进「☰ 菜单」抽屉（⋯ 是窄屏命令唯一入口，不再隐藏），⋯ 打开的更多面板照常贴在顶栏右下。顺带修掉一个真缺陷：抽屉是 column 弹性容器，`#navdrawer .btn{flex:1 1 auto}` 会把 ⋯/⚙/EN 在纵向抻到 300px+ 高 —— 新增 `#hrow-main > .btn{flex:0 0 auto;width:100%}` 压回正常行高。
+
+**验收**：`v62.js` **109 条 / 0 失败**；`_falsify_v62.py` **17 颗全咬**；真 Chrome `_chrome_v62.py` **61 条 / 0 失败**（初跑 3 条失败全是探针口径问题：默认 8 个双字按钮 761px 也放得下，收拢改用「先钉 16 个再拉窄」触发；`window.dlgOpen` 是顶层 `let` 不在 `window` 上，改词法引用；窄屏 ⋯ 在抽屉里，改走「☰ → ⋯」真鼠标链路）；`_falsify_chrome_v62.py` **6 颗全咬**（首版反证解析器认不出 detail 为空的 `✗ 名字 /` 行，修掉后才咬住装配断线 —— 教训：反证解析也要先证明它读得到失败行）；全量 **55 套 / 4248 条 / 0 失败**；反证后复跑真 Chrome 仍 61/0、产品 sha1 `65ae336fa4f6` 一致。产品 **14860 行 / 854865 字节（约 835 KB）**；EN 词表 **1092 条 + 9 HTML**；反证脚本 **58 份**、真 Chrome 探针 **41 组**。文档七件套、双语配图、记忆同步；本地发布副本已同步，**线上仍为 v48**，v56–v62 未提交 Git。
+
+### v62.1（同日追加）：调整顺序「看得见」了
+
+用户反馈：自定义面板里点 ↑↓ **不知道到底调整了没有**。根因是列表永远按命令名册的固定顺序渲染，↑↓ 只交换了内存数组，视觉上纹丝不动。修复 = **顺序可见化**：
+
+- 列表改为**按偏好名单实际顺序渲染**：勾选的命令排前面（顺序就是工具栏上的先后），没勾的按名册顺序排后面、整行弱化；
+- 勾选行左侧加**序号徽章**（1、2、3…= 工具栏位置），点 ↑↓ 行立刻挪到新位置、全部徽章实时重排；
+- 刚被移动 / 勾选的那行**闪光反馈**（0.75s 蓝色脉冲）并自动滚到可视位置；
+- 到顶 / 到底时对应 ↑↓ **置灰**，用按钮状态代替「点了没反应」；面板顶部说明文字同步改写。
+
+**验收**：`v62.js` **116 条 / 0 失败**（+7 条顺序可见化断言，全部取值兜底——反证拆 hcOpen 时面板是空的，断言不许崩溃）；`_falsify_v62.py` **21 颗全咬**（+⑱ 行序退回名册序 / ⑲ 闪光拆掉 / ⑳ 徽章拆空 / ㉑ 边界置灰拆掉——顺带踩了老坑：断言名里带「：」会被反证解析器截断，必配假绿）；真 Chrome 探针 **63 条 / 0 失败**（+2 条真鼠标点 ↑ 断言；D/E/H 三段预期名单随 ↑ 挪动同步改为 DEF9）；`_falsify_chrome_v62.py` **8 颗全咬**（+⑦⑧ 真浏览器同款两颗）。
+
+---
+
+## v61 · 2026-11-08（修复刷新后插图节点压框线：启动几何稳定化复核）
+
+用户反馈：刷新页面时**有时**插图节点会和外框 / 分组框虚线重合，有时又正常；同一份导图反复刷新结果会变。这是典型时序竞态——但要先取证，不猜。
+
+### 取证与根因
+
+真 Chrome 三类排查排除了「图片解码」假说：`.thumb` 固定 96px 高、`img{max-width:100%}`，图片解码前后根本不改变节点尺寸；启动两次 `render()`（含 `applyLang()` 那次）的框矩形逐像素一致；穷举 96 组几何（节点宽度 × 横纵布局 × 插图位置 × 框型 × 缩放）稳态零覆盖。
+
+真正的根因：`render()` 在 `<script>` 同步执行期间量 `offsetWidth/offsetHeight`，据此算 `n.w/n.h → contentRect → 框几何`。首帧若被任何未落地资源干扰（字体 / 顶栏 / 滚动条 / 样式），卡片就按错的尺寸量，框按错的几何画，**且永远不自愈**——直到用户手动触发一次 `render()`。「有时重合、有时正常」正是首帧测量是否偏了。
+
+测试先行：`_chrome_v61.py` 用 `?firstframe=1` 在首帧注入 `.node{width:120px!important}`、`load` 后移除，精确复现「首帧量窄、最终变宽」。修复前量到 **279 个框沿采样点被插图卡片盖住，4 次刷新都不自愈**。
+
+### 修复：幂等的几何稳定化复核
+
+- `render()` 里记录每张卡片的实测尺寸（`n.__sw/n.__sh`）；新增 `geomStableRecheck()`：DOM 实测尺寸与记录不一致时 `renderSoon()` 补一次渲染，一致就零动作。
+- 挂四个触发点：缩略图 `load` / `error`（`{once:true}`，图片只在解码完成那一刻可能改变尺寸）、`window.load`（字体 / 顶栏 / 滚动条全部落地）、启动后 400ms 兜底复核。全部幂等：尺寸一致时不重渲、不动撤销栈、不写存档。
+- 循环安全：复核只补**一次**渲染，重渲后重新记录尺寸；不存在「复核 → 重渲 → 再复核」死循环。
+
+**验收**：`v61.js` **36 条**、`_falsify_v61.py` **12 颗全咬**；真 Chrome `_chrome_v61.py` **17 条 / 0 失败**（修复前 13/4）、`_falsify_chrome_v61.py` **4 颗全咬**；全量 **55 套 / 4215 条 / 0 失败**；反证后复跑真 Chrome 仍 17/0、`sha1` 一致。产品 **14651 行 / 839538 字节（约 820 KB）**（sha1 `72bacc31ae97`）；反证脚本 **56 份**、真 Chrome 探针 **40 组**。
+
+**反证假绿复盘**：`_falsify_chrome_v61.py` 第 ④ 颗（验证「正常启动零覆盖」断言有牙齿）初版拆掉 v55 避让循环、又试了把 `bdFrameBox` 的 pad 抠成 0，都不变红——实测发现外框基础留白本就有 `BD_PAD=20px` 且 `keepOutFrameRect` 会把贴卡边推开，两把螺丝都没真破坏「绘制位置」。改成**外框绘制位置右移 34px**（> 20px 留白）后 hits=135，断言稳定变红。诊断脚本还有一处自伤：读内联样式用了 `+d.style.left`（对 `'338px'` 得 NaN 序列化成 null），换 `parseFloat` 后数据才可信。
+
+**发布**：本地发布副本已同步，**线上仍为 v48**；v56–v61 尚未提交 Git。
+
+---
+
+## v60 · 2026-11-08（顶栏审美重做：标题不折行 · 零横滚 · 两行均衡 · 更多工具）
+
+v59 把工具栏压成两行，却让每行自己横向滚动。用户实测反馈是「工具栏还可以滑动」「『思维导图工具』还能换行」「第一行后面留空、第二行却塞不下」。先用真 Chrome 逐像素取证，再重做顶栏信息架构。
+
+### 取证
+
+`_diag_v60.py` 在中文 1500 宽量到：`headH=84`，标题被压到 `69px` 折成两行；第一行只有一个 `1089px` 的大组、后面整片空白，第二行内容 `1947px` 却只有 `1391px` 可用，`scrollWidth - clientWidth = 556`（要横滚半屏）。
+
+### 重排与去横滚
+
+- `header h1` 基础规则与桌面规则都加 `white-space:nowrap; flex:0 0 auto`，七个字永远一行；`header{flex-wrap:nowrap}` + `#navdrawer{flex-direction:column}`，桌面固定两行。
+- 把主操作按功能重组为八组并均衡分到两行：第一行「文件 / 数据 / 面板 / 编辑」，第二行「视图 / 字体 / 外观 / 语言」，组间细分隔线同名配对。桌面 `.hrow` 改 `overflow:visible`，**彻底删掉横滚**及其滚动条伪元素；窄屏 `.hrow{display:contents}` 仍放在既有 `@media(max-width:760px)` 主块里。
+- 临界宽度先由 `#navdrawer[data-tight]` 柔性压缩间距 / 内边距 / select 宽度；真装不下时 `hdrBalance()` 按 `HDR_PRIO`（`lang → look → font → panels → data → edit → view → file`）把最不常用的**整组**搬进「⋯ 更多工具」。搬的是 DOM 节点不是克隆，id 唯一、监听器不丢；点开 / 点外关闭 / Esc 三路齐全。新增词条「更多工具 / More tools」，`EN 词表 1075 + 9 HTML`。窄屏仍是原抽屉，`⋯` 不出现。
+
+### v60.1 窗口拉宽后「⋯」会自己收回去
+
+真 Chrome 专项从 900 宽切回 1500 宽时抓到 3 条失败：`panels` 组滞留在更多面板里，两行变成 `3+4` 组。根因有两层：
+
+- `hdrBalance()` 用「可用宽 + 语言 + 窄屏」做缓存门闩提前 return；`resize` 事件那一帧量到的是布局中间态，错误收拢状态被永久记住，之后再没有机会自愈。改成**每次幂等重算**（`hdrLastKey` 只留作诊断签名），并由 80ms 后的 `hdrBalance(true)` 无条件复核一次；复核自己不再排队，收敛到一次为止。
+- 零收拢时「⋯」是 `hidden` 的、根本不占位，判定却无条件扣掉 34px 留位宽。实测 1500 宽柔性压缩后是 `[1341, 1279]`，`limit=1335` 只差 6px 就把 `panels` 错收走。改成用整行可用宽 `avail` 判「要不要收组」，只有真开始收组才按留位宽 `limit` 收。
+
+**验收**：`v60.js` **76 条**、`_falsify_v60.py` **23 颗全咬**、真 Chrome `_chrome_v60.py` **88 条**、`_falsify_chrome_v60.py` **12 颗全咬**；全量 **54 套 / 4179 条 / 0 失败**；反证后再跑真 Chrome 仍 88 条 / 0、`sha1` 一致。产品 **14614 行 / 836725 字节（约 817 KB）**（sha1 `2a66d0bf7abd`）；反证脚本 **54 份**、真 Chrome 探针 **39 组**、18 张双语配图。
+
+**反证假绿复盘**：`_falsify_chrome_v60.py` 初版第 ④ 颗拿「1280 宽 ⋯ 出现」当必红断言，但 `applyLang()` 仍会直接调一次 `hdrBalance()`，拆掉 `syncHeader()` 里的调用根本没断干净；第 ⑪ 颗只删窄屏隐藏规则，`#btn-more[hidden]{display:none}` 仍把按钮藏住。按铁律**先补测试、不动产品**：④ 换成真被破坏的「窄视口整行溢出 / 末组被顶出顶栏」，⑪ 改成把兜底规则反过来写成 `display:block!important`，重跑 12 颗全咬。
+
+**发布**：本地发布副本已同步，**线上仍为 v48**；v56–v60 尚未提交 Git。
+
+---
+
+## v59 · 2026-11-08（三处使用体验：斜体文字读得全 · 顶栏固定两行 · 指南收起）
+
+三处都是「功能没坏、读起来或点起来难受」。先用真 Chrome 逐字、逐像素复现取证，再动产品。
+
+### 斜体文字读得全
+
+真 Chrome 用 `Range.getClientRects()` 逐字量到：给一段长文字加行内斜体或整段斜体后，尾部汉字落在 `.txt` 可视盒之外；再叠放大字号时 60 个字只剩 36 个可见。根因不是斜体本身，而是 `.txt` 上固定的 `-webkit-line-clamp:4`（有图时 2 行）—— Chrome 把它实现成隐式 `max-height`（实测 4 行 = 83.7px），只把 `line-clamp` 置 `unset` 清不掉这个限高，`render()` 量到的 `offsetHeight` 仍是四行高。
+
+- `tsStyledNode(n)` 统一走 `textRunsOf()` 判断「这段文字带不带样式」：整段 `font`、行内 `rich`、全局或按类型偏好都算；带样式的节点在 `makeEl()` 挂 `.styled`。
+- `.node.styled .txt` 显式 `max-height:none` + `overflow:visible`，节点高度由 `render()` 量 `offsetHeight` 自己撑开，布局 / 外框 / 连线 / 导出都跟着 `n.h` 走；`⋯` 截断角标也不再挂。
+- `nodeMaxLines(n)` 给带样式节点 24 行（等于不截断），PNG / SVG / PPT 折行共用同一个口径。**无样式节点仍是原来的 4 行 / 有图 2 行 clamp**，默认导出字节级不变。
+
+### 桌面顶栏固定两行
+
+诊断实测：1920 / 1600 / 1500 / 1440 宽是 3 行（`headH=128`），1366 / 1280 是 4 行，1100 是 6 行，1024 是 7 行（`headH=265`），画布被吃掉一大截。只缩 padding、字号、间距的纯 CSS 压缩在 1500 宽仍是 3 行，所以改成结构性两行。
+
+- `#navdrawer` 内放两个 `.hrow`；桌面 `header{flex-wrap:nowrap}`、`#navdrawer{flex-direction:column}`，两行上下排列。
+- 每行 `flex-wrap:nowrap; overflow-x:auto`：窗口再窄也只是行内横向滚动，按钮一个不丢，不会折出第三行；`syncHeader()` 仍按真实 header 高度写 `--head-h` 与 `#stage.top`。
+- `≤760px` 时 `.hrow{display:contents}`，各组回到原来的抽屉里竖排，移动端规则零改动。
+
+### 指南收起按钮不压正文、点了当场收起
+
+- `.hint` 改 `display:flex`，正文 `.hint-body` 与按钮 `.hint-hide` 分列；按钮从 `position:absolute` 改 `static`，不再压住第一行文字。
+- 真 Chrome 量到的「点了没反应」：点击确实把 `hintOn` 写成 `false`，但指针还停在原处，旧的 `.hint.collapsed:hover` 会立刻把正文撑回来（实测 `hintW=780` / `bodyDisplay=block`）。四条 hover 规则统一加 `:not(.locked)` 闸门；点击时加 `.locked`，指针真离开后由 `{once:true}` 的 `mouseleave` 解锁，移开再回来仍可像以前一样 hover 临时展开。
+- 收起按钮补 `role=button` / `tabindex=0` / `aria-label=隐藏指南`，Enter / Space 也能收起，复用既有词条、不新增 i18n。
+
+**验收**：`v59.js` **66 条**、`_falsify_v59.py` **16 颗全咬**、真 Chrome `_chrome_v59.py` **58 条**、`_falsify_chrome_v59.py` **7 颗全咬**；全量 **53 套 / 4103 条 / 0 失败**；`c1.js` 等受影响既有套件抽查全绿。产品 **14425 行 / 827207 字节（约 808 KB）**（sha1 `115057cd7a24`），EN 词表 **1074 条 + 9 HTML**；反证脚本 **52 份**、真 Chrome 探针 **38 组**。
+
+**反证假绿复盘**：`_falsify_chrome_v59.py` 第 ⑥ 轮初版只拆了 `background` 那一条 hover 规则，控制 `display:block` 的 `.hint-body` 仍带闸门；且「必须变红」挑的断言发生在指针已离开框外的场景，结果拆了守卫却没红。按铁律先补测试、不动产品：四条 hover 规则一起拆，并在探针里补一条「`locked` 还在且指针真的停在框里」的隔离断言，重跑 7 颗全咬。
+
+**发布**：本地发布副本已同步，**线上仍为 v48**；v56–v59 尚未提交 Git。
+
+---
+
+## v58 · 2026-11-07（B 方案 P3 收尾 · 框标题与联系说明行内 · 降级可见 · 导入回读）
+
+P1 交了四级作用域的统一调整，P2 交了节点文字的行内片段；P3 把最后一圈收口补齐。
+
+### 三类文字都能只改选中的几个字
+
+「Aa 文字样式」面板新增**行内片段**区：一个输入框 + 一排样式按钮 + 实时预览，下拉可切「当前节点文字 / 外框标题 / 分组框标题 / 联系说明」。选区来自面板自己的 `textarea`（纯数字），不碰 `contenteditable` 的 DOM Range —— `render()` 全量重建 DOM 之后照样接得回来。四类对象共用 `tsApplyRange()`，数据契约与 P1 / P2 完全一致：`text` 永远纯字符串、`rich` 只存增量、拼接不恒等就丢样式。
+
+- `build()` / `serialize()` 的联系定义补上 `font` / `rich` 的净化与写回；`normLinks()` 只过滤无效端点，不冲掉片段。
+- 屏幕框标题、联系标签、SVG、PNG 四处渲染统一走 `textRunsOf()` / `tsSvgText()` / `tsPngFont()`；联系标签药丸宽度按片段字号累加，放大不压字。
+- `render()` 末尾在面板可见时同步片段区；`tsInlineSync()` 写 `value` 后接回纯数字选区，用户正在选的字不会被冲掉。
+
+### 降级导出改为「可见」
+
+Markdown / OPML / XMind / Excel / 复制文本只有纯文字通道。现在导出面板给这四种格式挂「纯文字」角标（切英文变 `Plain text`），且**导图里真的有行内样式时**，`runExport()` / `copyAsText()` 会弹一句可见提示。无样式时一个字都不打扰；JSON / 独立网页 / Word / PPT / PNG / SVG / 打印 PDF 不误报。
+
+### 导入回读、i18n 与撤销体积
+
+- 外部 JSON 里伪造的 `rich`（拼接不一致）在 `build()` 被丢，任意颜色 / 越界字号仍被白名单挡住；Markdown 的 `**` 不当持久化通道。
+- `#frames` / `#rlabels` / `#ts-preview` / `#fst-inline-preview` 加入 `I18N_SKIP`：用户文字哪怕恰好是「清除」「恢复默认」「全局」这类词条，切英文也不会被当界面文案翻译。
+- 200 个节点各带片段的序列化体积仍在 6 MB 撤销上限内；`tsApplyRange()` 的相邻合并让反复改同一段不会无限膨胀。
+
+**验收**：`v58.js` **73 条**、`_falsify_v58.py` **13 颗全咬**、真 Chrome `_chrome_v58.py` **36 条**、`_falsify_chrome_v58.py` **5 颗全咬**；全量 **52 套 / 4037 条 / 0 失败**；v55–v57 反证与 v55–v58 真 Chrome 探针抽查全绿。产品 **14355 行 / 822444 字节（约 803 KB）**（sha1 `943c543cb7d5`），EN 词表 **1074 条 + 9 HTML**；反证脚本 **50 份**、真 Chrome 探针 **37 组**。本地发布副本已同步，**线上仍为 v48**。
+
+---
+
+## v57 · 2026-11-07（B 方案 P2 · 选中几个字单独调样式）
+
+在编辑态选中任意几个字，浮选工具栏（`B` / `I` / `U` / `S` / 字号 / 五个白名单色 / 清除）只改选中的那一段；`Ctrl+B` / `Ctrl+I` / `Ctrl+U` 同效。核心是**选区数据化**：画布文字是 `user-select:none`（放开拖选会和节点拖动抢手势），选区只从 `textarea.selectionStart/End` 读纯数字，`render()` 重建整片 DOM 后由 `captureEditing()` / `restoreEditing()` 接回，全程不存 DOM Range。
+
+- `tsApplyRange(o, key, a, b, mut)` 按字符切分成片段并合并相邻同款；`rich` 只存相对 L1 / L2 / L3 的增量，后来改全局字号仍能叠加。
+- 文字被搜索替换、批量工具、合并、改名等入口改掉时统一走 `tsTextChanged()`：拼接不恒等就丢 `rich`（宁可丢样式不可丢字）并给可见提示。
+- Word / PPT / SVG / PNG 按 `textRunsOf()` 的顺序拆 run；JSON / 独立网页 / 打印 PDF 无损；无样式时导出字节不变。
+
+**验收**：`v57.js` **72 条**、`_falsify_v57.py` **12 颗全咬**、真 Chrome `_chrome_v57.py` **33 条**、`_falsify_chrome_v57.py` **5 颗全咬**；全量 **51 套 / 3964 条 / 0 失败**。
+
+---
+
+## v56 · 2026-11-07（B 方案 P1 · 三类对象统一字体样式）
+
+新增第 17 张浮层「Aa 文字样式」，四级作用域：**L1 全局 → L2 按类型（节点 / 外框标题 / 分组框标题）→ L3 单对象 → L4 行内片段**。样式白名单只有 `b / i / u / s / fs(-2…+3) / c(ink|blue|red|green|amber)`，不放行任意颜色、字体族、绝对 px。`fontPref` 是偏好（只进 `PREFS_KEY`），`obj.font` / `obj.rich` 是内容（进 `serialize()` 与撤销栈）。
+
+- 统一文字出口 `textRunsOf(o, key, kind)`：无 `rich` 时返回单片段，保持纯文本快路径，默认导出字节级不变。
+- 屏幕渲染逐片段 `createElement('span') + textContent`，绝不 `innerHTML = richHtml`；PNG / SVG / Word / PPT 与框标题导出共用同一份样式口径。
+- 修掉两个真 Chrome 才量得到的坑：SVG `font-size` 缺 `px` 单位被浏览器整条忽略；屏幕颜色出口有两条路径，合并到唯一的 `tsColorHex()`。
+
+**验收**：`v56.js` **121 条**、`_falsify_v56.py` **10 颗全咬**、真 Chrome `_chrome_v56.py` **36 条**、`_falsify_chrome_v56.py` **3 颗全咬**；全量 **50 套 / 3891 条 / 0 失败**。
+
+---
+
+> **第 63 轮评估记录（2026-11-07，已由 v56–v58 落地）**：字体样式改造先做了只读评估与三方案原型，推荐方案 B「纯文本投影 + 行内片段」，详见 [docs/文字样式改造方案.md](docs/文字样式改造方案.md)。同期建立首个 Git 基线提交 `0d8e87b`，把 v49–v55 与全部文档、配图、测试源码固化下来。
 
 ---
 

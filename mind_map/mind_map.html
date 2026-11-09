@@ -29,6 +29,10 @@
     --node-fw-root:700; --node-fw-branch:700; --node-fw-leaf:400;
     /* 节点宽度（顶部「宽度」下拉）。auto 档会让短的结点变紧凑、长的放宽到 420px */
     --node-w:260px;
+    /* v56：外框 / 分组框标题的字号字重（两处必须共用，见 .bdft / .gbft 注释） */
+    --frame-fs:11.5px; --frame-fw:700;
+    /* v56：文字样式的 4 个强调色 token。默认（ink）走 var(--text) 随主题变，选了色才固定 */
+    --ts-blue:#2563eb; --ts-red:#dc2626; --ts-green:#059669; --ts-amber:#d97706;
   }
   /* 节点宽度档位 */
   html[data-nodew="n"]{ --node-w:210px; }
@@ -149,7 +153,7 @@
     background:var(--head-bg);border-bottom:1px solid var(--head-line);color:var(--head-fg);
     box-shadow:0 1px 3px rgba(16,24,40,.05);
   }
-  header h1{font-size:16px;font-weight:700;margin:0;letter-spacing:.2px;color:var(--head-fg);}
+  header h1{font-size:16px;font-weight:700;margin:0;letter-spacing:.2px;color:var(--head-fg);white-space:nowrap;flex:0 0 auto;}
   /* ==== 移动导航（仅 ≤760px 生效；桌面用 display:contents 让 nav 直接融入顶栏，行为与现在完全一致） ==== */
   #btn-nav{display:none;}
   #navdrawer{display:contents;}
@@ -179,6 +183,61 @@
     box-shadow:0 2px 10px var(--node-shadow);pointer-events:none;white-space:nowrap;
   }
   html[data-fs] #fs-tip.show{display:block;}
+  /* ==== v62：A 方案「单行命令栏」 =========================================
+     顶栏压成一行：品牌 + 用户自定义的常驻命令按钮（默认 8 个）+ 右侧「⋯ / ⚙ / EN」。
+     命令与设置拆开 —— 命令要秒点、位置稳定；9 个设置下拉搬进「⚙ 外观与视图」抽屉；
+     其余命令全部收进「⋯ 更多工具」面板（按功能分组、顶部筛选框、底部自定义入口）。
+     常驻按钮放不下时由 hdrBalance() 从队尾逐个退回更多面板，绝不横滚、绝不折行。
+     搬的是 DOM 节点不是克隆 —— id 唯一、事件监听不丢、getElementById 照常可用。
+     ≤760px 时仍走左侧抽屉。 */
+  @media(min-width:761px){
+    header{flex-wrap:nowrap;align-items:center;gap:6px 10px;padding:6px 10px;min-height:0;}
+    header h1{font-size:15px;white-space:nowrap;flex:0 0 auto;}
+    header > .spacer{display:none;}
+    #navdrawer{display:flex;flex:1 1 auto;min-width:0;flex-direction:row;align-items:center;}
+    .hrow{display:flex;align-items:center;gap:6px;min-width:0;width:100%;flex:0 0 auto;
+          flex-wrap:nowrap;overflow:visible;}
+    header .btn{padding:5px 9px;font-size:12.5px;white-space:nowrap;}
+    header .btn.icon{padding:5px 8px;}
+    #primary-bar{flex:0 0 auto;min-width:0;gap:4px;}
+  }
+  /* 「⋯ / ⚙」两个常驻枢纽：窄屏也要用，规则放在媒体块外 */
+  #btn-more,#btn-cog{display:inline-flex;flex:0 0 auto;padding:5px 9px;font-size:14px;line-height:1.1;}
+  /* 「⋯ 更多工具」面板：按功能分组的命令池 + 筛选框 + 自定义入口。
+     常驻按钮没被选中的都住在这里；面板随时可开（不再像 v60 只在收了组时才出现）。 */
+  #morepanel{display:none;position:absolute;right:10px;top:100%;z-index:30;
+             min-width:300px;max-width:min(760px,92vw);max-height:70vh;overflow:auto;
+             padding:12px;border:1px solid var(--line);border-radius:8px;
+             background:var(--panel);box-shadow:0 10px 30px rgba(16,24,40,.18);}
+  #morepanel.open{display:block;}
+  .mp-filter{width:100%;box-sizing:border-box;margin:0 0 10px;padding:7px 9px;
+             border:1px solid var(--line);border-radius:7px;background:var(--panel);
+             color:var(--text);font-size:12.5px;}
+  .mp-grp{margin:0 0 12px;}
+  .mp-grp[hidden]{display:none;}
+  .mp-cap{font-size:11px;font-weight:700;color:var(--head-dim);letter-spacing:.06em;margin:0 0 6px;}
+  .mp-items{display:flex;flex-wrap:wrap;gap:6px;}
+  .mp-items .btn{font-size:12.5px;padding:6px 10px;}
+  .mp-foot{border-top:1px solid var(--line);padding-top:10px;display:flex;gap:6px;}
+  /* 「⚙ 外观与视图」抽屉：9 个设置下拉集中在这里，分组陈列、一次看清当前值 */
+  .sd-sec{margin:0 0 14px;}
+  .sd-cap{font-size:11px;font-weight:700;color:var(--head-dim);letter-spacing:.06em;margin:0 0 8px;}
+  .sd-sec .mini{display:flex;margin:0 0 8px;white-space:normal;align-items:center;}
+  .sd-sec .mini select{max-width:220px;font-size:12.5px;padding:5px 7px;}
+  .sd-tip,.hc-tip{font-size:12px;color:var(--text-dim);line-height:1.7;margin:0 0 12px;}
+  /* 「自定义常用按钮」面板 */
+  .hc-row{display:flex;align-items:center;gap:8px;padding:5px 4px;border-bottom:1px dashed var(--line);}
+  .hc-row:last-child{border-bottom:none;}
+  .hc-lb{flex:1 1 auto;min-width:0;font-size:12.5px;}
+  .hc-mv{padding:2px 7px;font-size:12px;}
+  /* v62.1：顺序可见化 —— 勾选的行带序号徽章（= 工具栏上的先后位置），
+     点 ↑↓ 行会立刻挪到新位置 + 序号变化 + 闪光反馈；未勾选的行整行弱化。 */
+  .hc-no{flex:0 0 22px;text-align:center;font-size:11px;font-weight:700;color:var(--accent);
+         background:var(--panel-soft);border:1px solid var(--line);border-radius:9px;line-height:18px;}
+  .hc-row.hc-off{opacity:.6;}
+  .hc-row.hc-off .hc-lb{color:var(--text-dim);}
+  @keyframes hcPulse{from{background:rgba(47,111,237,.24);}to{background:transparent;}}
+  .hc-row.hc-flash{animation:hcPulse .75s ease-out 1;}
   #docname{font-size:12px;color:var(--head-dim);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .spacer{flex:1;}
   .btn{
@@ -352,7 +411,7 @@
   /* 外框 / 分组框的标题是**同一颗组件**：同字号、同行高、同内边距、同圆角、同边框、
      同底色来源。两处只在「贴哪儿」上不同（外框压在框线上、分组框在框内顶部居中），
      那是各自的遮挡条件决定的，不是两套样式 —— 所以数值必须一模一样，改一处就得改另一处。 */
-  .bdft{position:absolute;left:12px;top:-11px;padding:1px 8px;border-radius:9px;font-size:11.5px;font-weight:700;
+  .bdft{position:absolute;left:12px;top:-11px;padding:1px 8px;border-radius:9px;font-size:var(--frame-fs);font-weight:var(--frame-fw);
         line-height:17px;white-space:nowrap;pointer-events:auto;cursor:text;
         /* 底色跟画布走（不是写死 #fff）：深色主题下标题下面才不会糊一块白 */
         background:var(--stage-bg,#fff);outline:none;max-width:220px;overflow:hidden;text-overflow:ellipsis;}
@@ -368,7 +427,7 @@
   .gbf{position:absolute;box-sizing:border-box;border-radius:18px;border:2.6px dashed;pointer-events:none;}
   /* 与外框标题（.bdft）逐项一致：11.5px / 行高 17 / 内边距 1px 8px / 圆角 9 / 最大宽 220。
      只差位置：这里贴框内顶部居中（压到框线上会被上一支的节点盖住，见上面那段注释）。 */
-  .gbft{position:absolute;top:2px;left:50%;transform:translateX(-50%);z-index:1;padding:1px 8px;border-radius:9px;font-size:11.5px;font-weight:700;
+  .gbft{position:absolute;top:2px;left:50%;transform:translateX(-50%);z-index:1;padding:1px 8px;border-radius:9px;font-size:var(--frame-fs);font-weight:var(--frame-fw);
         line-height:17px;white-space:nowrap;pointer-events:auto;cursor:text;
         background:var(--stage-bg,#fff);outline:none;max-width:220px;overflow:hidden;text-overflow:ellipsis;}
   .gbft.ph{opacity:.6;font-weight:400;}
@@ -478,6 +537,36 @@
   .overlay :focus-visible, header :focus-visible, #outline :focus-visible, #minimap:focus-visible{
     outline:2px solid var(--accent);outline-offset:2px;
   }
+  /* v56：文字样式面板。作用域三选一，控件只输出白名单样式，预览直接复用 runStyle() */
+  #fontstyle .fst-bd{display:flex;flex-direction:column;gap:12px;font-size:13px;}
+  #fontstyle .fst-scope,#fontstyle .fst-toggles,#fontstyle .fst-colors{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  #fontstyle .btn.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  #fontstyle .fst-dot{width:34px;padding:4px 0;text-align:center;}
+  /* v57 P2：编辑态的浮选工具栏。刻意不做成 .overlay —— 它是非模态的小工具条，
+     不该进浮层系统（Esc / 焦点陷阱 / 17 张浮层计数都不受影响）。 */
+  #tsbar{position:fixed;z-index:75;display:none;max-width:min(520px,92vw);
+    padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:var(--panel);
+    color:var(--text);box-shadow:0 12px 30px var(--node-shadow);font-size:12px;}
+  #tsbar.show{display:block;}
+  #tsbar .tsb-row{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+  #tsbar button{min-width:26px;height:26px;padding:0 6px;border:1px solid var(--line);
+    border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:12px;}
+  #tsbar button:hover{border-color:var(--accent);}
+  #tsbar button.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  #tsbar .tsb-sep{width:1px;height:18px;margin:0 3px;background:var(--line);}
+  #tsbar .tsb-dot{width:22px;min-width:22px;padding:0;border-radius:50%;font-size:0;}
+  #tsbar .tsb-prev{margin-top:6px;padding:5px 7px;border-top:1px solid var(--line);
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);}
+  #tsbar .tsb-prev span{color:var(--text);}
+  #fontstyle .fst-preview{padding:10px 12px;border:1px solid var(--line);border-radius:8px;
+                         background:var(--panel-soft);min-height:34px;word-break:break-word;line-height:1.5;}
+  /* v58 P3：行内片段编辑区。选区来自自己的 textarea，不碰 contenteditable 的 DOM Range */
+  #fontstyle .fst-inline{display:flex;flex-direction:column;gap:8px;
+    border-top:1px solid var(--line);padding-top:10px;}
+  #fontstyle #fst-inline-text{width:100%;box-sizing:border-box;min-height:46px;resize:vertical;
+    font:inherit;color:var(--text);background:var(--panel);
+    border:1px solid var(--line);border-radius:8px;padding:7px 9px;}
+  #fontstyle #fst-inline-text:disabled{opacity:.6;}
   .overlay .card:focus{outline:none;}
   .overlay .hd .x:focus-visible{outline-offset:-1px;border-radius:5px;}
   .node{
@@ -519,6 +608,14 @@
   .node:hover{box-shadow:0 4px 12px var(--node-shadow);border-color:var(--accent);}
   .node.selected{box-shadow:0 0 0 2.5px var(--accent),0 6px 14px var(--node-shadow);}
   .node .txt{overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;word-break:break-word;}
+  /* v59：用户特意给一段文字设了字体样式（整段 font / 行内 rich / 全局偏好），就默认他想把字读全。
+     这类节点不再吃固定的 4 行（有图 2 行）截断，节点高度由 render() 量 offsetHeight 自己撑开，
+     布局 / 外框 / 连线 / 导出都跟着 n.h 走。无样式节点仍是原来的 4 行 clamp + ⋯ 角标，默认零变化。 */
+  /* Chrome 会把 -webkit-line-clamp 实现成隐式 max-height（实测 4 行 = 83.7px），
+     只把 line-clamp 置 unset 清不掉它 —— 必须显式 max-height:none，否则 render() 量到的
+     offsetHeight 仍是 4 行高，文字会溢出节点框而不是把节点撑开。 */
+  .node.styled .txt{display:block;-webkit-line-clamp:unset;-webkit-box-orient:unset;max-height:none;overflow:visible;}
+  .node.styled.hasimg .txt{-webkit-line-clamp:unset;-webkit-box-orient:unset;max-height:none;overflow:visible;}
   .node .editor{
     width:100%;border:1px solid var(--accent);border-radius:6px;
     padding:6px 8px;font:inherit;font-size:inherit;line-height:1.35;
@@ -898,6 +995,8 @@
      英文会挤成「Image .pngHigh-resolution bitmap…」，读作一个词。 */
   .fmt .tt{display:block;font-size:13px;font-weight:700;}
   .fmt .tt b{font-weight:400;color:var(--text-dim);font-size:11.5px;margin-left:4px;}
+  .fmt .tt b.lossy{color:var(--text-dim);border:1px solid var(--line);border-radius:5px;
+                   padding:0 4px;font-size:10.5px;margin-left:6px;}
   .fmt .dd{display:block;font-size:11px;color:var(--text-dim);line-height:1.5;margin-top:3px;}
   .fmt>span:last-child{min-width:0;}
   /* O4：导出格式分组 —— 11 个格式平铺太花，按用途切三段，每段带一行小标题 */
@@ -1001,7 +1100,16 @@
     position:fixed;left:16px;bottom:14px;z-index:20;max-width:min(780px,70vw);
     font-size:11.5px;color:var(--text-dim);background:var(--panel);
     padding:6px 10px;border:1px solid var(--line);border-radius:6px;line-height:1.7;
+    /* v59：正文与收起按钮分列，按钮不再绝对定位压在第一行文字上 */
+    display:flex;align-items:flex-start;gap:8px;
   }
+  .hint-body{flex:1 1 auto;min-width:0;}
+  /* v62：指南按功能分行 —— 每行一个功能组，组名列固定宽、要点跟在右边；
+     行与行之间留缝，扫读时一眼能找到要的那一行。 */
+  .hint-sec{display:flex;align-items:baseline;gap:10px;padding:2px 0;}
+  .hint-sec + .hint-sec{border-top:1px dashed var(--line);}
+  .hint-cap{flex:0 0 auto;font-weight:700;color:var(--text);white-space:nowrap;min-width:76px;}
+  .hint-txt{flex:1 1 auto;min-width:0;}
   #selinfo{display:none;color:var(--text);font-weight:700;}
   #selinfo b{color:var(--accent);font-weight:700;}
   /* 使用指南：可收起成一个「?」小圆点，鼠标移过去再展开 */
@@ -1012,14 +1120,19 @@
     font-size:13px;font-weight:700;opacity:.75;transition:.15s;
   }
   .hint.collapsed{background:transparent;border-color:transparent;padding:0;}
-  .hint.collapsed .hint-body{display:none;}
+  .hint.collapsed .hint-body,.hint.collapsed .hint-hide{display:none;}
   .hint.collapsed .hint-badge{display:flex;}
-  .hint.collapsed:hover{background:var(--panel);border-color:var(--line);padding:6px 10px;}
-  .hint.collapsed:hover .hint-badge{display:none;}
-  .hint.collapsed:hover .hint-body{display:block;}
+  /* v59：点「收起 ×」之后指针还停在原处，旧的 :hover 会立刻把正文重新撑开，
+     看上去就是「点了没反应」。.locked 在指针真正离开前挡住 hover 展开。 */
+  .hint.collapsed:hover:not(.locked){background:var(--panel);border-color:var(--line);padding:6px 10px;}
+  .hint.collapsed:hover:not(.locked) .hint-badge{display:none;}
+  .hint.collapsed:hover:not(.locked) .hint-body{display:block;}
+  .hint.collapsed:hover:not(.locked) .hint-hide{display:block;}
   .hint-hide{
-    position:absolute;top:2px;right:6px;font-size:11px;color:var(--text-dim);
-    cursor:pointer;opacity:.6;padding:2px 4px;
+    flex:0 0 auto;order:2;position:static;
+    font-size:11px;color:var(--text-dim);cursor:pointer;opacity:.7;
+    padding:2px 6px;border:1px solid var(--line);border-radius:5px;background:var(--panel);
+    white-space:nowrap;
   }
   .hint-hide:hover{opacity:1;color:var(--accent);}
   /* 拖拽节点改挂：被拖走的节点半透明，目标节点高亮 */
@@ -1074,6 +1187,10 @@
   /* 窄屏（手机 / 竖屏平板）：工具栏折行也别把按钮挤成一条线 */
   @media(max-width:760px){
     header{padding:6px 10px;gap:5px 7px;min-height:48px;}
+    /* v59：抽屉里单行容器退成 display:contents，里面的按钮仍是抽屉的直接子项，竖排规则不变 */
+    .hrow{display:contents;}
+    /* v62：常驻按钮之外的所有命令都住在「⋯ 更多工具」里 —— 窄屏也要能打开它，
+       面板是挂在 header 右下方的浮层，抽屉开着时点外头（遮罩）就会顺带关掉。 */
     header h1{font-size:14px;}
     .btn{padding:5px 8px;font-size:12px;}
     .btn.icon{padding:5px 7px;}
@@ -1101,6 +1218,9 @@
     #navdrawer .btn{width:auto;flex:1 1 auto;justify-content:flex-start;}
     #navdrawer .mini{width:100%;}
     #navdrawer .divider{width:100%;height:1px;margin:10px 0;background:var(--line);flex:0 0 auto;}
+    /* v62：⋯/⚙/EN 是 hrow 直属按钮，进抽屉后成独立行 —— 上面 .btn 的 flex:1 1 auto
+       会把它们在 column 方向上抻高（实测 300px+），压回正常行高。 */
+    #hrow-main > .btn{flex:0 0 auto;width:100%;}
     /* 遮罩层。
        ★ z-index 必须低于 header 的 20 —— 抽屉是 header 的子元素，它自己的 90 只在
          header 这层层叠上下文里有效，实际绘制封顶在 20。遮罩如果是 85，就骑在整个 header
@@ -1167,52 +1287,43 @@
   <span id="docname"></span>
   <span class="spacer"></span>
   <nav id="navdrawer" aria-label="功能菜单">
-  <span class="btn-group">
+  <div class="hrow" id="hrow-main">
+  <div class="btn-group" id="primary-bar" aria-label="常用按钮"></div>
+  <span class="spacer" id="hdr-spacer"></span>
+  <button class="btn" id="btn-more" title="更多工具" aria-label="更多工具"
+          aria-expanded="false" aria-controls="morepanel">⋯</button>
+  <button class="btn" id="btn-cog" title="外观与视图设置" aria-label="外观与视图设置">⚙</button>
+  <button class="btn" id="btn-lang" aria-label="切换语言" title="切换到 English">EN</button>
+  </div>
+</nav>
+<!-- v62：命令池。默认住在这里的按钮由 hdrAssign() 按用户偏好晋升到 #primary-bar；
+     没被选中的留在此处，点「⋯」随时可用。搬的是 DOM 节点不是克隆。
+     它是 header 的子元素（绝对定位以顶栏为基准），刻意不是 .overlay 浮层。 -->
+<div id="morepanel" role="group" aria-label="更多工具">
+  <input class="mp-filter" id="mp-filter" type="text" placeholder="输入文字筛选工具…" autocomplete="off" spellcheck="false">
+  <div class="mp-grp"><div class="mp-cap">文件</div><div class="mp-items" data-grp="file">
     <button class="btn primary" id="btn-import">导入文档</button>
     <button class="btn" id="btn-new">新建空白</button>
     <button class="btn" id="btn-tpl" title="模板库：从内置骨架一键起手（读书笔记 / 会议纪要 / 项目计划…）">📐 模板</button>
     <button class="btn" id="btn-open">打开</button>
     <button class="btn" id="btn-export">导出 ▾</button>
     <button class="btn" id="btn-print">打印 / PDF</button>
+  </div></div>
+  <div class="mp-grp"><div class="mp-cap">数据</div><div class="mp-items" data-grp="data">
     <button class="btn" id="btn-bak" title="把导图自动存成 HTML 到 auto_backup 目录">自动备份 · 未开启</button>
     <button class="btn" id="btn-outline" title="大纲视图：左侧列出全部节点，点一行定位到画布，双击文字就地改名">☰ 大纲</button>
     <button class="btn" id="btn-stats" title="结构统计：总节点数、各层级分布、各一级分支占比">📊 统计</button>
     <button class="btn" id="btn-help" title="快捷键速查：按功能分组列出全部快捷键（也按 ? 或 F1 打开）">⌨ 快捷键</button>
+    <button class="btn" id="btn-fontstyle" title="文字样式：统一调整节点 / 外框标题 / 分组框标题，也可选中几个字单独调整">Aa 文字样式</button>
+  </div></div>
+  <div class="mp-grp"><div class="mp-cap">面板</div><div class="mp-items" data-grp="panels">
     <button class="btn" id="btn-hist" title="历史版本：本机自动留的快照，误删 / 改乱了可以回到早先的样子">🕘 历史</button>
     <button class="btn" id="btn-ws" title="工作区：本机所有页签都在这儿（一个标签页一个页签），可以切换 / 单独另存 / 打包搬到另一台机器">🗂 工作区</button>
     <button class="btn" id="btn-steps" title="操作步骤：看清每一步做了什么、能撤到哪；点任意一行直接跳过去（不用连按 Ctrl+Z）">↩ 步骤</button>
     <button class="btn" id="btn-hint" title="显示 / 隐藏左下角使用指南">指南</button>
     <button class="btn" id="btn-fs" title="全屏显示：连工具栏一起隐藏，只留画布（鼠标移到屏幕最顶端可唤出工具栏，Esc / F11 / F 退出）">⛶ 全屏</button>
-  </span>
-  <span class="divider"></span>
-  <span class="btn-group">
-    <button class="btn" id="btn-expand">展开全部</button>
-    <button class="btn" id="btn-collapse" title="只留中心主题和第一层分支（等同于层级选「1 层」）">仅看主干</button>
-    <label class="mini">层级
-      <select id="sel-depth" title="选择显示到第几层（只影响查看，导出仍是完整导图）">
-        <option value="0">全部</option>
-        <option value="1">1 层</option>
-        <option value="2">2 层</option>
-        <option value="3">3 层</option>
-        <option value="4">4 层</option>
-        <option value="5">5 层</option>
-        <option value="6">6 层</option>
-      </select>
-    </label>
-    <label class="mini">布局
-      <select id="sel-layout" title="布局方向：左右＝思维导图（默认）；上下＝组织结构图，汇报关系自上而下读">
-        <option value="mind">左右</option>
-        <option value="org">上下</option>
-      </select>
-    </label>
-    <button class="btn" id="btn-find" title="搜索节点（Ctrl+F）；跳转时会自动展开父级并定位">🔍 搜索</button>
-    <button class="btn" id="btn-fit">适应窗口</button>
-    <button class="btn" id="btn-100">100%</button>
-    <button class="btn icon" id="btn-zoom-out" title="缩小">−</button>
-    <button class="btn icon" id="btn-zoom-in"  title="放大">＋</button>
-  </span>
-  <span class="divider"></span>
-  <span class="btn-group">
+  </div></div>
+  <div class="mp-grp"><div class="mp-cap">编辑</div><div class="mp-items" data-grp="edit">
     <button class="btn" id="btn-add"   title="新增子节点（Tab）" disabled>子节点＋</button>
     <button class="btn" id="btn-sib"   title="新增同级（Enter）" disabled>同级＋</button>
     <button class="btn" id="btn-edit"  title="编辑（F2 / 双击）" disabled>编辑</button>
@@ -1222,89 +1333,24 @@
     <button class="btn danger" id="btn-del" title="删除该节点（Delete）" disabled>删节点</button>
     <button class="btn" id="btn-undo" title="撤销（Ctrl+Z）" disabled>撤销</button>
     <button class="btn" id="btn-redo" title="重做（Ctrl+Y 或 Ctrl+Shift+Z）" disabled>重做</button>
-  </span>
-  <span class="divider"></span>
-  <span class="btn-group">
-    <label class="mini">字体
-      <select id="sel-font" title="界面与导出图片用的字体（导出 PNG / Word / PPT 会跟着变）">
-        <option value="clear">Segoe＋雅黑（推荐）</option>
-        <option value="yahei">微软雅黑</option>
-        <option value="deng">等线 DengXian</option>
-        <option value="hei">黑体 SimHei</option>
-        <option value="song">宋体（衬线）</option>
-        <option value="sys">系统默认</option>
-      </select>
-    </label>
-    <label class="mini">字号
-      <select id="sel-fs" title="节点文字大小（根节点比其余节点大 2px，其余节点完全一致）">
-        <option value="s">小</option>
-        <option value="m">标准</option>
-        <option value="l">大</option>
-        <option value="xl">特大</option>
-      </select>
-    </label>
-    <label class="mini">粗细
-      <select id="sel-weight" title="节点字重：层级区分（分支加粗）/ 全部常规 / 全部加粗">
-        <option value="level">层级区分</option>
-        <option value="flat">全部常规</option>
-        <option value="bold">全部加粗</option>
-      </select>
-    </label>
-    <label class="mini">宽度
-      <select id="sel-nodew" title="节点宽度：文字被截断（左下角有 ⋯ 标记）时可调宽，或选自适应按内容伸缩">
-        <option value="n">窄</option>
-        <option value="m">标准</option>
-        <option value="w">宽</option>
-        <option value="x">超宽</option>
-        <option value="auto">自适应</option>
-      </select>
-    </label>
-  </span>
-  <span class="divider"></span>
-  <span class="btn-group">
-    <label class="mini">主题
-      <select id="sel-theme" title="整体风格（浅色 / 深色 / 商务 / 护眼…）">
-        <option value="light">日间</option>
-        <option value="minimal">极简白</option>
-        <option value="mint">清新薄荷</option>
-        <option value="sepia">米黄护眼</option>
-        <option value="business">商务深蓝</option>
-        <option value="ink">水墨素雅</option>
-        <option value="graphite">高级灰</option>
-        <option value="dark">夜间</option>
-        <option value="midnight">午夜蓝</option>
-      </select>
-    </label>
-    <label class="mini">背景
-      <select id="sel-bg" title="画布底纹">
-        <option value="solid">纯色</option>
-        <option value="dots">点阵</option>
-        <option value="grid">网格</option>
-        <option value="lines">横线</option>
-      </select>
-    </label>
-    <label class="mini">配色
-      <select id="sel-palette" title="一级分支的配色方案">
-        <option value="vivid">多彩活力</option>
-        <option value="candy">糖果马卡龙</option>
-        <option value="fresh">清新自然</option>
-        <option value="ocean">海洋蓝调</option>
-        <option value="business">商务藏青</option>
-        <option value="morandi">莫兰迪</option>
-        <option value="earth">大地暖色</option>
-        <option value="mono">素雅灰</option>
-      </select>
-    </label>
+  </div></div>
+  <div class="mp-grp"><div class="mp-cap">视图</div><div class="mp-items" data-grp="view">
+    <button class="btn" id="btn-expand">展开全部</button>
+    <button class="btn" id="btn-collapse" title="只留中心主题和第一层分支（等同于层级选「1 层」）">仅看主干</button>
+    <button class="btn" id="btn-find" title="搜索节点（Ctrl+F）；跳转时会自动展开父级并定位">🔍 搜索</button>
+    <button class="btn" id="btn-fit">适应窗口</button>
+    <button class="btn" id="btn-100">100%</button>
+    <button class="btn icon" id="btn-zoom-out" title="缩小">−</button>
+    <button class="btn icon" id="btn-zoom-in"  title="放大">＋</button>
+  </div></div>
+  <div class="mp-grp"><div class="mp-cap">外观</div><div class="mp-items" data-grp="look">
     <button class="btn" id="btn-reset-look" title="主题 / 配色 / 底纹一键恢复成默认的蓝色外观（日间 + 多彩活力 + 点阵）">默认外观</button>
     <button class="btn danger" id="btn-clear" title="清空整张画布（需二次确认，可撤销）">清空画布</button>
-  </span>
-  <!-- v40：语言切换。按钮上显示的是「点一下会变成什么」，而不是当前语言 ——
-       Gmail / GitHub 都是这个约定，比显示当前语言少一次猜测。 -->
-  <span class="divider"></span>
-  <span class="btn-group">
-    <button class="btn" id="btn-lang" aria-label="切换语言" title="切换到 English">EN</button>
-  </span>
-  </nav>
+  </div></div>
+  <div class="mp-foot">
+    <button class="btn" id="btn-hcc" title="勾选常驻工具栏的按钮、调整它们的先后">🛠 自定义常用按钮…</button>
+  </div>
+</div>
 </header>
 <div id="navscrim" aria-hidden="true"></div>
 <button id="fab-add" aria-label="展开常用操作" aria-expanded="false" aria-controls="fab-sheet">＋</button>
@@ -1570,7 +1616,7 @@
           <div class="fmt-hd">Office 办公</div>
           <div class="fmts-cols">
             <button class="fmt" data-fmt="docx"><span class="ic">📄</span><span><span class="tt">Word<b>.docx</b></span><span class="dd">按层级生成带编号的标题，可在 Word 里继续排版</span></span></button>
-            <button class="fmt" data-fmt="xlsx"><span class="ic">📊</span><span><span class="tt">Excel<b>.xlsx</b></span><span class="dd">一行一个节点，含层级 / 父节点 / 完整路径，便于筛选</span></span></button>
+            <button class="fmt" data-fmt="xlsx"><span class="ic">📊</span><span><span class="tt">Excel<b>.xlsx</b><b class="lossy">纯文字</b></span><span class="dd">一行一个节点，含层级 / 父节点 / 完整路径，便于筛选</span></span></button>
             <button class="fmt" data-fmt="pptx"><span class="ic">📽</span><span><span class="tt">PPT · 整图一页<b>.pptx</b></span><span class="dd">把你在屏幕上看到的整张导图，画成矢量图形放进<b>一张</b>幻灯片，可在 PowerPoint 里继续编辑</span></span></button>
             <button class="fmt" data-fmt="pptx2"><span class="ic">🗒</span><span><span class="tt">PPT · 分页大纲<b>.pptx</b></span><span class="dd">封面 + 每个一级分支一页的文字大纲（适合逐页汇报，导出全部节点）</span></span></button>
           </div>
@@ -1578,9 +1624,9 @@
         <div class="fmt-grp">
           <div class="fmt-hd">数据与互通</div>
           <div class="fmts-cols">
-            <button class="fmt" data-fmt="md"><span class="ic">📝</span><span><span class="tt">Markdown<b>.md</b></span><span class="dd">标准 # 标题大纲，可贴回笔记 / 语雀 / Notion</span></span></button>
-            <button class="fmt" data-fmt="opml"><span class="ic">🗃</span><span><span class="tt">OPML 大纲<b>.opml</b></span><span class="dd">大纲交换的通用格式：XMind / 幕布 / Workflowy / 飞书 等都能直接打开，层级与备注无损</span></span></button>
-            <button class="fmt" data-fmt="xmind"><span class="ic">🧠</span><span><span class="tt">XMind<b>.xmind</b></span><span class="dd">导入 XMind / 幕布等工具继续编辑</span></span></button>
+            <button class="fmt" data-fmt="md"><span class="ic">📝</span><span><span class="tt">Markdown<b>.md</b><b class="lossy">纯文字</b></span><span class="dd">标准 # 标题大纲，可贴回笔记 / 语雀 / Notion</span></span></button>
+            <button class="fmt" data-fmt="opml"><span class="ic">🗃</span><span><span class="tt">OPML 大纲<b>.opml</b><b class="lossy">纯文字</b></span><span class="dd">大纲交换的通用格式：XMind / 幕布 / Workflowy / 飞书 等都能直接打开，层级与备注无损</span></span></button>
+            <button class="fmt" data-fmt="xmind"><span class="ic">🧠</span><span><span class="tt">XMind<b>.xmind</b><b class="lossy">纯文字</b></span><span class="dd">导入 XMind / 幕布等工具继续编辑</span></span></button>
             <button class="fmt" data-fmt="html"><span class="ic">🌐</span><span><span class="tt">独立网页<b>.html</b></span><span class="dd">双击即可打开，内容完整且仍可继续编辑</span></span></button>
             <button class="fmt" data-fmt="json"><span class="ic">🗂</span><span><span class="tt">导图数据<b>.json</b></span><span class="dd">本工具专用格式，用「打开」可继续编辑（也是推荐的备份）</span></span></button>
           </div>
@@ -1599,6 +1645,106 @@
       <button class="btn" id="e-cancel">关闭</button>
     </div>
   </div>
+</div>
+
+
+<!-- v56（P1）：文字样式。第 17 张 .overlay，结构与其 16 张严格同构，Esc / 焦点 / aria 走统一通道 -->
+<div id="fontstyle" class="overlay" role="dialog" aria-modal="true" aria-labelledby="fst-title">
+  <div class="card">
+    <div class="hd"><span id="fst-title">文字样式</span><span class="x" id="fst-close" role="button" tabindex="0" aria-label="关闭文字样式面板" title="关闭">×</span></div>
+    <div class="bd fst-bd">
+      <div class="fst-scope">
+        <button class="btn" data-fs-scope="global">全局</button>
+        <button class="btn" data-fs-scope="kind">按类型</button>
+        <button class="btn" data-fs-scope="object">当前对象</button>
+      </div>
+      <label class="mini" id="fst-kind-row">类型 / 对象
+        <select id="fst-kind" title="选择要调整的那一类文字">
+          <option value="node">节点文字</option>
+          <option value="bd">外框标题</option>
+          <option value="gb">分组框标题</option>
+        </select>
+      </label>
+      <label class="mini">字号
+        <select id="fst-fs" title="相对字号档，跟着全局字号一起缩放">
+          <option value="">默认</option>
+          <option value="-2">−2</option><option value="-1">−1</option>
+          <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option>
+        </select>
+      </label>
+      <div class="fst-toggles">
+        <button class="btn" data-fs-toggle="b" title="加粗">B</button>
+        <button class="btn" data-fs-toggle="i" title="斜体"><i>I</i></button>
+        <button class="btn" data-fs-toggle="u" title="下划线"><u>U</u></button>
+        <button class="btn" data-fs-toggle="s" title="删除线"><s>S</s></button>
+      </div>
+      <div class="fst-colors">
+        <button class="btn fst-dot" data-fs-color="ink" title="跟随主题">主</button>
+        <button class="btn fst-dot" data-fs-color="blue" title="蓝色">蓝</button>
+        <button class="btn fst-dot" data-fs-color="red" title="红色">红</button>
+        <button class="btn fst-dot" data-fs-color="green" title="绿色">绿</button>
+        <button class="btn fst-dot" data-fs-color="amber" title="橙色">橙</button>
+      </div>
+      <div class="fst-preview" id="fst-preview">示例文字 Aa 项目里程碑</div>
+      <div class="tiny" id="fst-tip">全局与按类型只影响显示，不写进导图文件；当前对象会随文件、撤销和复制一起走。</div>
+      <div class="fst-inline" id="fst-inline">
+        <div class="tiny" id="fst-inline-tip">在下面选中几个字，再点样式按钮 —— 只改选中的那几个字。</div>
+        <label class="mini">调整对象
+          <select id="fst-inline-obj" title="选择要调整的文字">
+            <option value="node">当前节点文字</option>
+            <option value="bd">外框标题</option>
+            <option value="gb">分组框标题</option>
+            <option value="rlk">联系说明</option>
+          </select>
+        </label>
+        <textarea id="fst-inline-text" rows="2" spellcheck="false" placeholder="先选中一个节点 / 外框 / 分组框 / 联系"></textarea>
+        <div class="fst-toggles" id="fst-inline-toggles">
+          <button class="btn" data-ts-inline="b" title="加粗">B</button>
+          <button class="btn" data-ts-inline="i" title="斜体"><i>I</i></button>
+          <button class="btn" data-ts-inline="u" title="下划线"><u>U</u></button>
+          <button class="btn" data-ts-inline="s" title="删除线"><s>S</s></button>
+          <button class="btn" data-ts-inline="fs-" title="字号减一档">A&#8722;</button>
+          <button class="btn" data-ts-inline="fs+" title="字号加一档">A+</button>
+          <button class="btn" data-ts-inline="clear" title="清除选中部分的样式">清除</button>
+        </div>
+        <div class="fst-colors" id="fst-inline-colors">
+          <button class="btn fst-dot" data-ts-inline="c:ink" title="跟随主题">主</button>
+          <button class="btn fst-dot" data-ts-inline="c:blue" title="蓝色">蓝</button>
+          <button class="btn fst-dot" data-ts-inline="c:red" title="红色">红</button>
+          <button class="btn fst-dot" data-ts-inline="c:green" title="绿色">绿</button>
+          <button class="btn fst-dot" data-ts-inline="c:amber" title="橙色">橙</button>
+        </div>
+        <div class="fst-preview" id="fst-inline-preview"></div>
+      </div>
+    </div>
+    <div class="ft">
+      <span class="note" id="fst-note"></span>
+      <span class="spacer"></span>
+      <button class="btn" id="fst-reset">恢复默认</button>
+      <button class="btn" id="fst-done">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- v57 P2：选中文字的浮选工具栏（非模态，不属于 .overlay 浮层系统） -->
+<div id="tsbar" role="toolbar" aria-label="选中文字样式">
+  <div class="tsb-row">
+    <button type="button" data-ts="b" title="加粗（Ctrl+B）"><b>B</b></button>
+    <button type="button" data-ts="i" title="斜体（Ctrl+I）"><i>I</i></button>
+    <button type="button" data-ts="u" title="下划线（Ctrl+U）"><u>U</u></button>
+    <button type="button" data-ts="s" title="删除线"><s>S</s></button>
+    <button type="button" data-ts="fs-" title="字号减一档">A&#8722;</button>
+    <button type="button" data-ts="fs+" title="字号加一档">A+</button>
+    <span class="tsb-sep"></span>
+    <button type="button" class="tsb-dot" data-ts="c:ink" title="跟随主题" style="background:var(--text)">主</button>
+    <button type="button" class="tsb-dot" data-ts="c:blue" title="蓝色" style="background:#2563eb">蓝</button>
+    <button type="button" class="tsb-dot" data-ts="c:red" title="红色" style="background:#dc2626">红</button>
+    <button type="button" class="tsb-dot" data-ts="c:green" title="绿色" style="background:#059669">绿</button>
+    <button type="button" class="tsb-dot" data-ts="c:amber" title="橙色" style="background:#d97706">橙</button>
+    <span class="tsb-sep"></span>
+    <button type="button" data-ts="clear" title="清除选中部分的样式">清除</button>
+  </div>
+  <div class="tsb-prev" id="ts-preview"></div>
 </div>
 
 <!-- 自动备份设置 -->
@@ -1808,9 +1954,132 @@
   <div class="hint-badge" id="hint-badge" title="鼠标移到这里看使用指南；点一下可固定显示">?</div>
   <div class="hint-body">
     <div id="selinfo"></div>
-    <div data-i18n-html="hint.main">单击选中 · 双击编辑 · <b>Tab 加子节点</b> · <b>Enter 加同级</b> · <b>↑↓←→ 在树上走</b> · 空格折叠展开 · Alt+↑↓ 调顺序 · Del 删节点 · <b>Ctrl+C/V 复制粘贴子树</b> · <b>选中节点后 Ctrl+V 贴一段文字＝生成子树</b>（列表 / 表格 / 段落都行）· Ctrl+D 克隆 · Ctrl+Z 撤销 · Ctrl+Y 重做 · <b>Ctrl+F 搜索</b> · 右键菜单（可给分支上色、<b>写节点备注</b>、<b>挂链接</b>） · <b>Ctrl+Shift+L 给节点挂链接</b>（点节点右上角的链环或 Alt+单击即可打开；本机路径会复制下来） · <b>「↩ 步骤」能看清每一步做了什么，点任意一行直接跳过去</b> · 点节点右侧 +/− 折叠 · <b>拖住节点放到另一个节点上＝改挂到它下面</b> · 滚轮滚动 · Ctrl+滚轮缩放 · 拖拽平移</div>
-    <div id="hint-view" data-i18n-html="hint.view">顶部「字体 / 字号 / 粗细 / 宽度」控制节点文字与外形（导出 PNG · Word · PPT 会跟着变）；文字超长被截断时节点左下角会显示 <b>⋯</b>，鼠标悬停也能看全文（可调宽节点或选「自适应」）；「层级 / 主题 / 背景 / 配色」切换显示深度与外观（9 种主题 · 8 套配色 · 4 种底纹）；<b>「布局」可切「左右」思维导图 / 「上下」组织结构图</b>（汇报关系自上而下读，方向键也跟着翻转、折叠圆点挪到节点底部，导出图同样跟着走）；「打开」支持 .json / .xmind / .opml；「清空画布」会二次确认并可用 Ctrl+Z 找回。<b>按 F 或点「⛶ 全屏」进入沉浸全屏</b> —— 工具栏会一并隐藏，画布铺满整屏；<b>鼠标移到屏幕最顶端</b>临时唤出工具栏，也可点右上角「退出全屏」或按 Esc / F 回到普通视图。</div>
-    <div class="hint-hide" id="hint-hide">收起 ×</div>
+    <!-- v62：指南按功能分行 —— 每行一个功能组，左边是组名、右边是要点，不再一大段挤在一起。 -->
+    <div data-i18n-html="hint.main"><div class="hint-sec"><span class="hint-cap">选中与编辑</span><span class="hint-txt">单击选中 · 双击编辑 · <b>Tab 加子节点</b> · <b>Enter 加同级</b> · <b>↑↓←→ 在树上走</b> · 空格折叠展开 · Alt+↑↓ 调顺序 · Del 删节点 · <b>Ctrl+C/V 复制粘贴子树</b> · Ctrl+D 克隆 · <b>Ctrl+Z / Ctrl+Y 撤销重做</b></span></div><div class="hint-sec"><span class="hint-cap">粘贴建枝</span><span class="hint-txt"><b>选中节点后 Ctrl+V 贴一段文字＝生成子树</b>（列表 / 表格 / 段落都行）</span></div><div class="hint-sec"><span class="hint-cap">搜索与右键</span><span class="hint-txt"><b>Ctrl+F 搜索</b> · 右键菜单（给分支上色 · <b>写节点备注</b> · <b>挂链接</b>） · <b>Ctrl+Shift+L 给节点挂链接</b>（点节点右上角的链环或 Alt+单击即可打开；本机路径会复制下来）</span></div><div class="hint-sec"><span class="hint-cap">结构整理</span><span class="hint-txt">点节点右侧 +/− 折叠 · <b>拖住节点放到另一个节点上＝改挂到它下面</b></span></div><div class="hint-sec"><span class="hint-cap">画布与步骤</span><span class="hint-txt">滚轮滚动 · Ctrl+滚轮缩放 · 拖拽平移 · <b>「↩ 步骤」能看清每一步做了什么，点任意一行直接跳过去</b></span></div></div>
+    <div id="hint-view" data-i18n-html="hint.view"><div class="hint-sec"><span class="hint-cap">文字与外形</span><span class="hint-txt">点顶栏 <b>「⚙」</b>打开外观与视图设置，「字体 / 字号 / 粗细 / 宽度」控制节点文字与外形（导出 PNG · Word · PPT 会跟着变）；文字超长被截断时节点左下角会显示 <b>⋯</b>，鼠标悬停也能看全文（可调宽节点或选「自适应」）</span></div><div class="hint-sec"><span class="hint-cap">显示与外观</span><span class="hint-txt">「层级 / 主题 / 背景 / 配色」切换显示深度与外观（9 种主题 · 8 套配色 · 4 种底纹）；<b>「布局」可切「左右」思维导图 / 「上下」组织结构图</b>（汇报关系自上而下读，方向键也跟着翻转、折叠圆点挪到节点底部，导出图同样跟着走）</span></div><div class="hint-sec"><span class="hint-cap">文件</span><span class="hint-txt">「打开」支持 .json / .xmind / .opml；「清空画布」会二次确认并可用 Ctrl+Z 找回</span></div><div class="hint-sec"><span class="hint-cap">全屏</span><span class="hint-txt"><b>按 F 或点「⛶ 全屏」进入沉浸全屏</b> —— 工具栏会一并隐藏，画布铺满整屏；<b>鼠标移到屏幕最顶端</b>临时唤出工具栏，也可点右上角「退出全屏」或按 Esc / F 回到普通视图</span></div><div class="hint-sec"><span class="hint-cap">自定义工具栏</span><span class="hint-txt">点顶栏 <b>「⋯」→「🛠 自定义常用按钮」</b>，勾选哪些命令常驻工具栏、调整先后顺序；没勾的都收在「⋯ 更多工具」里，面板顶部还能输入文字筛选</span></div></div>
+  </div>
+  <div class="hint-hide" id="hint-hide" role="button" tabindex="0" aria-label="隐藏指南">收起 ×</div>
+</div>
+<!-- v62：「⚙ 外观与视图」抽屉 —— 之前挤在工具栏里的 9 个设置下拉集中在这里。
+     走标准 .overlay 三要素（✕ / Esc / 焦点陷阱），select 的 id 与事件绑定原样保留。 -->
+<div id="setdrawer" class="overlay" role="dialog" aria-modal="true" aria-labelledby="sd-title">
+  <div class="card">
+    <div class="hd"><span id="sd-title">外观与视图</span><span class="x" id="sd-close" role="button" tabindex="0" aria-label="关闭" title="关闭">×</span></div>
+    <div class="bd">
+      <div class="sd-tip">之前挤在工具栏里的 9 个设置下拉集中在这里：改完立即生效，导出的图也会跟着变。</div>
+      <div class="sd-sec"><div class="sd-cap">视图</div>
+        <label class="mini">层级
+          <select id="sel-depth" title="选择显示到第几层（只影响查看，导出仍是完整导图）">
+            <option value="0">全部</option>
+            <option value="1">1 层</option>
+            <option value="2">2 层</option>
+            <option value="3">3 层</option>
+            <option value="4">4 层</option>
+            <option value="5">5 层</option>
+            <option value="6">6 层</option>
+          </select>
+        </label>
+        <label class="mini">布局
+          <select id="sel-layout" title="布局方向：左右＝思维导图（默认）；上下＝组织结构图，汇报关系自上而下读">
+            <option value="mind">左右</option>
+            <option value="org">上下</option>
+          </select>
+        </label>
+      </div>
+      <div class="sd-sec"><div class="sd-cap">文字</div>
+        <label class="mini">字体
+          <select id="sel-font" title="界面与导出图片用的字体（导出 PNG / Word / PPT 会跟着变）">
+            <option value="clear">Segoe＋雅黑（推荐）</option>
+            <option value="yahei">微软雅黑</option>
+            <option value="deng">等线 DengXian</option>
+            <option value="hei">黑体 SimHei</option>
+            <option value="song">宋体（衬线）</option>
+            <option value="sys">系统默认</option>
+          </select>
+        </label>
+        <label class="mini">字号
+          <select id="sel-fs" title="节点文字大小（根节点比其余节点大 2px，其余节点完全一致）">
+            <option value="s">小</option>
+            <option value="m">标准</option>
+            <option value="l">大</option>
+            <option value="xl">特大</option>
+          </select>
+        </label>
+        <label class="mini">粗细
+          <select id="sel-weight" title="节点字重：层级区分（分支加粗）/ 全部常规 / 全部加粗">
+            <option value="level">层级区分</option>
+            <option value="flat">全部常规</option>
+            <option value="bold">全部加粗</option>
+          </select>
+        </label>
+        <label class="mini">宽度
+          <select id="sel-nodew" title="节点宽度：文字被截断（左下角有 ⋯ 标记）时可调宽，或选自适应按内容伸缩">
+            <option value="n">窄</option>
+            <option value="m">标准</option>
+            <option value="w">宽</option>
+            <option value="x">超宽</option>
+            <option value="auto">自适应</option>
+          </select>
+        </label>
+      </div>
+      <div class="sd-sec"><div class="sd-cap">外观</div>
+        <label class="mini">主题
+          <select id="sel-theme" title="整体风格（浅色 / 深色 / 商务 / 护眼…）">
+            <option value="light">日间</option>
+            <option value="minimal">极简白</option>
+            <option value="mint">清新薄荷</option>
+            <option value="sepia">米黄护眼</option>
+            <option value="business">商务深蓝</option>
+            <option value="ink">水墨素雅</option>
+            <option value="graphite">高级灰</option>
+            <option value="dark">夜间</option>
+            <option value="midnight">午夜蓝</option>
+          </select>
+        </label>
+        <label class="mini">背景
+          <select id="sel-bg" title="画布底纹">
+            <option value="solid">纯色</option>
+            <option value="dots">点阵</option>
+            <option value="grid">网格</option>
+            <option value="lines">横线</option>
+          </select>
+        </label>
+        <label class="mini">配色
+          <select id="sel-palette" title="一级分支的配色方案">
+            <option value="vivid">多彩活力</option>
+            <option value="candy">糖果马卡龙</option>
+            <option value="fresh">清新自然</option>
+            <option value="ocean">海洋蓝调</option>
+            <option value="business">商务藏青</option>
+            <option value="morandi">莫兰迪</option>
+            <option value="earth">大地暖色</option>
+            <option value="mono">素雅灰</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="ft">
+      <span class="note">这些是「看的方式」，存在本机偏好里，不进导图数据。</span>
+      <span class="spacer"></span>
+      <button class="btn primary" id="sd-ok">完成</button>
+    </div>
+  </div>
+</div>
+<!-- v62：「自定义常用按钮」面板 —— 勾选哪些命令常驻工具栏、用 ↑↓ 调整先后；
+     完成后写进偏好（不进导图数据、不压撤销栈），没勾的命令仍在「⋯ 更多工具」里。 -->
+<div id="hcpanel" class="overlay" role="dialog" aria-modal="true" aria-labelledby="hcc-title">
+  <div class="card">
+    <div class="hd"><span id="hcc-title">自定义常用按钮</span><span class="x" id="hcc-close" role="button" tabindex="0" aria-label="关闭" title="关闭">×</span></div>
+    <div class="bd">
+      <div class="hc-tip">勾选的按钮常驻工具栏，左侧数字就是先后顺序；点 ↑↓ 行会立刻挪到新位置、数字跟着变。没勾的都收进「⋯ 更多工具」。</div>
+      <div id="hc-list"></div>
+    </div>
+    <div class="ft">
+      <button class="btn" id="hcc-reset">恢复默认</button>
+      <span class="spacer"></span>
+      <button class="btn" id="hcc-cancel">取消</button>
+      <button class="btn primary" id="hcc-ok">完成</button>
+    </div>
   </div>
 </div>
 <div id="dragghost"></div>
@@ -2910,6 +3179,87 @@ const EN = Object.freeze({
   "原图已按原样保存，放大和导出都用它": "Original saved as-is; zoom and exports use this copy",
   "滚轮缩放；按住图片拖动时，图和背后的导图一起平移；Esc 关闭。": "Scroll to zoom; dragging the image pans the image and the map behind it; Esc to close.",
   "滚轮缩放 · 拖动平移 · 单击看大图": "Scroll to zoom · drag to pan · click for the full view",
+  "文字样式": "Text style",
+  "Aa 文字样式": "Aa Text style",
+  "文字样式：统一调整节点 / 外框标题 / 分组框标题，也可选中几个字单独调整": "Text style: set fonts globally, by type or per object; you can also style just a few selected characters",
+  "关闭文字样式面板": "Close the text style panel",
+  "全局": "Global",
+  "按类型": "By type",
+  "当前对象": "This object",
+  "类型 / 对象": "Type / object",
+  "选择要调整的那一类文字": "Choose which kind of text to style",
+  "节点文字": "Node text",
+  "外框标题": "Boundary title",
+  "分组框标题": "Group frame title",
+  "默认": "Default",
+  "相对字号档，跟着全局字号一起缩放": "Relative size steps; scales with the global font size",
+  "加粗": "Bold",
+  "斜体": "Italic",
+  "下划线": "Underline",
+  "删除线": "Strikethrough",
+  "跟随主题": "Follow theme",
+  "蓝色": "Blue",
+  "红色": "Red",
+  "绿色": "Green",
+  "橙色": "Amber",
+  "主": "Auto",
+  "蓝": "B",
+  "红": "R",
+  "绿": "G",
+  "橙": "A",
+  "示例文字 Aa 项目里程碑": "Sample text Aa Project milestone",
+  "全局与按类型只影响显示，不写进导图文件；当前对象会随文件、撤销和复制一起走。": "Global and by-type settings only affect display and are not saved into the map file; per-object styles travel with the file, undo history and copy/paste.",
+  "当前对象：还没有这个对象，先选中带外框或分组框的节点": "This object: not available yet. Select a node with a boundary or group frame first.",
+  "恢复默认": "Reset",
+  "改文字样式": "Change text style",
+  "选中文字样式": "Selected text style",
+  "加粗（Ctrl+B）": "Bold (Ctrl+B)",
+  "斜体（Ctrl+I）": "Italic (Ctrl+I)",
+  "下划线（Ctrl+U）": "Underline (Ctrl+U)",
+  "字号减一档": "Smaller",
+  "字号加一档": "Larger",
+  "清除选中部分的样式": "Clear style on selection",
+  "选中 {n} 个字 · ": "Selected {n} characters · ",
+  "先双击节点，选中要调整的几个字": "Double-click a node first, then select the characters to style",
+  "先选中要调整的几个字": "Select the characters to style first",
+  "文字已保存，请重新选中要调整的部分": "Text saved. Please select the characters again",
+  "改选中文字样式": "Style selected characters",
+  "已对选中的 {n} 个字调整样式": "Styled {n} selected characters",
+  "编辑时给选中的几个字加粗（斜体 I / 下划线 U 同理）": "Bold the selected characters while editing (Ctrl+I italic, Ctrl+U underline)",
+  "也可以点选中文字上方浮出来的小工具条；不限整段，选几个字就只改几个字": "Or use the small toolbar above the selection; only the selected characters change",
+  "有 {n} 个节点的行内样式随文字改动被清除": "Inline styles cleared on {n} nodes because their text changed",
+  "合并后原节点的行内样式已清除": "Inline styles on the kept node were cleared after merging",
+  "改名后原节点的行内样式已清除": "Inline styles were cleared after the rename",
+  "纯文字": "Plain text",
+  "该格式只导出纯文字，行内样式不会保留；要保住样式请用 JSON / 独立网页 / Word / PPT / PNG / SVG": "This format exports plain text only — inline styles are not preserved. Use JSON / standalone HTML / Word / PPT / PNG / SVG to keep them",
+  "在下面选中几个字，再点样式按钮 —— 只改选中的那几个字。": "Select a few characters below, then click a style button — only those characters change.",
+  "调整对象": "Target",
+  "选择要调整的文字": "Choose which text to style",
+  "当前节点文字": "Current node text",
+  "联系说明": "Relationship label",
+  "先选中一个节点 / 外框 / 分组框 / 联系": "Select a node / boundary / group frame / relationship first",
+  "画布上还没有这个对象": "This object is not on the canvas yet",
+  "（空文字）": "(empty text)",
+  "先在文字里选中要调整的几个字": "Select a few characters in the text first",
+  "文字已同步，请重新选中要调整的部分": "Text synced — please reselect the part to style",
+  "更多工具": "More tools",
+  "文件": "File",
+  "数据": "Data",
+  "外观": "Appearance",
+  "文字": "Text",
+  "输入文字筛选工具…": "Type to filter tools…",
+  "外观与视图": "Look & view",
+  "外观与视图设置": "Appearance & view settings",
+  "自定义常用按钮": "Customize toolbar",
+  "🛠 自定义常用按钮…": "🛠 Customize toolbar…",
+  "勾选常驻工具栏的按钮、调整它们的先后": "Pick which buttons stay on the toolbar, and in what order",
+  "勾选的按钮常驻工具栏，左侧数字就是先后顺序；点 ↑↓ 行会立刻挪到新位置、数字跟着变。没勾的都收进「⋯ 更多工具」。": "Checked buttons stay on the toolbar - the number on the left is their order. Click ↑↓ and the row moves to its new spot right away, numbers updating live. Everything unchecked lives in \"⋯ More tools\".",
+  "之前挤在工具栏里的 9 个设置下拉集中在这里：改完立即生效，导出的图也会跟着变。": "The 9 setting dropdowns that used to crowd the toolbar live here: changes apply instantly, and exports follow.",
+  "这些是「看的方式」，存在本机偏好里，不进导图数据。": "These are \"ways of looking\" — stored in local preferences, never in the map data.",
+  "工具栏已更新": "Toolbar updated",
+  "没勾的按钮都在「⋯ 更多工具」里，随时可以再调": "Unchecked buttons live in \"⋯ More tools\" — adjust anytime",
+  "常驻工具栏": "Pin to toolbar",
+  "常用按钮": "Pinned commands",
   /*<</EN>>*/
 });
 
@@ -2919,8 +3269,8 @@ const EN = Object.freeze({
 const EN_HTML = Object.freeze({
 /*<<HTML>>*/
   "link.tip": "Web link: click the chain badge in the node's top-right corner, or <b>Alt+click the node</b> (Ctrl+click still adds to the selection — it will not steal the click).<br>Local path: clicking it <b>copies it to the clipboard</b> — browsers do not let a page open local files, so paste it into the address bar of Explorer / Finder to get there.",
-  "hint.main": "Click to select · Double-click to edit · <b>Tab adds a child</b> · <b>Enter adds a sibling</b> · <b>↑↓←→ walk the tree</b> · Space folds/unfolds · Alt+↑↓ reorders · Del deletes a node · <b>Ctrl+C/V copies and pastes a subtree</b> · <b>With a node selected, Ctrl+V pastes text as a subtree</b> (lists, tables and paragraphs all work) · Ctrl+D clones · Ctrl+Z undoes · Ctrl+Y redoes · <b>Ctrl+F finds</b> · Right-click menu (colour a branch, <b>write a node note</b>, <b>attach a link</b>) · <b>Ctrl+Shift+L attaches a link</b> (open it from the chain badge in the node's top-right corner or with Alt+click; local paths get copied instead) · <b>“↩ Steps” shows exactly what each step did — click a row to jump there</b> · The +/− on a node's right folds it · <b>Drag a node onto another to re-parent it</b> · Wheel scrolls · Ctrl+wheel zooms · Drag to pan",
-  "hint.view": "The Font / Size / Weight / Width controls at the top set node text and shape (PNG · Word · PPT exports follow). When text is clipped the node shows <b>⋯</b> at its bottom-left and the full text appears on hover (widen the node or pick “Auto”). Depth / Theme / Background / Palette switch how deep the map shows and how it looks (9 themes · 8 palettes · 4 textures). <b>Layout switches between the left–right mind map and the top–down org chart</b> (reports read top-down, the arrow keys flip with it, the fold toggle moves to the node's bottom edge, and exports follow). “Open” accepts .json / .xmind / .opml, and “Clear canvas” asks for confirmation and can be undone with Ctrl+Z. <b>Press F or click “⛶ Fullscreen” for immersive fullscreen</b> — the toolbar hides along with everything else and the canvas fills the screen; <b>move the pointer to the very top</b> to summon the toolbar, or click “Exit fullscreen” in the top-right corner / press Esc or F to go back.",
+  "hint.main": "<div class=\"hint-sec\"><span class=\"hint-cap\">Select & edit</span><span class=\"hint-txt\">Click to select · Double-click to edit · <b>Tab adds a child</b> · <b>Enter adds a sibling</b> · <b>↑↓←→ walk the tree</b> · Space folds/expands · Alt+↑↓ reorder · Del deletes · <b>Ctrl+C/V copy &amp; paste subtrees</b> · Ctrl+D clone · <b>Ctrl+Z / Ctrl+Y undo &amp; redo</b></span></div><div class=\"hint-sec\"><span class=\"hint-cap\">Paste to branch</span><span class=\"hint-txt\"><b>With a node selected, Ctrl+V a piece of text = a new subtree</b> (lists / tables / paragraphs all work)</span></div><div class=\"hint-sec\"><span class=\"hint-cap\">Search &amp; right-click</span><span class=\"hint-txt\"><b>Ctrl+F to search</b> · Right-click menu (branch colors · <b>node notes</b> · <b>links</b>) · <b>Ctrl+Shift+L attaches a link</b> (click the chain badge or Alt+click to open; local paths are copied to the clipboard)</span></div><div class=\"hint-sec\"><span class=\"hint-cap\">Structure</span><span class=\"hint-txt\">+/− on the right of a node folds it · <b>Drag a node onto another = re-parent under it</b></span></div><div class=\"hint-sec\"><span class=\"hint-cap\">Canvas &amp; steps</span><span class=\"hint-txt\">Wheel scrolls · Ctrl+wheel zooms · drag to pan · <b>\"↩ Steps\" shows every change; click a row to jump straight back</b></span></div>",
+  "hint.view": "<div class=\"hint-sec\"><span class=\"hint-cap\">Text &amp; shape</span><span class=\"hint-txt\">Open <b>\"⚙\"</b> on the toolbar — Font / Size / Weight / Width control node text and shape (PNG · Word · PPT exports follow). Overlong text shows a <b>⋯</b> badge at the lower-left; hover to read it all (widen the node or pick \"Auto\")</span></div><div class=\"hint-sec\"><span class=\"hint-cap\">View &amp; look</span><span class=\"hint-txt\">\"Depth / Theme / Background / Palette\" switch display depth and appearance (9 themes · 8 palettes · 4 backgrounds); <b>\"Layout\" switches mind map (left-right) / org chart (top-down)</b> — reporting reads top-down, arrow keys flip, exports follow</span></div><div class=\"hint-sec\"><span class=\"hint-cap\">Files</span><span class=\"hint-txt\">\"Open\" supports .json / .xmind / .opml; \"Clear canvas\" asks twice and Ctrl+Z brings it back</span></div><div class=\"hint-sec\"><span class=\"hint-cap\">Fullscreen</span><span class=\"hint-txt\"><b>Press F or click \"⛶ Fullscreen\"</b> — the toolbar hides and the canvas fills the screen; move the mouse to the very top to peek the toolbar, or press Esc / F to return</span></div><div class=\"hint-sec\"><span class=\"hint-cap\">Customize</span><span class=\"hint-txt\">Click <b>\"⋯\" → \"Customize toolbar\"</b> to pick which commands stay on the bar and in what order; the rest live in \"⋯ More tools\", filterable by typing</span></div>",
   "bpanel.p": "Once on, every change is written out about 3 seconds later as a <b>standalone HTML</b> file in the folder below, and you can keep editing by double-clicking that HTML — a local snapshot you can roll back to at any time.",
   "bpanel.tiny": "The first time you click “Choose folder”, pick <b>the folder that contains mind_map.html</b> and the tool will create an <code>auto_backup</code> subfolder inside it.<br>Needs a Chromium browser such as Edge or Chrome; Firefox and Safari cannot write to a folder — use “Export ▾ → Standalone page” to save by hand.<br>When the map shrinks a lot (say you clear the canvas) the previous backup is kept — a new timestamped file is written instead.",
   "export.saveas": "When ticked, exporting skips the browser download and writes the file straight to disk — files written this way are <b>not</b> tagged by Windows as “from the internet”, so you will not hit “Internet security settings blocked one or more files” when opening the image / Word / PPT.<br>Unticked, the file is downloaded straight away (faster, but Windows marks it). If a file already won't open: right-click it → Properties → tick “Unblock” at the bottom → OK.",
@@ -3589,6 +3939,65 @@ let nodeFsKey = 'm';
 let nodeWeightKey = 'level';
 /* 节点宽度档位：n 窄 / m 标准（默认） / w 宽 / x 超宽 / auto 自适应（按内容伸缩，最宽 420px） */
 let nodeWKey = 'm';
+/* v56：文字样式偏好。四级作用域里的 L1 全局 / L2 按类型，是「看的方式」，
+   只经 savePrefs() 落 PREFS_KEY，绝不进 serialize() / 撤销栈 / 导出数据。
+   声明放在这里与 layoutMode 同段，避免 normalizePrefs / savePrefs 的 TDZ。 */
+let fontPref = { global: {}, node: {}, bd: {}, gb: {} };
+/* ---------- v62：工具栏 A 方案「单行命令栏」的偏好数据 ----------
+   HDR_CMDS 是全部 34 个命令按钮的唯一名册（id + 所属「⋯ 更多工具」分组），
+   HDR_PRIMARY_DEFAULT 是默认常驻工具栏的 8 个；用户在「自定义常用按钮」面板
+   勾选 / 排序后写进 hdrPrimaryPref，随 savePrefs() 落 PREFS_KEY。
+   与布局 / 语言一样是「看的方式」：不进 serialize()、不压撤销栈。
+   9 个设置下拉（层级/布局/字体/字号/粗细/宽度/主题/背景/配色）不在此列 ——
+   它们整体搬进了「⚙ 外观与视图」抽屉，不属于「常用按钮」的范畴。 */
+const HDR_CMDS = [
+  { id: 'btn-import',     grp: 'file'   },
+  { id: 'btn-new',        grp: 'file'   },
+  { id: 'btn-tpl',        grp: 'file'   },
+  { id: 'btn-open',       grp: 'file'   },
+  { id: 'btn-export',     grp: 'file'   },
+  { id: 'btn-print',      grp: 'file'   },
+  { id: 'btn-bak',        grp: 'data'   },
+  { id: 'btn-outline',    grp: 'data'   },
+  { id: 'btn-stats',      grp: 'data'   },
+  { id: 'btn-help',       grp: 'data'   },
+  { id: 'btn-fontstyle',  grp: 'data'   },
+  { id: 'btn-hist',       grp: 'panels' },
+  { id: 'btn-ws',         grp: 'panels' },
+  { id: 'btn-steps',      grp: 'panels' },
+  { id: 'btn-hint',       grp: 'panels' },
+  { id: 'btn-fs',         grp: 'panels' },
+  { id: 'btn-add',        grp: 'edit'   },
+  { id: 'btn-sib',        grp: 'edit'   },
+  { id: 'btn-edit',       grp: 'edit'   },
+  { id: 'btn-up',         grp: 'edit'   },
+  { id: 'btn-down',       grp: 'edit'   },
+  { id: 'btn-delkids',    grp: 'edit'   },
+  { id: 'btn-del',        grp: 'edit'   },
+  { id: 'btn-undo',       grp: 'edit'   },
+  { id: 'btn-redo',       grp: 'edit'   },
+  { id: 'btn-expand',     grp: 'view'   },
+  { id: 'btn-collapse',   grp: 'view'   },
+  { id: 'btn-find',       grp: 'view'   },
+  { id: 'btn-fit',        grp: 'view'   },
+  { id: 'btn-100',        grp: 'view'   },
+  { id: 'btn-zoom-out',   grp: 'view'   },
+  { id: 'btn-zoom-in',    grp: 'view'   },
+  { id: 'btn-reset-look', grp: 'look'   },
+  { id: 'btn-clear',      grp: 'look'   }
+];
+const HDR_PRIMARY_DEFAULT = ['btn-import','btn-new','btn-open','btn-export','btn-find','btn-add','btn-undo','btn-redo'];
+let hdrPrimaryPref = HDR_PRIMARY_DEFAULT.slice();
+/* 名册净化：只认 HDR_CMDS 里登记过的 id、去重、保序。localStorage / 旧偏好文件 /
+   手改过的 JSON 都不许把脏 id 带进工具栏。声明在 normalizePrefs 之前，无 TDZ。 */
+function hdrNormPrimary(list){
+  const ok = new Set(HDR_CMDS.map(c => c.id));
+  const out = [];
+  (Array.isArray(list) ? list : []).forEach(id => {
+    if(ok.has(id) && out.indexOf(id) < 0) out.push(id);
+  });
+  return out;
+}
 
 const headerEl   = document.querySelector('header');
 /* fsFallback：浏览器不允许真·全屏时的「沉浸模式」标记（只隐藏工具栏，不调 Fullscreen API） */
@@ -3715,6 +4124,258 @@ function doneAll(tree){
   return { done, total };
 }
 
+
+/* ================= v56：文字样式统一模型 =================
+   层级：L1 全局（fontPref.global）→ L2 按类型（fontPref[kind]）→ L3 单对象（obj.font）
+         → L4 行内片段（obj.rich[i]，P2 起产生）。越靠后优先级越高。
+   n.text 永远是纯字符串，rich 只是「可选的第二份样式索引」；两者拼接不恒等就丢弃 rich，
+   宁可丢样式不可丢字。样式白名单只有 6 个键，绝不收任意 hex / 字体族 / 绝对 px。   */
+const TS_COLOR_HEX = { blue:'#2563eb', red:'#dc2626', green:'#059669', amber:'#d97706' };
+const TS_C_KEYS = /^(ink|blue|red|green|amber)$/;
+const TS_FS_MIN = -2, TS_FS_MAX = 3;
+function tsNorm(v){
+  const o = {};
+  if(!v || typeof v !== 'object') return o;
+  if(typeof v.fs === 'number' && isFinite(v.fs)){
+    const fs = Math.max(TS_FS_MIN, Math.min(TS_FS_MAX, Math.round(v.fs)));
+    if(fs) o.fs = fs;
+  }
+  ['b','i','u','s'].forEach(k => { if(v[k] === 1 || v[k] === true) o[k] = 1; });
+  if(typeof v.c === 'string' && TS_C_KEYS.test(v.c) && v.c !== 'ink') o.c = v.c;
+  return o;
+}
+function tsHas(st){ return !!st && Object.keys(st).length > 0; }
+function tsMerge(a, b){
+  const r = Object.assign({}, a || {}), q = tsNorm(b);
+  Object.keys(q).forEach(k => r[k] = q[k]);
+  return r;
+}
+function tsPrefNorm(p){
+  const q = (p && typeof p === 'object') ? p : {};
+  return { global: tsNorm(q.global), node: tsNorm(q.node), bd: tsNorm(q.bd), gb: tsNorm(q.gb) };
+}
+function tsRichNorm(src, plain){
+  if(!Array.isArray(src) || !src.length || src.length > 200) return null;
+  let joined = ''; const out = [];
+  for(const r of src){
+    if(!r || typeof r.t !== 'string' || !r.t) continue;
+    const one = tsNorm(r); one.t = r.t;
+    joined += r.t; out.push(one);
+  }
+  return (joined === String(plain == null ? '' : plain) && out.length) ? out : null;
+}
+function tsRichHasStyle(rs){ return rs.some(r => Object.keys(r).some(k => k !== 't')); }
+function plainText(o, key){ return String((o && o[key] != null) ? o[key] : ''); }
+function tsOf(kind, obj){ return tsMerge(tsMerge(fontPref.global, fontPref[kind] || {}), obj && obj.font); }
+/* 文字的唯一出口：屏幕 / PNG / SVG / Word / PPT 全部走它。
+   没有 rich 时返回单片段，保持纯文本快路径（既有 textContent 断言一行不破）。 */
+function textRunsOf(o, key, kind){
+  const plain = plainText(o, key), base = tsOf(kind, o), rich = o && o.rich;
+  if(Array.isArray(rich) && rich.length && rich.map(r => r.t).join('') === plain)
+    return rich.map(r => ({ t: r.t, st: tsMerge(base, r) }));
+  return [{ t: plain, st: base }];
+}
+function runStyle(st){
+  let s = '';
+  if(st && st.fs) s += 'font-size:' + (100 + st.fs * 10) + '%;';
+  if(st && st.b)  s += 'font-weight:700;';
+  if(st && st.i)  s += 'font-style:italic;';
+  const dec = [];
+  if(st && st.u) dec.push('underline');
+  if(st && st.s) dec.push('line-through');
+  if(dec.length) s += 'text-decoration:' + dec.join(' ') + ';';
+  const hex = tsColorHex(st, '');      // 屏幕与 PNG / SVG / Word / PPT 共用同一个颜色出口
+  if(hex) s += 'color:' + hex + ';';
+  return s;
+}
+/* v59：屏幕与三路图形导出共用的「这段节点文字带不带样式」判定。
+   走 textRunsOf 而不是直接看 n.font / n.rich —— 全局与按类型偏好也要算进来。 */
+function tsStyledNode(n){
+  if(!n) return false;
+  try{ return textRunsOf(n, 'text', 'node').some(r => tsHas(r.st)); }catch(e){ return false; }
+}
+/* 带样式：给足 24 行（比任何正常节点文字都长），等于不截断；
+   无样式：保持原来的 4 行 / 有图 2 行，导出字节与既有断言完全不变。 */
+function nodeMaxLines(n){ return tsStyledNode(n) ? 24 : (n.img ? 2 : 4); }
+function renderRuns(el, o, key, kind){
+  if(!el) return;
+  const runs = textRunsOf(o, key, kind);
+  if(runs.length === 1 && !tsHas(runs[0].st)){ el.textContent = runs[0].t; return; }
+  el.textContent = '';
+  for(const r of runs){
+    const sp = document.createElement('span');
+    sp.textContent = r.t;                       // 逐片段写文本，绝不拼接 HTML（XSS）
+    const css = runStyle(r.st);
+    if(css) sp.setAttribute('style', css);
+    el.appendChild(sp);
+  }
+}
+function tsColorHex(st, fallback){ return (st && st.c && TS_COLOR_HEX[st.c]) ? TS_COLOR_HEX[st.c] : fallback; }
+function tsFontSize(st, basePx){ return Math.round(basePx * (1 + ((st && st.fs) || 0) * 0.1) * 100) / 100; }
+function tsFontWeight(st, baseFw){ return (st && st.b) ? 700 : baseFw; }
+
+/* ---- v56 导出端：文字与样式的唯一桥 ----
+   P1 只有「整段样式」（单片段），P2 起 obj.rich 会产生多片段；下面的 helper 从一开始就
+   按「行 x 片段」建模，P2 不需要重写任何输出函数。
+   tsIsPlain() 为真时各导出端必须沿用原来的 wrapText / svgWrap / estWrap 结果，
+   保证默认无样式的导图导出字节级不变（既有断言一行不破）。 */
+function tsIsPlain(runs){ return runs.length === 1 && !tsHas(runs[0].st); }
+function tsStyledRuns(o, key, kind){
+  const rs = textRunsOf(o, key, kind);
+  return tsIsPlain(rs) ? null : rs;
+}
+/* 整段样式（P1）：多片段时退回对象/类型合并样式，至少不丢观感 */
+function tsWhole(o, key, kind){
+  const rs = textRunsOf(o, key, kind);
+  return tsIsPlain(rs) ? null : (rs.length === 1 ? rs[0].st : tsOf(kind, o));
+}
+/* 大纲导出里的编号 / 打勾前缀不属于文字本体，样式片段要接在它后面 */
+function tsPrefixedRuns(prefix, runs){
+  return runs ? (prefix ? [{ t: prefix, st: {} }] : []).concat(runs) : null;
+}
+function tsFlow(runs, maxW, maxLines, measure, plainLines){
+  if(tsIsPlain(runs)) return plainLines.map(l => [{ t: String(l), st: {} }]);
+  const out = [[]]; let lineW = 0;
+  const put = (st, s) => { if(s) out[out.length - 1].push({ t: s, st }); };
+  for(const r of runs){
+    let cur = '';
+    for(const ch of r.t){
+      const cw = measure(ch, r.st);
+      if(lineW + cw > maxW && lineW > 0){ put(r.st, cur); cur = ''; out.push([]); lineW = 0; }
+      cur += ch; lineW += cw;
+    }
+    put(r.st, cur);
+  }
+  if(out.length > maxLines){
+    out.length = maxLines;
+    const last = out[maxLines - 1];
+    if(last.length) last[last.length - 1].t = last[last.length - 1].t.replace(/.$/, '\u2026');
+    else last.push({ t: '\u2026', st: {} });
+  }
+  return out;
+}
+function tsPngFont(st, fs, fw){ return tsFontWeight(st, fw) + ' ' + tsFontSize(st, fs) + 'px ' + uiFontStack(); }
+/* 有些环境（含测试桩）拿不到 2d 上下文的实测宽度 —— 退回估算，绝不因样式导出崩页 */
+function tsMeasureW(ctx, text, fs){
+  const m = (ctx && typeof ctx.measureText === 'function') ? ctx.measureText(text) : null;
+  return (m && typeof m.width === 'number' && isFinite(m.width)) ? m.width : estTextW(text, fs || 11.5);
+}
+function tsSvgStyle(st, fs, fw, fill){
+  if(!tsHas(st)) return '';
+  let a = '';
+  if(st.fs) a += 'font-size:' + svgNum(tsFontSize(st, fs)) + 'px;';
+  if(st.b)  a += 'font-weight:700;';
+  if(st.i)  a += 'font-style:italic;';
+  const dec = [];
+  if(st.u) dec.push('underline');
+  if(st.s) dec.push('line-through');
+  if(dec.length) a += 'text-decoration:' + dec.join(' ') + ';';
+  if(st.c)  a += 'fill:' + tsColorHex(st, fill) + ';';
+  return a;
+}
+/* Word：无样式返回 null，让调用方保持原来的 rPr 字符串；有样式才追加白名单属性。
+   追加在 base 之后 —— OOXML 里后出现的同名属性生效，既有「完成态 / 超链接」观感不丢。 */
+function tsDocxRPr(st, base, sz){
+  if(!tsHas(st)) return null;
+  const c = tsColorHex(st, ''), s2 = Math.max(8, Math.round(sz * (1 + (st.fs || 0) * 0.1)));
+  return base + (st.b ? '<w:b/>' : '') + (st.i ? '<w:i/>' : '') +
+         (st.u ? '<w:u w:val="single"/>' : '') + (st.s ? '<w:strike/>' : '') +
+         (c ? '<w:color w:val="' + c.slice(1).toUpperCase() + '"/>' : '') +
+         '<w:sz w:val="' + s2 + '"/><w:szCs w:val="' + s2 + '"/>';
+}
+function tsPptRPr(st, p){
+  const sz = Math.max(100, Math.round((p.sz || 1800) * (1 + (st.fs || 0) * 0.1)));
+  const color = tsColorHex(st, p.color || '1F2328').replace('#', '').toUpperCase();
+  return '<a:rPr lang="zh-CN" altLang="en-US" sz="' + sz + '" b="' + ((p.b || st.b) ? 1 : 0) +
+         '"' + (st.i ? ' i="1"' : '') + (st.u ? ' u="sng"' : (st.s ? ' u="sngStrike"' : '')) +
+         ' dirty="0"><a:solidFill><a:srgbClr val="' + color + '"/></a:solidFill></a:rPr>';
+}
+/* ---- v57 P2：行内片段的读写 ----
+   rich 里只存「片段相对增量」，绝不存合并后的样子 —— 否则用户后来改全局字号，
+   旧片段会把当时的样式冻住，L1/L2 就再也调不动它了。 */
+function tsSameSt(a, b){
+  return ['b','i','u','s','fs','c'].every(k => (a && a[k] || 0) === (b && b[k] || 0));
+}
+function tsRawRuns(o, key){
+  const plain = plainText(o, key);
+  const rs = (o && Array.isArray(o.rich)) ? tsRichNorm(o.rich, plain) : null;
+  return rs || [{ t: plain }];
+}
+/* 把 [a,b) 的字符样式按 mut 改掉，重折成片段；返回新的 rich（无样式则删掉字段）。 */
+function tsApplyRange(o, key, a, b, mut){
+  const plain = plainText(o, key), len = plain.length;
+  a = Math.max(0, Math.min(len, Math.floor(Number(a) || 0)));
+  b = Math.max(a, Math.min(len, Math.floor(Number(b) || 0)));
+  if(b <= a || !mut) return null;
+  const styles = [];
+  for(const r of tsRawRuns(o, key)){
+    const st = tsNorm(r);
+    for(let i = 0; i < r.t.length && styles.length < len; i++) styles.push(Object.assign({}, st));
+  }
+  for(let i = a; i < b && i < len; i++){
+    const one = Object.assign({}, styles[i] || {});
+    mut(one);
+    styles[i] = tsNorm(one);
+  }
+  const out = [];
+  for(let i = 0; i < len; i++){
+    const st = styles[i] || {};
+    if(out.length && tsSameSt(out[out.length - 1], st)) out[out.length - 1].t += plain[i];
+    else { const one = Object.assign({}, st); one.t = plain[i]; out.push(one); }
+  }
+  if(!tsRichHasStyle(out)) delete o.rich;
+  else o.rich = out;
+  return o.rich || null;
+}
+/* 选区里出现过的样式（合并后），给浮选工具栏点亮按钮用 */
+function tsStyleAt(o, key, kind, a, b){
+  const runs = textRunsOf(o, key, kind), out = {};
+  let pos = 0;
+  for(const r of runs){
+    for(let i = 0; i < r.t.length; i++, pos++){
+      if(pos >= a && pos < b)
+        ['b','i','u','s','fs','c'].forEach(k => { if(r.st[k]) out[k] = r.st[k]; });
+    }
+  }
+  return out;
+}
+/* 文字被外部入口改掉时，rich 拼接必然不再恒等 —— 主动丢弃，宁可丢样式不可丢字。
+   返回是否真的丢了样式，供调用方给一句可见提示。 */
+function tsTextChanged(n, text){
+  if(!n) return false;
+  const had = tsRichHasStyle(tsRawRuns(n, 'text'));
+  n.text = text;
+  if(had || n.rich) delete n.rich;
+  return had;
+}
+/* ---- v58 P3：降级导出的可见提示 ----
+   Markdown / OPML / XMind / Excel / 复制为文本都只有纯文字通道，装不下行内片段。
+   静默丢样式最难被发现，所以只在「导图里真的有样式」时给一句 toast，
+   并且在导出面板上给这四种格式挂「纯文字」角标（用户点之前就看得见）。 */
+const TS_LOSSY = /^(md|opml|xmind|xlsx|copytext)$/;
+function tsHasAnyRich(t){
+  if(!t) return false;
+  let found = false;
+  (function w(n){
+    if(found || !n) return;
+    if(tsRichHasStyle(tsRawRuns(n, 'text')) || (n.bd && tsRichHasStyle(tsRawRuns(n.bd, 't')))){
+      found = true; return;
+    }
+    (n.children || []).forEach(w);
+  })(t);
+  if(found) return true;
+  if((t.groups || []).some(g => tsRichHasStyle(tsRawRuns(g, 't')))) return true;
+  if((t.links  || []).some(l => tsRichHasStyle(tsRawRuns(l, 't')))) return true;
+  return false;
+}
+function tsLossyWarn(fmt){
+  if(!TS_LOSSY.test(String(fmt || ''))) return false;
+  if(!tsHasAnyRich(root)) return false;
+  toast(tr('该格式只导出纯文字，行内样式不会保留；要保住样式请用 JSON / 独立网页 / Word / PPT / PNG / SVG'));
+  return true;
+}
+/* ================= v56 模型结束 ================= */
+
 function build(src, depth){
   const n = {
     text: src.text, color: src.color || null, note: src.note || '', depth, parent: null,
@@ -3722,13 +4383,19 @@ function build(src, depth){
     children: (src.children || []).map(c => build(c, depth + 1)),
     collapsed: (src.collapsed !== undefined) ? !!src.collapsed : (depth >= 2 && (src.children || []).length > 0)
   };
+  const __nf = tsNorm(src.font); if(tsHas(__nf)) n.font = __nf;
+  const __nr = tsRichNorm(src.rich, n.text); if(__nr && tsRichHasStyle(__nr)) n.rich = __nr;
   if(src.done === true) n.done = true;                 // N2：只认严格的 true，别把 "false" 字符串当完成
   /* N3：链接原样收下（哪怕是 javascript: 也不在打开时丢数据），
      「能不能用」由 linkKind/linkHref 在**渲染与导出那一刻**判 —— 挡住的是输出，不是数据。 */
   if(linkNorm(src.link)) n.link = linkNorm(src.link);
   /* N8：外框 { t:标题, c:颜色 }。挂在节点上 —— 删节点，框自然没了，不需要任何引用清理。
      颜色只收 6 位十六进制（它要被写进 style，不能让外部文件塞进任意字符串）。 */
-  if(src.bd && typeof src.bd === 'object') n.bd = { t: bdTitle(src.bd.t), c: bdColor(src.bd.c) };
+  if(src.bd && typeof src.bd === 'object'){
+    n.bd = { t: bdTitle(src.bd.t), c: bdColor(src.bd.c) };
+    const bf = tsNorm(src.bd.font); if(tsHas(bf)) n.bd.font = bf;
+    const br = tsRichNorm(src.bd.rich, n.bd.t); if(br && tsRichHasStyle(br)) n.bd.rich = br;
+  }
   /* N9：分组框成员标记 —— 节点上只存一个组 id，组定义在根节点的 groups 里。
      指向不存在的组时由 normGroups() 丢掉；粘贴出来的子树天然落在这一类
      （粘贴只带节点、不带根上的 groups），所以「复制出来的不带组」不需要额外写一行。 */
@@ -3751,6 +4418,9 @@ function build(src, depth){
                           /* v51：切向偏移（弧顶沿弦方向左右挪），净化口径与 bend 完全一致 */
                           if(typeof l.shift === 'number' && isFinite(l.shift))
                             one.shift = Math.round(clamp(l.shift, -900, 900) * 10) / 10;
+                          /* v58 P3：联系说明也支持行内片段，净化口径与 bd / groups 一致 */
+                          const lf = tsNorm(l.font); if(tsHas(lf)) one.font = lf;
+                          const lr = tsRichNorm(l.rich, one.t); if(lr && tsRichHasStyle(lr)) one.rich = lr;
                           return one;
                         });
     if(ls.length) n.links = ls;
@@ -3775,9 +4445,16 @@ function serialize(n){
   if(n.note) o.note = n.note;
   if(n.color) o.color = n.color;
   if(n.mark) o.mark = n.mark;
+  if(tsHas(n.font)) o.font = tsNorm(n.font);
+  if(Array.isArray(n.rich) && n.rich.length && tsRichHasStyle(n.rich)) o.rich = n.rich.map(r => Object.assign({}, r));
   if(n.done === true) o.done = true;                   // N2：没勾的节点不长这个字段
   if(linkNorm(n.link)) o.link = linkNorm(n.link);      // N3：没挂链接的节点同样不长这个字段
-  if(n.bd) o.bd = { t: bdTitle(n.bd.t), c: bdColor(n.bd.c) };   // N8：外框随子树一起复制 / 克隆 / 粘贴
+  if(n.bd){
+    o.bd = { t: bdTitle(n.bd.t), c: bdColor(n.bd.c) };
+    if(tsHas(n.bd.font)) o.bd.font = tsNorm(n.bd.font);
+    if(Array.isArray(n.bd.rich) && n.bd.rich.length && tsRichHasStyle(n.bd.rich))
+      o.bd.rich = n.bd.rich.map(r => Object.assign({}, r));
+  }   // N8：外框随子树一起复制 / 克隆 / 粘贴
   if(n.sum) o.sum = { a: n.sum.a, b: n.sum.b };                 // P2：概要随子树一起走（区间是相对父节点算的）
   if(n.gb) o.gb = n.gb;                                         // N9：组成员标记（组定义只在根上，见下一行）
   if(n.uid) o.uid = n.uid;                                       // N11：联系端点的稳定 id（只有当端点时才发）
@@ -3796,11 +4473,19 @@ function serialize(n){
       const one = { id: l.id, t: bdTitle(l.t), a: { k: l.a.k, id: l.a.id }, b: { k: l.b.k, id: l.b.id } };
       if(typeof l.bend === 'number' && isFinite(l.bend)) one.bend = l.bend;   // N11-b：拖出来的法线弧度
       if(typeof l.shift === 'number' && isFinite(l.shift)) one.shift = l.shift; // v51：拖出来的切向偏移
+      if(tsHas(l.font)) one.font = tsNorm(l.font);                              // v58 P3
+      if(Array.isArray(l.rich) && l.rich.length && tsRichHasStyle(l.rich))
+        one.rich = l.rich.map(r => Object.assign({}, r));
       return one;
     });
   }
   if(n.groups && n.groups.length){                              // N9：分组框定义挂根节点 —— 不进撤销以外的任何地方
-    o.groups = n.groups.map(g => ({ id: g.id, t: bdTitle(g.t), c: bdColor(g.c) }));
+    o.groups = n.groups.map(g => {
+      const q = { id: g.id, t: bdTitle(g.t), c: bdColor(g.c) };
+      if(tsHas(g.font)) q.font = tsNorm(g.font);
+      if(Array.isArray(g.rich) && g.rich.length && tsRichHasStyle(g.rich)) q.rich = g.rich.map(r => Object.assign({}, r));
+      return q;
+    });
   }
   if(n.children.length){ o.collapsed = !!n.collapsed; o.children = n.children.map(serialize); }
   return o;
@@ -3946,7 +4631,7 @@ function jumpTo(kind, idx){
 
 /* ---------- 外观偏好：主题 / 底纹 / 配色 / 显示层级 ---------- */
 function savePrefs(){
-  try{ localStorage.setItem(PREFS_KEY, JSON.stringify({ theme, bgStyle, paletteKey, viewDepth, layoutMode, hintOn, saveViaDialog, fontKey, nodeFsKey, nodeWeightKey, nodeWKey, expFmt, arrowChain: arrowChainPref, lang })); }catch(e){}
+  try{ localStorage.setItem(PREFS_KEY, JSON.stringify({ theme, bgStyle, paletteKey, viewDepth, layoutMode, hintOn, saveViaDialog, fontKey, nodeFsKey, nodeWeightKey, nodeWKey, expFmt, arrowChain: arrowChainPref, fontStyle: fontPref, hdrPrimary: hdrPrimaryPref, lang })); }catch(e){}
 }
 /* 偏好归一化：补全缺省值 + 把历史遗留的取值映射成当前有效的选项。
    放在 loadPrefs 出口统一处理 —— 任何来源（localStorage / 导出 HTML 上的属性）都走同一套规则。 */
@@ -3967,6 +4652,10 @@ function normalizePrefs(p){
   if(!LAYOUT_KEYS.test(p.layoutMode || '')) p.layoutMode = 'mind';
   /* v40：语言同样只是偏好，不进 serialize()，也不压撤销栈 */
   if(!LANG_OK.test(p.lang || '')) p.lang = 'zh';
+  /* v56：文字样式偏好走同一套净化，外部 JSON / 旧存档 / 导出 HTML 属性都不许带进脏值 */
+  p.fontStyle = tsPrefNorm(p.fontStyle);
+  /* v62：常驻按钮名单同样净化 —— 只认名册里的 id、去重、保序 */
+  p.hdrPrimary = hdrNormPrimary(p.hdrPrimary);
   return p;
 }
 function loadPrefs(){
@@ -3979,7 +4668,8 @@ function loadPrefs(){
   if(d.theme || d.bg || d.palette) return normalizePrefs({ theme: d.theme, bgStyle: d.bg, paletteKey: d.palette, viewDepth: 0,
     layoutMode: d.layout || 'mind',
     hintOn: d.hint !== 'off', fontKey: d.font || 'clear', nodeFsKey: d.nodefs || 'm', nodeWeightKey: d.weight || 'level',
-    nodeWKey: d.nodew || 'm' });
+    nodeWKey: d.nodew || 'm',
+    fontStyle: d.fontstyle ? (function(){ try{ return JSON.parse(decodeURIComponent(d.fontstyle)); }catch(e){ return null; } })() : null });
   return null;
 }
 function applyPrefs(){
@@ -3997,6 +4687,8 @@ function applyPrefs(){
   d.setAttribute('data-nodefs', nodeFsKey || 'm');
   d.setAttribute('data-weight', nodeWeightKey || 'level');
   d.setAttribute('data-nodew', nodeWKey || 'm');
+  /* v56：独立 HTML 导出时偏好随 <html> 属性走（encodeURIComponent 避开属性里的引号） */
+  d.setAttribute('data-fontstyle', encodeURIComponent(JSON.stringify(fontPref)));
   /* 布局用的列宽跟着走：auto 档由 render 按实测宽度算，这里给个兜底值 */
   NODE_W = NODE_W_PRESETS[nodeWKey] || 260;
   const cb = document.getElementById('e-saveas');
@@ -4007,7 +4699,10 @@ function applyPrefs(){
 /* 左下角使用指南：收起后只剩一个「?」小圆点，鼠标移过去会临时展开 */
 function applyHint(){
   const h = document.getElementById('hint');
-  if(h) h.classList.toggle('collapsed', !hintOn);
+  if(h){
+    h.classList.toggle('collapsed', !hintOn);
+    if(hintOn) h.classList.remove('locked');   // v59：重新展开时清掉收起锁
+  }
   const b = document.getElementById('btn-hint');
   if(b){
     b.textContent = hintOn ? tr('隐藏指南') : tr('指南');
@@ -4396,16 +5091,18 @@ function restoreEditing(s){
    不能用 scrollHeight 判：-webkit-line-clamp 下它跟 clientHeight 只差 0~1px，亚像素舍入一变就漏判。
    改成拿一个隐藏容器按同样的宽度 / 字号量一遍「不截断时的高度」再比较。
    先做一次廉价的字符串估算过滤掉绝大多数节点，避免大导图每次渲染都要重排几百次。 */
-function txtClipped(t, text){
+function txtClipped(t, text, st){
   const m = document.getElementById('meas');
   if(!m || !t) return false;
   const cs = getComputedStyle(t);
   const cw = t.clientWidth || 0;
+  /* v56：行内片段可以把字号放大到 130%，量具必须跟着放大，否则「明明截断了却不给 ⋯ 角标」 */
+  const scale = 1 + ((st && st.fs) || 0) * 0.1;
   /* 宽度还没定下来（比如刚 append、这一层要等布局后才统一宽度）就别判：
      按 0 宽去量，任何两三个字都会被折成两行，于是「装得下」的短标签
      （英文里的 QA / R&D 这种）也会被盖上 ⋯ 角标。 */
   if(!cw) return false;
-  const fs = parseFloat(cs.fontSize) || 13.5;
+  const fs = (parseFloat(cs.fontSize) || 13.5) * scale;
   /* 单行且没有横向溢出 → 一定没被截断（clamp 截的只会是多行）。
      这条还挡住一类误判：`.txt` 会按内容收缩，遇到「QA」这种极短标签只有 20px 宽，
      量具按同一个 20px 去排版会折成两行，于是明明一行放得下的短标签也被盖上 ⋯。 */
@@ -4414,7 +5111,7 @@ function txtClipped(t, text){
   const perLine = Math.max(1, Math.floor(cw / (fs * 0.98)));   // 按中文字宽≈字号估，英文只会更宽松
   if(String(text).length + 2 < perLine * 4) return false;      // 显然装得下，不必量
   m.style.width        = cw + 'px';
-  m.style.fontSize     = cs.fontSize;
+  m.style.fontSize     = scale === 1 ? cs.fontSize : (fs + 'px');
   m.style.fontWeight   = cs.fontWeight;
   m.style.fontFamily   = cs.fontFamily;
   m.style.lineHeight   = cs.lineHeight;
@@ -4616,7 +5313,9 @@ function findReplaceAll(repl){
     return 0;
   }
   pushUndo(trf('批量替换 {n} 处', { n: plan.length }));
-  plan.forEach(p => { p[0].text = p[1]; });
+  let drop1 = 0;
+  plan.forEach(p => { if(tsTextChanged(p[0], p[1])) drop1++; });
+  if(drop1) toast(trf('有 {n} 个节点的行内样式随文字改动被清除', { n: drop1 }));
   save();
   /* 重算命中：换成新词以后，原来的命中可能已经不再命中了（这里不弹「没有找到」） */
   findQuery = q; findIdx = -1;
@@ -4730,7 +5429,9 @@ function bulkApply(f, what){
   });
   if(!plan.length){ toast(trf('这 {n} 个节点里，没有可{what}的', { n: targets.length, what: tr(what) })); return 0; }
   pushUndo(trf('批量{what} · {n} 个节点', { what: clip(tr(what), 20), n: plan.length }));
-  plan.forEach(p => { p[0].text = p[1]; });
+  let drop2 = 0;
+  plan.forEach(p => { if(tsTextChanged(p[0], p[1])) drop2++; });
+  if(drop2) toast(trf('有 {n} 个节点的行内样式随文字改动被清除', { n: drop2 }));
   save();
   /* 命中集不用在这里手动重算 —— render() 开头就会 if(findQuery) findCompute()，一处口径 */
   render();
@@ -4799,7 +5500,8 @@ function bulkMerge(){
   const list = roots.slice().sort((a, b) => idx.get(a) - idx.get(b));
   const keep = list[0];
   pushUndo(trf('合并 {n} 个节点', { n: list.length }));
-  keep.text = list.map(n => n.text).join(joiner);
+  const merged = list.map(n => n.text).join(joiner);
+  if(tsTextChanged(keep, merged)) toast(tr('合并后原节点的行内样式已清除'));
   list.slice(1).forEach(n => {
     n.children.forEach(c => { c.parent = keep; keep.children.push(c); });
     n.children = [];
@@ -4917,7 +5619,11 @@ function outlineEditStart(holder, n){
     if(done) return; done = true;
     if(keep){
       const v = inp.value.trim();
-      if(v && v !== n.text){ pushUndo(trf('在大纲里改名：{x}', { x: clip(v, 14) })); n.text = v; save(); }
+      if(v && v !== n.text){
+        pushUndo(trf('在大纲里改名：{x}', { x: clip(v, 14) }));
+        if(tsTextChanged(n, v)) toast(tr('改名后原节点的行内样式已清除'));
+        save();
+      }
     }
     render();                                           // render() 里会顺带重画大纲
   };
@@ -5873,6 +6579,29 @@ function renderSoon(){
   if(renderQueued) return;                     // 本帧已经排过队 —— 这次请求合并掉
   renderQueued = rafCall(() => { renderQueued = 0; render(); });
 }
+/* v61：启动几何复核 ------------------------------------------------------
+   render() 里的 n.w / n.h 来自 DOM 实测，而 contentRect() → keepOutFrameRect()
+   → bdFrameBox() / gbFrameBox() 这条唯一的框几何链全读这两个数。启动那一串
+   render() 都在 <script> 同步执行期间跑完，那一刻图片解码、字体度量、顶栏高度
+   （v60 的 ResizeObserver 会改 stage.style.top）、滚动条或 CSS 变量都还可能没落地。
+   首帧量到的尺寸一旦与最终布局不符，外框 / 分组框就按错的尺寸画，而且之后
+   没有任何复核 —— 用户看到的正是「刷新后插图节点压住框线，动一下又正常，
+   再刷新又不一定」。
+   这里在资源落地后做一次**带尺寸校验**的幂等复核：只有 DOM 实测与 render 记录的
+   尺寸真的不一致，才补一次 renderSoon()（rAF 合并，render 仍同步）。尺寸一致时
+   什么都不做 —— 正常启动零视觉变化；重渲后尺寸就一致了，天然收敛，不会连渲。
+   宽度用 offsetWidth（render 不写 style.width，能反映布局变化）；高度因为 render
+   会写 style.height 锁死，改用 scrollHeight 与当次记录的 n.__sh 比对。 */
+function geomStableRecheck(){
+  if(!root || !flat || !flat.length) return;
+  for(const n of flat){
+    const el = n.el;
+    if(!el || !el.isConnected) continue;
+    const w = el.offsetWidth, h = el.scrollHeight;
+    if(w > 0 && Math.abs(w - (n.w || 0)) > 0.5) { renderSoon(); return; }
+    if(h > 0 && n.__sh && Math.abs(h - n.__sh) > 0.5) { renderSoon(); return; }
+  }
+}
 function cancelRenderSoon(){
   if(!renderQueued) return false;
   cafCall(renderQueued);
@@ -5918,11 +6647,13 @@ function render(){
     flat.forEach(n => {
       n.h = Math.max(n.el.offsetHeight, MIN_H);
       n.w = n.el.offsetWidth || NODE_W;              // auto 档按内容伸缩；jsdom 里量不到就退回默认宽
+      n.__sh = n.el.scrollHeight;                    // v61：内容自然高度，供启动后的几何复核比对
     });
     /* 文字被 clamp 截断时打角标 —— 之前是静默吃掉，用户根本不知道有字没显示 */
     flat.forEach(n => {
       const t = n.el.querySelector('.txt');
-      if(t && txtClipped(t, n.text)) n.el.classList.add('clipped');
+      /* v59：styled 节点不限行，不会截断，自然也不该挂 ⋯ 角标 */
+      if(t && !n.el.classList.contains('styled') && txtClipped(t, n.text, tsOf('node', n))) n.el.classList.add('clipped');
     });
     /* 列起点：按每层实测最宽节点推算（固定档位时各列等宽，结果与旧的 depth*(NODE_W+GAP_X) 完全一致） */
     const colW = [];
@@ -5947,6 +6678,10 @@ function render(){
     rebuildingDOM = false;
   }
   restoreEditing(__ed);
+  tsSyncBar();                       // v57：重画后按接回的选区重新定位浮选工具栏
+  /* v58 P3：文字样式面板开着时，外面改了字 / 切了语言，行内片段区也要跟着重画 */
+  const __fsp = document.getElementById('fontstyle');
+  if(__fsp && __fsp.classList.contains('show')) tsInlineSync();
   if(outlineOpen) renderOutline();     // B4：画布一有变化，右侧大纲跟着重画
   if(statsEl && statsEl.classList.contains('show')) renderStats();   // B8：统计面板开着就实时刷新
   mmSchedule();                        // B5：缩略图跟着重画
@@ -6039,9 +6774,11 @@ function makeEl(n){
     el.style.borderLeftColor = sk.bl;
     el.style.background     = sk.bg;
   }
-  el.innerHTML = '<div class="txt">' + escapeHtml(n.text) + '</div>' +
+  el.innerHTML = '<div class="txt"></div>' +
                  '<div class="clipmark" title="' + tr('文字被截断，双击节点可查看 / 编辑完整内容') + '">⋯</div>' +
                  (n.note ? '<div class="notemark" title="' + escapeHtml(trf('备注：{x}', { x: clip(n.note, 120) })) + '">✎</div>' : '');
+  if(tsStyledNode(n)) el.classList.add('styled');   // v59：有字样的节点不限行
+  renderRuns(el.querySelector('.txt'), n, 'text', 'node');
   /* N12：有图就把缩略图插到最前面（.hasimg 把节点改成上下两段；没有文字时 .txt 是空的，
      CSS 里 :empty 直接不占位）。图挂在 n.img 上 —— 复制 / 粘贴 / 撤销 / 存档全自动带上。 */
   if(n.img){
@@ -6054,6 +6791,10 @@ function makeEl(n){
     im.setAttribute('src', n.img.src);
     im.setAttribute('alt', n.img.n || tr('图片'));
     im.setAttribute('draggable', 'false');
+    /* v61：缩略图是每次 render 重建的，旧监听随旧元素一起消失，不会堆积。
+       图片解码晚于首帧时补一次尺寸校验，尺寸没变就什么都不做。 */
+    im.addEventListener('load', geomStableRecheck, { once:true });
+    im.addEventListener('error', geomStableRecheck, { once:true });
     th.appendChild(im);
     th.__node = n;
     el.insertBefore(th, el.firstChild);
@@ -6316,7 +7057,7 @@ function renderFrames(){
     d.setAttribute('aria-label', n.bd.t ? trf('外框「{t}」', { t: n.bd.t }) : tr('外框'));
     const lb = document.createElement('div');
     lb.className = 'bdft' + (n.bd.t ? '' : ' ph');
-    lb.textContent = n.bd.t || tr('外框标题（双击改）');
+    if(n.bd.t) renderRuns(lb, n.bd, 't', 'bd'); else lb.textContent = tr('外框标题（双击改）');
     lb.style.color = frameEdge(col);
     lb.style.border = '1px solid ' + hexA(col, 0.55);
     lb.dataset.fi = i;                       // 反查：右键「编辑标题」靠它找到这一颗
@@ -6336,7 +7077,7 @@ function bdExportFrames(oy){
     const B = bdFrameBox(n);        // 与屏幕同一份几何（含子框 + v55 框沿避让）
     return {
       x: B.x, y: B.y + dy, w: B.w, h: B.h,
-      col: bdColorOf(n), title: n.bd.t || ''
+      col: bdColorOf(n), title: n.bd.t || '', runs: tsStyledRuns(n.bd, 't', 'bd')
     };
   });
 }
@@ -6390,6 +7131,7 @@ function editBdTitle(n, lb){
   editLabel(lb, n.bd.t || '', v => {
     pushUndo(trf('改外框标题：{x}', { x: clip(n.bd.t || tr('外框'), 12) }));
     n.bd.t = v;
+    delete n.bd.rich;             // v56：同上，标题变了就丢旧片段索引
     save();
   });
 }
@@ -6398,6 +7140,7 @@ function editGbTitle(g, lb){
   editLabel(lb, g.t || '', v => {
     pushUndo(trf('改分组框标题：{x}', { x: clip(g.t || tr('分组框'), 12) }));
     g.t = v;
+    delete g.rich;                // v56：同上
     save();
   });
 }
@@ -6451,7 +7194,14 @@ function normGroups(tree){
     const id = String(g.id == null ? '' : g.id);
     if(!/^[A-Za-z0-9_-]{1,24}$/.test(id) || seen.has(id)) return;   // 重复 id 只留第一个
     seen.add(id);
-    keep.push({ id, t: bdTitle(g.t), c: bdColor(g.c) });
+    /* v56：组标题的整段样式 / 行内片段与 id、t、c 一样要活着过这次重建。
+       仍走 tsNorm / tsRichNorm 白名单，外部 JSON 塞不进任意颜色或字号。 */
+    const gt = bdTitle(g.t);
+    const one = { id, t: gt, c: bdColor(g.c) };
+    const gf = tsNorm(g.font); if(tsHas(gf)) one.font = gf;
+    const gr = g.rich ? tsRichNorm(g.rich, gt) : null;
+    if(gr && tsRichHasStyle(gr)) one.rich = gr;
+    keep.push(one);
   });
   const members = new Map();
   (function w(n){
@@ -6520,7 +7270,7 @@ function renderGroupFrames(frag){
     d.setAttribute('aria-label', g.t ? trf('分组框「{t}」', { t: g.t }) : tr('分组框'));
     const lb = document.createElement('div');
     lb.className = 'gbft' + (g.t ? '' : ' ph');
-    lb.textContent = g.t || tr('分组框标题（双击改）');
+    if(g.t) renderRuns(lb, g, 't', 'gb'); else lb.textContent = tr('分组框标题（双击改）');
     lb.style.color = frameEdge(col);
     lb.style.border = '1px solid ' + hexA(col, 0.55);
     lb.dataset.gi = g.id;
@@ -6546,7 +7296,7 @@ function gbExportFrames(oy){
     if(!B) return null;
     return {
       x: B.x, y: B.y + dy, w: B.w, h: B.h,
-      col: gbColorOf(g), title: g.t || ''
+      col: gbColorOf(g), title: g.t || '', runs: tsStyledRuns(g, 't', 'gb')
     };
   }).filter(Boolean);
 }
@@ -6979,7 +7729,8 @@ function renderLinkLabels(){
     d.dataset.lk = lk.id;
     const tx = document.createElement('span');
     tx.className = 'rlkt';
-    tx.textContent = lk.t || tr('联系（双击写说明）');
+    if(lk.t) renderRuns(tx, lk, 't', 'node');       // v58 P3：联系说明支持行内片段
+    else tx.textContent = tr('联系（双击写说明）');
     const x = document.createElement('span');
     x.className = 'rlkx';
     x.textContent = '×';
@@ -8608,6 +9359,7 @@ function copyAsText(n, mode){
   n = n || selected;
   if(!n){ toast(tr('请先选中一个节点')); return ''; }
   if(editing) commitEdit();
+  tsLossyWarn(mode === 'md' ? 'md' : 'copytext');
   const s = (mode === 'md') ? subtreeToMd(n) : subtreeToText(n);
   const ok = writeTextClipboard(s);
   const what = (mode === 'md') ? 'Markdown' : tr('缩进文本');
@@ -8815,7 +9567,270 @@ function ensureVisible(n){
   if(top  < 16 || bottom > H - 16) ty = H / 2 - n.y * scale;
   applyTransform();
 }
+/* =====================================================================
+   v62 顶栏：A 方案「单行命令栏」
+   ---------------------------------------------------------------------
+   顶栏只有一行：品牌 + 常驻命令按钮（用户自定义，默认 8 个）+ 右侧「⋯ / ⚙ / EN」。
+   9 个设置下拉整体搬进「⚙ 外观与视图」抽屉；其余命令住进「⋯ 更多工具」面板
+   （按功能分组 + 顶部筛选框 + 「自定义常用按钮」入口）。
+   常驻按钮在当前宽度放不下时，从用户顺序的队尾开始逐个退回更多面板；
+   每次重算都先 hdrAssign() 全量归位再量 —— 窗口拉宽后按钮自然回栏，
+   v60.1 的教训（绝不按宽度缓存提前 return）继续有效。
+   搬的是 DOM 节点不是克隆 —— id 唯一、事件监听不丢、getElementById 照常可用。
+   jsdom 没有真实布局（scrollWidth 恒 0），收拢循环整体跳过，静态 DOM 保持默认。
+   ===================================================================== */
+const hdrBar   = document.getElementById('primary-bar');
+const hdrRowEl = document.getElementById('hrow-main');
+const hdrMoreBtn = document.getElementById('btn-more');
+const hdrMorePanel = document.getElementById('morepanel');
+/* 上次重算的「宽|语言|窄屏」签名，只作诊断记录，不是跳过重算的门闩 */
+let hdrLastKey = '';
+let hdrReTimer = 0;
+/* 按偏好装配工具栏：勾选的常驻按钮按用户顺序进 #primary-bar，
+   其余命令按名册顺序回到「⋯ 更多工具」里各自的分组。 */
+function hdrAssign(){
+  if(!hdrBar || !hdrMorePanel) return;
+  hdrPrimaryPref = hdrNormPrimary(hdrPrimaryPref);
+  /* 先按名册把全部命令按钮的引用抓到手 —— 命令池一旦 replaceChildren，
+     按钮就脱离文档，getElementById 从此找不到它们（真浏览器与 jsdom 皆然），
+     先清后找等于把 34 个按钮全部删掉。顺序绝不能反。 */
+  const byId = {};
+  HDR_CMDS.forEach(c => { byId[c.id] = document.getElementById(c.id); });
+  hdrBar.replaceChildren();
+  hdrPrimaryPref.forEach(id => {
+    const el = byId[id];
+    if(el) hdrBar.appendChild(el);
+  });
+  const inBar = new Set(hdrPrimaryPref);
+  const pools = {};
+  hdrMorePanel.querySelectorAll('.mp-items').forEach(box => {
+    box.replaceChildren();
+    pools[box.dataset.grp] = box;
+  });
+  HDR_CMDS.forEach(c => {
+    if(inBar.has(c.id)) return;
+    const el = byId[c.id];
+    const pool = pools[c.grp];
+    if(el && pool) pool.appendChild(el);
+  });
+}
+/* 把栏里排最后的常驻按钮退回它所属的更多面板分组。 */
+function hdrDemoteOne(){
+  const kids = hdrBar.children;
+  if(!kids.length) return false;
+  const last = kids[kids.length - 1];
+  const cmd = HDR_CMDS.find(c => c.id === last.id);
+  if(!cmd) return false;
+  const pool = hdrMorePanel.querySelector('.mp-items[data-grp="' + cmd.grp + '"]');
+  if(!pool) return false;
+  pool.appendChild(last);
+  return true;
+}
+function hdrBalance(quiet){
+  if(!hdrMoreBtn || !hdrMorePanel) return;
+  const narrow = window.innerWidth <= 760;
+  hdrLastKey = window.innerWidth + '|' + lang + '|' + narrow;
+  hdrAssign();
+  /* 收拢只在真浏览器里进行：jsdom 的 scrollWidth 恒 0 量不出溢出；
+     窄屏走抽屉，栏里那几个常驻按钮怎么都放得下。 */
+  if(narrow || !hdrRowEl || !(hdrRowEl.scrollWidth > hdrRowEl.clientWidth + 1)){
+    hdrMoreBtn.setAttribute('aria-expanded', hdrMorePanel.classList.contains('open') ? 'true' : 'false');
+    hdrQueueRecheck(quiet);
+    return;
+  }
+  /* 溢出时从队尾开始退：队尾是用户排在最后的，最不心疼。
+     退一个量一次 —— DOM 改动同步触发重排，scrollWidth 立刻反映新宽度。 */
+  let guard = 0;
+  while(guard++ < HDR_CMDS.length + 2 && hdrRowEl.scrollWidth > hdrRowEl.clientWidth + 1){
+    if(!hdrDemoteOne()) break;
+  }
+  hdrMoreBtn.setAttribute('aria-expanded', hdrMorePanel.classList.contains('open') ? 'true' : 'false');
+  hdrQueueRecheck(quiet);
+}
+/* 布局稳定后的幂等复核：不能只比较容器宽度 —— resize 事件常早于布局落地，
+   那一帧量到的行宽属于中间态。无条件再算一次，quiet 让复核自己不再排队，
+   收敛到一次为止。 */
+function hdrQueueRecheck(quiet){
+  if(quiet) return;
+  clearTimeout(hdrReTimer);
+  hdrReTimer = setTimeout(() => {
+    hdrReTimer = 0;
+    hdrLastKey = '';
+    hdrBalance(true);
+  }, 80);
+}
+if(hdrMoreBtn){
+  hdrMoreBtn.onclick = e => {
+    e.stopPropagation();
+    /* 打开时清掉上次的筛选词，别让用户对着一个被过滤得只剩两项的面板发愣 */
+    if(!hdrMorePanel.classList.contains('open')) mpFilterApply('');
+    const mpf = document.getElementById('mp-filter');
+    if(mpf) mpf.value = '';
+    const open = hdrMorePanel.classList.toggle('open');
+    hdrMoreBtn.setAttribute('aria-expanded', String(open));
+  };
+  document.addEventListener('click', e => {
+    if(!hdrMorePanel.classList.contains('open')) return;
+    if(hdrMorePanel.contains(e.target) || hdrMoreBtn.contains(e.target)) return;
+    hdrMorePanel.classList.remove('open');
+    hdrMoreBtn.setAttribute('aria-expanded', 'false');
+  });
+  /* 点了面板里的任何一个命令按钮，面板顺手收起 —— 命令已执行，菜单不必挡视线 */
+  hdrMorePanel.addEventListener('click', e => {
+    if(!e.target.closest('.mp-items .btn')) return;
+    hdrMorePanel.classList.remove('open');
+    hdrMoreBtn.setAttribute('aria-expanded', 'false');
+  });
+  /* resize 事件可能早于布局稳定：innerWidth 已是新值、容器 clientWidth 还是旧的，
+     量出来的可用宽偏小会多退几个按钮，而且之后没有第二个 resize 来自愈。
+     ResizeObserver 在容器宽度真正落地后再校准一次；只认宽度变化，
+     免得自己搬按钮引起的高度变化把回调无限勾起来。jsdom 没有它就整段跳过。 */
+  if(typeof ResizeObserver === 'function' && hdrRowEl){
+    const hdrNav = hdrRowEl.parentNode;
+    let hdrROW = 0, hdrROQueued = false;
+    new ResizeObserver(entries => {
+      const w = Math.round(entries[0].contentRect.width);
+      if(w === hdrROW) return;
+      hdrROW = w;
+      if(hdrROQueued) return;
+      hdrROQueued = true;
+      requestAnimationFrame(() => {
+        hdrROQueued = false;
+        hdrLastKey = '';
+        syncHeader();
+      });
+    }).observe(hdrNav);
+  }
+}
+/* 「⋯ 更多工具」顶部的筛选框：44 个命令不再要求一眼扫完，打字即过滤 */
+function mpFilterApply(qIn){
+  if(!hdrMorePanel) return;
+  const q = String(qIn || '').trim().toLowerCase();
+  hdrMorePanel.querySelectorAll('.mp-items').forEach(box => {
+    let vis = 0;
+    Array.from(box.children).forEach(b => {
+      const hit = !q || (b.textContent || '').toLowerCase().indexOf(q) >= 0;
+      b.hidden = !hit;
+      if(hit) vis++;
+    });
+    const grp = box.closest('.mp-grp');
+    if(grp) grp.hidden = vis === 0;
+  });
+}
+const mpFilterEl = document.getElementById('mp-filter');
+if(mpFilterEl) mpFilterEl.addEventListener('input', () => mpFilterApply(mpFilterEl.value));
+
+/* ---------- v62：「⚙ 外观与视图」抽屉 ---------- */
+const setDrawerEl = document.getElementById('setdrawer');
+function openSetDrawer(){ setDrawerEl.classList.add('show'); dlgOpenEl(setDrawerEl); }
+function closeSetDrawer(){ setDrawerEl.classList.remove('show'); dlgCloseEl(setDrawerEl); }
+const hdrCogBtn = document.getElementById('btn-cog');
+if(hdrCogBtn) hdrCogBtn.onclick = e => { e.stopPropagation(); openSetDrawer(); };
+const sdCloseBtn = document.getElementById('sd-close');
+if(sdCloseBtn) sdCloseBtn.onclick = closeSetDrawer;
+const sdOkBtn = document.getElementById('sd-ok');
+if(sdOkBtn) sdOkBtn.onclick = closeSetDrawer;
+
+/* ---------- v62：「自定义常用按钮」面板 ----------
+   打开时把当前偏好复制进工作副本 hcWork，勾选 / 上下移都在副本上进行，
+   点「完成」才写回 hdrPrimaryPref 并落盘；取消 / ✕ / Esc 直接丢掉改动。 */
+const hcEl = document.getElementById('hcpanel');
+let hcWork = [];
+/* v62.1：顺序可见化 —— 列表不再按名册固定顺序渲染，而是
+   「已勾选的按 hcWork 先后排前面（带序号徽章）→ 未勾选的按名册顺序排后面」。
+   这样点 ↑↓ 行会真的挪动、序号跟着变；flashId 是刚被移动 / 勾选的那行，
+   重绘后给它闪光反馈并滚到可视位置，用户一眼就知道「调整生效了」。 */
+function hcPaint(flashId){
+  const list = document.getElementById('hc-list');
+  if(!list) return;
+  list.replaceChildren();
+  const rank = new Map(hcWork.map((id, i) => [id, i + 1]));   /* id → 工具栏位置（1 起） */
+  /* 行序 = hcWork 本身（用户排的先后）→ 再接未勾选的（按名册序）。
+     不能按名册序过滤勾选行 —— 那样徽章数字会乱跳（v62.1 反证咬过）。 */
+  const order = hcWork.filter(id => rank.has(id) && HDR_CMDS.some(c => c.id === id))
+    .concat(HDR_CMDS.filter(c => !rank.has(c.id)).map(c => c.id));
+  order.forEach(id => {
+    const c = HDR_CMDS.find(x => x.id === id);
+    const btn = document.getElementById(c.id);
+    const pos = rank.get(id) || 0;
+    const row = document.createElement('div');
+    row.className = 'hc-row';
+    row.dataset.cmd = c.id;
+    if(!pos) row.classList.add('hc-off');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = pos > 0;
+    cb.setAttribute('aria-label', tr('常驻工具栏') + '：' + (btn ? btn.textContent : c.id));
+    /* 序号徽章：数字 = 这颗按钮在常驻栏里的先后位置，点 ↑↓ 立刻变化 */
+    const no = document.createElement('span');
+    no.className = 'hc-no';
+    no.textContent = pos ? String(pos) : '';
+    const lb = document.createElement('span');
+    lb.className = 'hc-lb';
+    lb.textContent = btn ? btn.textContent : c.id;
+    const up = document.createElement('button');
+    up.type = 'button'; up.className = 'btn icon hc-mv'; up.textContent = '↑';
+    up.title = tr('上移'); up.setAttribute('aria-label', tr('上移'));
+    const dn = document.createElement('button');
+    dn.type = 'button'; dn.className = 'btn icon hc-mv'; dn.textContent = '↓';
+    dn.title = tr('下移'); dn.setAttribute('aria-label', tr('下移'));
+    if(!pos){ up.disabled = true; dn.disabled = true; }
+    else{
+      up.disabled = pos === 1;                  /* 已经是第一个，置灰代替「点了没反应」 */
+      dn.disabled = pos === hcWork.length;      /* 已经是最后一个 */
+    }
+    up.onclick = () => {
+      const i = hcWork.indexOf(c.id);
+      if(i > 0){ [hcWork[i - 1], hcWork[i]] = [hcWork[i], hcWork[i - 1]]; hcPaint(c.id); }
+    };
+    dn.onclick = () => {
+      const i = hcWork.indexOf(c.id);
+      if(i >= 0 && i < hcWork.length - 1){ [hcWork[i], hcWork[i + 1]] = [hcWork[i + 1], hcWork[i]]; hcPaint(c.id); }
+    };
+    cb.onchange = () => {
+      if(cb.checked) hcWork.push(c.id);
+      else hcWork = hcWork.filter(x => x !== c.id);
+      hcPaint(c.id);   /* 勾 / 取消也让那行跳到新分区并闪光 */
+    };
+    row.appendChild(cb); row.appendChild(no); row.appendChild(lb); row.appendChild(up); row.appendChild(dn);
+    list.appendChild(row);
+  });
+  if(flashId){
+    const el = list.querySelector('[data-cmd="' + flashId + '"]');
+    if(el){
+      el.classList.add('hc-flash');
+      setTimeout(() => el.classList.remove('hc-flash'), 760);
+      if(el.scrollIntoView) el.scrollIntoView({ block:'nearest' });   /* jsdom 没有这个方法，守一下 */
+    }
+  }
+}
+function hcOpen(){
+  hcWork = hdrNormPrimary(hdrPrimaryPref);
+  hcPaint();
+  hcEl.classList.add('show');
+  dlgOpenEl(hcEl);
+}
+function hcClose(){ hcEl.classList.remove('show'); dlgCloseEl(hcEl); }
+function hcApply(){
+  hdrPrimaryPref = hdrNormPrimary(hcWork);
+  savePrefs();
+  hdrBalance();
+  hcClose();
+  toast(tr('工具栏已更新'), tr('没勾的按钮都在「⋯ 更多工具」里，随时可以再调'));
+}
+const hccBtn = document.getElementById('btn-hcc');
+if(hccBtn) hccBtn.onclick = e => { e.stopPropagation(); hcOpen(); };
+const hccCloseBtn = document.getElementById('hcc-close');
+if(hccCloseBtn) hccCloseBtn.onclick = hcClose;
+const hccCancelBtn = document.getElementById('hcc-cancel');
+if(hccCancelBtn) hccCancelBtn.onclick = hcClose;
+const hccOkBtn = document.getElementById('hcc-ok');
+if(hccOkBtn) hccOkBtn.onclick = hcApply;
+const hccResetBtn = document.getElementById('hcc-reset');
+if(hccResetBtn) hccResetBtn.onclick = () => { hcWork = HDR_PRIMARY_DEFAULT.slice(); hcPaint(); };
+
 function syncHeader(){
+  hdrBalance();   /* v62：先按真实宽度把放不下的常驻按钮退回更多面板，再量顶栏高度 */
   /* 全屏（含沉浸模式）时画布顶到最上面，工具栏让位 */
   stage.style.top = ((typeof fsImmerse === 'function' && fsImmerse()) ? 0 : headerEl.offsetHeight) + 'px';
 }
@@ -9078,6 +10093,7 @@ function startEdit(n){
   if(!el || !txt){ editing = null; render(); toast(tr('这个节点当前没有显示出来')); return; }
   syncEmptyTip();                     // O7：一进编辑态就把空画布引导收掉，别压在输入框上
   attachEditor(n, n.text, { selectAll: true });
+  tsSyncBar();                        // 全选进编辑态时工具栏立刻就位
 }
 function autoGrow(ta){ ta.style.height = 'auto'; ta.style.height = Math.min(240, ta.scrollHeight + 2) + 'px'; }
 /* 建编辑框并接上事件。startEdit（初次进入）和 restoreEditing（重画后接回）共用这一份，
@@ -9095,13 +10111,23 @@ function attachEditor(n, value, opts){
   autoGrow(ta);
   if(!opts || opts.focus !== false) ta.focus();   // 注意：之后绝不能 ta.blur()，那会触发 commitEdit
   if(opts && opts.selectAll) ta.select();
-  ta.addEventListener('input', () => autoGrow(ta));
+  ta.addEventListener('input', () => { autoGrow(ta); tsSyncBar(); });
+  ['select', 'mouseup', 'keyup'].forEach(t => ta.addEventListener(t, () => tsSyncBar()));
   ta.addEventListener('mousedown', e => e.stopPropagation());
   ta.addEventListener('click', e => e.stopPropagation());
   ta.addEventListener('dblclick', e => e.stopPropagation());
   ta.addEventListener('contextmenu', e => e.stopPropagation());
   ta.addEventListener('keydown', e => {
     e.stopPropagation();
+    /* v57 P2：编辑态的 Ctrl+B/I/U 走行内片段，浏览器在 textarea 里本来就没这些功能 */
+    if((e.ctrlKey || e.metaKey) && !e.altKey){
+      const k = String(e.key || '').toLowerCase();
+      if(k === 'b' || k === 'i' || k === 'u'){
+        e.preventDefault();
+        tsApplyFromEditor(c => { if(c[k]) delete c[k]; else c[k] = 1; });
+        return;
+      }
+    }
     if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); commitEdit(); }
     /* Tab 与画布保持一致：先把当前这个收尾，再往下开一层，连着敲就行 */
     else if(e.key === 'Tab' && !e.shiftKey){
@@ -9130,6 +10156,7 @@ function withLiveEdit(fn){
 }
 function commitEdit(){
   if(!editing) return;
+  tsBarHide();
   const n = editing;
   const ta = n.el && n.el.querySelector('.editor');
   const raw = ta ? ta.value : n.text;
@@ -9138,12 +10165,14 @@ function commitEdit(){
   if(t && t !== n.text){
     if(!n.__new) pushUndo('改文字：' + clip(t, 14));
     n.text = t;
+    delete n.rich;                 // v56：文字变了，旧片段索引不再匹配，宁可丢样式不可丢字
   }
   n.__new = false;
   render(); save(); refreshBar();
 }
 function cancelEdit(){
   if(!editing) return;
+  tsBarHide();
   const n = editing;
   editing = null;
   if(n.__new){
@@ -10075,7 +11104,8 @@ function outlineRows(tree){
       const ds = doneStat(c);
       rows.push({ depth: depth + 1, num: num.join('.'), text: c.text, parent: node.text || '', path: nm.join(' / '),
                   note: c.note || '', done: c.done === true, subDone: ds.done, subTotal: ds.total,
-                  link: linkOf(c) });                                                          // N3
+                  link: linkOf(c), st: tsWhole(c, 'text', 'node'),
+                  runs: tsStyledRuns(c, 'text', 'node') });                                 // N3 + v56 + v57
       w(c, depth + 1, num, nm);
     });
   })(tree, 0, [], tree.text ? [tree.text] : []);
@@ -10130,9 +11160,11 @@ function docxParts(tree){
   const linkRPr = color => '<w:color w:val="' + color + '"/><w:u w:val="single"/>';
   const rootHref = (linkKind(tree.link) === 'url') ? linkHref(tree.link) : '';
   const rootRid  = ridFor(rootHref);
+  const rootRpr = tsDocxRPr(tsWhole(tree, 'text', 'node'),
+                            RF + '<w:b/>' + (rootRid ? linkRPr('0563C1') : ''), 40) ||
+    (RF + '<w:b/><w:sz w:val="40"/><w:szCs w:val="40"/>' + (rootRid ? linkRPr('0563C1') : ''));
   let body = '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="120" w:after="240"/></w:pPr>' +
-    asLink('<w:r><w:rPr>' + RF + '<w:b/><w:sz w:val="40"/><w:szCs w:val="40"/>' +
-           (rootRid ? linkRPr('0563C1') : '') + '</w:rPr>' +
+    asLink('<w:r><w:rPr>' + rootRpr + '</w:rPr>' +
            '<w:t xml:space="preserve">' + xmlEsc(tree.text) + '</w:t></w:r>', rootRid) + '</w:p>';
   /* N3：根节点挂的是本机路径 —— 写一行灰字附注（Word 打不开 file:// 的外部关系） */
   if(!rootHref && linkOut(tree)) body += docxLinkPara(linkOut(tree), 0, RF);
@@ -10152,11 +11184,22 @@ function docxParts(tree){
     const decor = r.done ? '<w:strike/><w:color w:val="8A94A6"/>' : '';
     const href = (linkKind(r.link) === 'url') ? linkHref(r.link) : '';
     const rid  = ridFor(href);
+    const rprBase = RF + bold + decor + (rid ? linkRPr('0563C1') : '');
+    const rpr0 = tsDocxRPr(r.st, rprBase, sz) ||
+                 (rprBase + '<w:sz w:val="' + sz + '"/><w:szCs w:val="' + sz + '"/>');
+    /* v57 P2：行内片段拆成多个 <w:r>；前缀（编号 / 打勾）走基础 rPr，不属于用户文字。
+       无样式时仍是单个 run，拼出来的 XML 与 P1 之前逐字节一致。 */
+    const rows = r.runs || null;
+    const prefix = (r.done ? '☑ ' : '') + r.num + '. ';
+    let runsXml = rows
+      ? '<w:r><w:rPr>' + rpr0 + '</w:rPr><w:t xml:space="preserve">' + xmlEsc(prefix) + '</w:t></w:r>' +
+        rows.map(x => '<w:r><w:rPr>' +
+          (tsDocxRPr(tsNorm(x.st), rprBase, sz) || rpr0) + '</w:rPr>' +
+          '<w:t xml:space="preserve">' + xmlEsc(x.t) + '</w:t></w:r>').join('')
+      : '<w:r><w:rPr>' + rpr0 + '</w:rPr>' +
+        '<w:t xml:space="preserve">' + xmlEsc(prefix + r.text) + '</w:t></w:r>';
     body += '<w:p><w:pPr><w:ind w:left="' + ind + '"/><w:spacing w:before="60" w:after="60"/></w:pPr>' +
-      asLink('<w:r><w:rPr>' + RF + bold + decor + (rid ? linkRPr('0563C1') : '') +
-             '<w:sz w:val="' + sz + '"/><w:szCs w:val="' + sz + '"/></w:rPr>' +
-             '<w:t xml:space="preserve">' + xmlEsc((r.done ? '☑ ' : '') + r.num + '. ' + r.text) + '</w:t></w:r>', rid) +
-      '</w:p>';
+      asLink(runsXml, rid) + '</w:p>';
     if(r.note) body += docxNotePara(r.note, ind + 360, RF);
     if(!href && linkOut(r)) body += docxLinkPara(linkOut(r), ind + 360, RF);
   });
@@ -10253,37 +11296,112 @@ function xlsxParts(tree){
   ];
 }
 
+/* ====== v64：XMind 附件的二进制桥（导出 / 导入共用） ======
+   取证自用户本机 XMind app.asar → renderer/3112.js 的 content.json 导入器：
+     · topic.image = { src:'xap:resources/<name>.<ext>', width:number, height:number }；
+       资源字节放在 zip 的 resources/ 下，而且必须在 manifest.json 的 file-entries 里
+       登记，否则 26.x 的加载器按 `{path,encrypted:true}` 兜底、把图片当加密数据解不开。
+     · topic.boundaries / topic.summaries / sheet.relationships 都带 class 字段。
+     · sheet.relationships 的 end1Id / end2Id 必须能映射到已注册的主题 id。
+   data URL ↔ Uint8Array 只在这里换一次，避免导出和导入各写一份 base64。 */
+const XM_MIME_EXT = { 'image/png':'png', 'image/jpeg':'jpg', 'image/jpg':'jpg', 'image/webp':'webp', 'image/gif':'gif' };
+function xmMimeOfPath(p){
+  const e = String(p || '').toLowerCase().split('.').pop();
+  return ({ png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg', webp:'image/webp', gif:'image/gif' })[e] || '';
+}
+function xmDataUrlBytes(url){
+  const m = /^data:(image\/(?:png|jpeg|jpg|webp|gif));base64,([A-Za-z0-9+/=\s]+)$/i.exec(String(url || ''));
+  if(!m) return null;
+  let bin;
+  try{ bin = atob(m[2].replace(/\s/g, '')); }catch(e){ return null; }
+  const u = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return { mime: m[1].toLowerCase(), bytes: u };
+}
+function xmBytesDataUrl(u8, mime){
+  let s = '';
+  /* 分块拼，别把上兆字节一次性丢给 apply —— 参数个数会爆栈 */
+  for(let i = 0; i < u8.length; i += 8192)
+    s += String.fromCharCode.apply(null, u8.subarray(i, Math.min(u8.length, i + 8192)));
+  return 'data:' + mime + ';base64,' + btoa(s);
+}
+/* XMind 的 image.src 三种写法都认：xap:resources/…、resources/…、直接内联 data: */
+function xmImageUrl(src, files){
+  const s = String(src == null ? '' : src).trim();
+  if(/^data:image\//i.test(s)) return IMG_MIME_RE.test(s) ? s : '';
+  const p = s.replace(/^xap:/i, '').replace(/^\/+/, '');
+  if(!p) return '';
+  const u8 = files[p] || files['resources/' + p.replace(/^resources\//, '')];
+  if(!u8 || typeof u8.length !== 'number') return '';
+  const mime = xmMimeOfPath(p) || 'image/png';
+  if(!XM_MIME_EXT[mime]) return '';
+  try{ return xmBytesDataUrl(u8, mime); }catch(e){ return ''; }
+}
+/* '(a,b)' → {a,b}；XMind 的 range 是 0 基闭区间，"master" 是另一种「圈住父主题」类型 */
+function xmRange(v){
+  const m = /^\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)$/.exec(String(v == null ? '' : v).trim());
+  if(!m) return null;
+  const a = Math.max(0, parseInt(m[1], 10));
+  return { a, b: Math.max(a, parseInt(m[2], 10)) };
+}
+
 /* ---- XMind：content.json（XMind Zen / 2020+ 格式） ---- */
-function xmindParts(tree){
-  let seq = 0;
+function xmindParts(tree, origMap){
+  let seq = 0, rseq = 0;
   const nextId = () => 'n' + (++seq);
   const idOf = new Map();                       // 节点 → XMind 主题 id（联系要在 sheet 上引用它）
+  const res = [], resByUrl = new Map();         // v64：resources/ 二进制条目（同一张图只存一份）
+  function imageOf(node){
+    if(!node.img) return null;
+    const url = (origMap && node.img.oid && origMap[node.img.oid]) || imgXSrc(node) || node.img.src;
+    const d = xmDataUrlBytes(url);
+    if(!d) return null;
+    let hit = resByUrl.get(url);
+    if(!hit){
+      const name = 'resources/xm' + (++rseq) + '.' + (XM_MIME_EXT[d.mime] || 'png');
+      hit = { src: 'xap:' + name };
+      res.push({ name, data: d.bytes });
+      resByUrl.set(url, hit);
+    }
+    return { src: hit.src,
+             width:  Math.max(1, Math.round(node.img.ow || node.img.w || 320)),
+             height: Math.max(1, Math.round(node.img.oh || node.img.h || 96)) };
+  }
   function topic(node){
     const t = { id: nextId(), class: 'topic', title: node.text || '' };
     idOf.set(node, t.id);
+    const im = imageOf(node); if(im) t.image = im;      // v64：插图 → xap:resources/…
     if(node.note) t.notes = { plain: { content: node.note } };   // C2：XMind Zen 的备注字段
-    /* N2：完成态写成 XMind 自己的「任务已完成」标记（XMind / XMind Zen 都认 task-done） */
-    if(node.done === true) t.marker = [{ markerId: 'task-done' }];
+    /* N2：完成态写成 XMind 自己的「任务已完成」标记（字段名是 markers —— v62.2 修正：
+       以前写成 marker，XMind 读的是 markers，静默丢标记） */
+    if(node.done === true) t.markers = [{ markerId: 'task-done' }];
     /* N3：XMind 的 topic 自带 href 字段，网页与本机路径它都能接。
        linkKind 挡掉危险协议 —— XMind 文件也是会发给别人的。 */
     if(linkOf(node) && linkKind(linkOf(node)) !== 'bad') t.href = linkOf(node);
     if(node.children && node.children.length){
-      const attached = node.children.map(topic);
+      /* serialize 的不变量：概要主题（c.sum）恒排在真实子节点之后。
+         XMind 2020+ 的规范模型：真实子主题进 children.attached，概要主题进
+         children.summary，父主题再用 summaries:[{range, topicId}] 指过去。 */
+      const real = node.children.filter(c => !c.sum);
+      const attached = real.map(topic);
       t.children = { attached };
-      /* P3：概要 → XMind 原生 summary。XMind 的概要挂在**父主题**上：
-         summaries:[{range, topicId}]，topicId 指向那个概要主题（它照旧排在 attached 里）。
-         range 与 boundary 同口径：0 基、闭区间，指向被概括的那几个真实子主题。
-         少了这一段，XMind 打开后概要就只是一个「末尾多出来的孤立子主题」—— 内容在、语义没了。 */
-      const sm = [];
-      node.children.forEach((c, i) => {
+      /* P3：概要 → XMind 原生 summary。range 0 基闭区间，指向真实子主题下标。
+         ★ v62.2 修复「XMind 打不开导出文件」：概要主题必须住在父主题的
+           children.summary 里 —— XMind 导入器解析 summaries 时硬性执行
+           `_(parent.children).summary`（要求它是数组再按 topicId 找概要主题），
+           缺了直接抛「Not a JSON array: undefined」，整份文件打不开。
+           以前把概要主题塞在 attached 里、children.summary 缺省 = 图里有概要就必崩。 */
+      const sm = [], sumTopics = [];
+      node.children.forEach(c => {
         if(!c.sum) return;
-        const tid = attached[i] && attached[i].id;
-        if(!tid) return;
-        const last = node.children.length - 1;
+        const st = topic(c);                 /* 概要主题自身（含子树 / 备注）照常递归 */
+        sumTopics.push(st);
+        const last = real.length - 1;
         const a0 = Math.max(0, Math.min(c.sum.a | 0, last));
         const b0 = Math.max(a0, Math.min(c.sum.b | 0, last));
-        sm.push({ id: nextId(), class: 'summary', range: '(' + a0 + ',' + b0 + ')', topicId: tid });
+        sm.push({ id: nextId(), class: 'summary', range: '(' + a0 + ',' + b0 + ')', topicId: st.id });
       });
+      if(sumTopics.length) t.children.summary = sumTopics;
       if(sm.length) t.summaries = sm;
     }
     /* N9：分组框 → XMind 原生 boundary。XMind 的 boundary 挂在**父主题**上，用
@@ -10294,17 +11412,19 @@ function xmindParts(tree){
        下标按 node.children 原顺序算（概要主题排在真实子节点之后，不影响真实子节点的下标）。 */
     if(node.children && node.children.length){
       const bl = [];
-      if(root && root.groups && root.groups.length){
-        root.groups.forEach(g => {
+      if(tree.groups && tree.groups.length){
+        tree.groups.forEach(g => {
           const idx = [];
           node.children.forEach((c, i) => { if(!c.sum && c.gb === g.id) idx.push(i); });
           if(idx.length < 2) return;
           if(idx.length !== idx[idx.length - 1] - idx[0] + 1) return;     // 不连续
-          bl.push({ id: nextId(), range: '(' + idx[0] + ',' + idx[idx.length - 1] + ')', title: g.t || undefined });
+          bl.push({ id: nextId(), class: 'boundary',
+                    range: '(' + idx[0] + ',' + idx[idx.length - 1] + ')', title: g.t || undefined });
         });
       }
       node.children.forEach((c, i) => {
-        if(c.bd) bl.push({ id: nextId(), range: '(' + i + ',' + i + ')', title: c.bd.t || undefined });
+        if(c.bd) bl.push({ id: nextId(), class: 'boundary', range: '(' + i + ',' + i + ')',
+                           title: c.bd.t || undefined });
       });
       if(bl.length) t.boundaries = bl;
     }
@@ -10325,22 +11445,41 @@ function xmindParts(tree){
     (function w(n){ if(hit) return; if(n.uid === ep.id) hit = n; n.children.forEach(w); })(tree);
     return hit ? idOf.get(hit) : null;
   };
-  const rels = [];
+  const rels = [], exLinks = [];
   (tree.links || []).forEach(l => {
     const a = endId(l.a), b = endId(l.b);
     if(!a || !b || a === b) return;
-    rels.push({ id: nextId(), end1Id: a, end2Id: b, title: l.t || '' });
+    rels.push({ id: nextId(), class: 'relationship', end1Id: a, end2Id: b, title: l.t || '' });
+    /* v64：XMind 的 relationship 没有「弯曲弧度」这一维，把本工具的 bend / shift
+       放进官方 extensions（provider 命名空间），本工具再导入时才不会把拖好的线拉直。
+       XMind 只把它当不认识的扩展原样保留，不认识也不影响它打开文件。 */
+    const ex = { end1Id: a, end2Id: b, title: l.t || '' };
+    let has = false;
+    if(typeof l.bend === 'number' && isFinite(l.bend)){ ex.bend = l.bend; has = true; }
+    if(typeof l.shift === 'number' && isFinite(l.shift)){ ex.shift = l.shift; has = true; }
+    if(has) exLinks.push(ex);
   });
   const sheet = { id: 'sheet1', class: 'sheet', title: (tree.text || '思维导图').slice(0, 60), rootTopic };
   if(rels.length) sheet.relationships = rels;
+  if(exLinks.length) sheet.extensions = [{ provider: 'mindmap-studio', content: { v: 1, links: exLinks } }];
   const content = JSON.stringify([sheet], null, 2);
-  const meta = JSON.stringify({ creator: { name: 'MindMap', version: '1.0' } }, null, 2);
-  const manifest = JSON.stringify({ 'file-entries': { 'content.json': {}, 'metadata.json': {} } }, null, 2);
+  /* v62.2：dataStructureVersion / layoutEngineVersion —— 官方 metadata 字段，
+     XMind 26.x 用它判定新式 JSON 工作簿（与实测可打开的生成器口径一致）。 */
+  const meta = JSON.stringify({
+    dataStructureVersion: '2',
+    creator: { name: 'MindMap', version: '1.0' },
+    layoutEngineVersion: '4'
+  }, null, 2);
+  /* v64：resources/ 里的每一张图都必须在 manifest 里登记 —— 26.x 的加载器遍历
+     file-entries 取资源，没登记的条目按 encrypted:true 兜底，图片会被当成密文。 */
+  const entries = { 'content.json': {}, 'metadata.json': {} };
+  res.forEach(r => { entries[r.name] = {}; });
+  const manifest = JSON.stringify({ 'file-entries': entries }, null, 2);
   return [
     {name:'content.json', data:content},
     {name:'metadata.json', data:meta},
     {name:'manifest.json', data:manifest}
-  ];
+  ].concat(res);
 }
 /* ====== ZIP 解压 / .xmind 读取 BEGIN ====== */
 /* 浏览器没有现成的「同步」解压接口，而 .xmind 就是一个 zip（几乎都是 deflate 压缩）。
@@ -10482,6 +11621,92 @@ function unzip(buf){
   return out;
 }
 /* ---- .xmind → 本工具的树 ---- */
+/* ====== v64：导入上下文（外框 / 概要 / 联系 / 插图四类一起收） ======
+   XMind 的 id 不是本工具的 uid（可能超长、可能含中文），所以另建一张 byId 映射；
+   只有真正被联系引用的节点才发 uid —— 与「n.uid 只在当端点时发」的约定保持一致。 */
+function xmCtx(files){
+  return { files: files || {}, byId: new Map(), groups: [], links: [], images: {}, big: [],
+           gseq: 0, lseq: 0, useq: 0, iseq: 0 };
+}
+function xmUid(node, ctx){
+  if(!node.uid) node.uid = 'xm' + (++ctx.useq);
+  return node.uid;
+}
+/* topic.image → 节点上的 img + tree.images（原图回灌表，applyImportedTree 会读） */
+function xmTopicImage(t, node, ctx){
+  const im = t && t.image;
+  if(!im || typeof im !== 'object') return;
+  const url = xmImageUrl(im.src, ctx.files);
+  if(!url) return;
+  /* 带时间戳，别和本工具 newId() 生成的 oid 撞上（撞了会把撤销快照里的旧图串掉） */
+  const oid = 'xi' + Date.now().toString(36) + (++ctx.iseq);
+  ctx.images[oid] = url;
+  const w = Math.max(1, Math.round(Number(im.width) || 320));
+  const h = Math.max(1, Math.round(Number(im.height) || 96));
+  const g = { src: url, w, h, n: 'image', oid, ow: w, oh: h, os: url.length };
+  /* 原图太大时 build() 的 imgOk 会拒掉超长 src：原图先留在 tree.images 里，
+     再由 readXmindFile 异步缩一张轻量副本补上，绝不放宽 build 的净化口径。 */
+  if(url.length > IMG_CAP * 1.4){ ctx.big.push({ node, g, url }); return; }
+  node.img = g;
+}
+function xmDecode(url){
+  return new Promise(res => {
+    let done = false, timer = 0;
+    const fin = v => { if(done) return; done = true; if(timer) clearTimeout(timer); res(v); };
+    try{
+      const im = new Image();
+      im.onload = () => fin(im);
+      im.onerror = () => fin(null);
+      im.src = url;
+      timer = setTimeout(() => fin(null), 2000);   // 解码不了不把导入吊死
+    }catch(e){ fin(null); }
+  });
+}
+async function xmShrinkBig(tree){
+  const list = tree && tree.__xmBig;
+  if(!Array.isArray(list) || !list.length){ if(tree) delete tree.__xmBig; return; }
+  delete tree.__xmBig;
+  for(const it of list){
+    try{
+      const im = await xmDecode(it.url);
+      const t = im ? imgThumbOf(im, it.url) : null;
+      if(t && t.src) it.node.img = imgOk(Object.assign({}, it.g, { src: t.src, w: t.w, h: t.h }));
+    }catch(e){ /* 这一张放弃，其余节点照常导入 */ }
+  }
+}
+/* sheet.relationships → root.links；扩展里的 bend / shift 也一并按端点匹配回来 */
+function xmSheetLinks(sh, ctx){
+  const ex = (Array.isArray(sh.extensions) ? sh.extensions : []).filter(e =>
+    e && e.provider === 'mindmap-studio' && e.content && Array.isArray(e.content.links))[0];
+  const exMap = new Map();
+  if(ex) ex.content.links.forEach(x => {
+    if(x && typeof x === 'object')
+      exMap.set(String(x.end1Id) + '>' + String(x.end2Id) + '>' + String(x.title || ''), x);
+  });
+  (Array.isArray(sh.relationships) ? sh.relationships : []).forEach(r => {
+    if(!r) return;
+    const a = ctx.byId.get(r.end1Id), b = ctx.byId.get(r.end2Id);
+    if(!a || !b || a === b) return;                 // 悬空端点的联系不进本工具
+    const one = { id: 'xml' + (++ctx.lseq), t: String(r.title == null ? '' : r.title).slice(0, 60),
+                  a: { k: 'node', id: xmUid(a, ctx) }, b: { k: 'node', id: xmUid(b, ctx) } };
+    const key = String(r.end1Id) + '>' + String(r.end2Id) + '>' + String(r.title || '');
+    const hit = exMap.get(key);
+    if(hit){
+      if(typeof hit.bend === 'number' && isFinite(hit.bend)) one.bend = hit.bend;
+      if(typeof hit.shift === 'number' && isFinite(hit.shift)) one.shift = hit.shift;
+    }
+    ctx.links.push(one);
+  });
+}
+function xmCtxFinish(tree, ctx){
+  if(ctx.groups.length) tree.groups = ctx.groups;
+  if(ctx.links.length) tree.links = ctx.links;
+  if(Object.keys(ctx.images).length) tree.images = ctx.images;
+  /* 大图清单里存的是节点引用，绝不能进 JSON：设成不可枚举，序列化 / 存档都看不见它 */
+  if(ctx.big.length) Object.defineProperty(tree, '__xmBig',
+    { value: ctx.big, enumerable: false, configurable: true, writable: true });   // readXmindFile 里消费掉
+}
+
 /* C2：把 XMind 里的备注读回来。Zen 是 notes.plain.content，老格式可能是纯字符串，
    还有些版本 content 里再套一层 —— 都兼容一下，读不到就当没有。 */
 function xmindNoteOf(t){
@@ -10494,33 +11719,88 @@ function xmindNoteOf(t){
   if(p && p.content && typeof p.content.content === 'string') return p.content.content.trim();
   return '';
 }
-/* N2：XMind 用 marker 表示「任务已完成」——新版是数组 [{markerId}]，老版可能是单个对象或
-   XML 里的 <marker-ref marker-id="task-done"/>。三种形态都认，别的 marker（优先级 / 星标等）忽略。 */
+/* N2：XMind 用 markers 表示「任务已完成」——新式 JSON 是数组 [{markerId}]（v62.2 修正：
+   字段名是 markers，以前只认 marker 导致导入时完成标记静默丢失）；
+   老版可能是单个对象或 XML 里的 <marker-ref marker-id="task-done"/>。
+   三种形态都认，别的 marker（优先级 / 星标等）忽略。 */
 const XMIND_DONE_RE = /^(task-done|done|completed)$/i;
 function xmindDoneJson(t){
-  const mk = t && t.marker;
+  const mk = (t && (t.markers !== undefined ? t.markers : t.marker));
   const arr = Array.isArray(mk) ? mk : (mk ? [mk] : []);
   return arr.some(m => m && typeof m.markerId === 'string' && XMIND_DONE_RE.test(m.markerId));
 }
-function xmindJsonTopic(t){
+function xmindJsonTopic(t, ctx){
   if(!t) return null;
   const title = (typeof t.title === 'string' && t.title.trim()) ? t.title.trim() : (typeof t.text === 'string' ? t.text.trim() : '');
   const node = { text: title || tr('未命名'), note: xmindNoteOf(t), children: [] };
   if(xmindDoneJson(t)) node.done = true;
   const xh = linkNorm(t.href);                       // N3：XMind topic 的 href
   if(xh && linkKind(xh) !== 'bad') node.link = xh;
-  const ch = t.children || {};
-  ['attached', 'detached', 'summary'].forEach(k => {
-    if(Array.isArray(ch[k])) ch[k].forEach(c => { const s = xmindJsonTopic(c); if(s) node.children.push(s); });
+  /* 不带 ctx = v63 的纯文本回读（外部调用 / 老断言仍走这一条，行为一字不改） */
+  if(!ctx){
+    const ch0 = t.children || {};
+    ['attached', 'detached', 'summary'].forEach(k => {
+      if(Array.isArray(ch0[k])) ch0[k].forEach(c => { const s = xmindJsonTopic(c); if(s) node.children.push(s); });
+    });
+    return node;
+  }
+  if(typeof t.id === 'string' && t.id) ctx.byId.set(t.id, node);
+  xmTopicImage(t, node, ctx);                       // v64：插图
+  const ch = t.children || {}, attached = [];
+  ['attached', 'detached', 'callout'].forEach(k => {
+    if(!Array.isArray(ch[k])) return;
+    ch[k].forEach(c => {
+      const s = xmindJsonTopic(c, ctx);
+      if(!s) return;
+      node.children.push(s);
+      if(k === 'attached') attached.push(s);
+    });
+  });
+  /* v64：概要。XMind 的概要主题住 children.summary，父主题用 summaries[].topicId
+     指过去；range 指向 attached 的 0 基闭区间，正好就是本工具 sum:{a,b} 的口径。 */
+  const sums = Array.isArray(t.summaries) ? t.summaries : [];
+  const pool = Array.isArray(ch.summary) ? ch.summary : [];
+  const last = Math.max(0, attached.length - 1);
+  sums.forEach(s => {
+    const r = xmRange(s && s.range);
+    if(!r) return;
+    const raw = pool.filter(x => x && x.id === s.topicId)[0];
+    const sn = raw ? xmindJsonTopic(raw, ctx) : null;
+    if(!sn) return;
+    sn.sum = { a: Math.min(r.a, last), b: Math.min(Math.max(r.b, r.a), last) };
+    node.children.push(sn);                        // 本工具不变量：概要排真实子节点之后
+  });
+  /* 不规范文件（只有 children.summary、没有 summaries）也不能丢内容：当普通子节点收下 */
+  if(!sums.length && pool.length)
+    pool.forEach(x => { const s = xmindJsonTopic(x, ctx); if(s) node.children.push(s); });
+  /* v64：外框 / 分组框。range 退化成单点 = 本工具的 bd；(a,b) 多点 = 根上建一个 group
+     并给整段成员打 gb。XMind 的 range 只支持连续区间，所以这里天然也是连续的。 */
+  (Array.isArray(t.boundaries) ? t.boundaries : []).forEach(b => {
+    const r = xmRange(b && b.range);
+    if(!r || !attached.length) return;
+    const a = Math.min(r.a, attached.length - 1);
+    const z = Math.min(Math.max(r.b, a), attached.length - 1);
+    const ttl = String(b.title == null ? '' : b.title).replace(/\s+/g, ' ').trim().slice(0, 60);
+    if(a === z){ attached[a].bd = { t: ttl, c: null }; return; }
+    const gid = 'xmg' + (++ctx.gseq);
+    ctx.groups.push({ id: gid, t: ttl, c: null });
+    for(let i = a; i <= z; i++) attached[i].gb = gid;
   });
   return node;
 }
 function lname(el){ return String(el.localName || el.nodeName || '').replace(/^.*:/, '').toLowerCase(); }
-function xmindXmlTopic(el){
+function xmindXmlTopic(el, ctx){
   const node = { text: '', note: '', children: [] };
+  const tid = el.getAttribute && el.getAttribute('id');
+  if(tid && ctx) ctx.byId.set(tid, node);            // v64：老版 XML 的联系端点也认
   for(let i = 0; i < el.children.length; i++){
     const c = el.children[i], tag = lname(c);
     if(tag === 'title') node.text = (c.textContent || '').trim();
+    /* v64：老版 XMind 8 的 <image src="xap:resources/…"/>（含 xhtml:img 形态） */
+    else if(ctx && (tag === 'image' || tag === 'img')){
+      const s = c.getAttribute('src') || c.getAttribute('href') || c.getAttribute('xlink:href') || '';
+      if(s) xmTopicImage({ image: { src: s, width: c.getAttribute('width'), height: c.getAttribute('height') } }, node, ctx);
+    }
     else if(tag === 'notes'){                                  // C2：老版 XMind 的 <notes><plain>…
       for(let k = 0; k < c.children.length; k++){
         if(lname(c.children[k]) === 'plain'){ node.note = (c.children[k].textContent || '').trim(); break; }
@@ -10536,7 +11816,7 @@ function xmindXmlTopic(el){
         if(lname(g) !== 'topics') continue;
         if((g.getAttribute('type') || 'attached') !== 'attached') continue;
         for(let m = 0; m < g.children.length; m++){
-          if(lname(g.children[m]) === 'topic') node.children.push(xmindXmlTopic(g.children[m]));
+          if(lname(g.children[m]) === 'topic') node.children.push(xmindXmlTopic(g.children[m], ctx));
         }
       }
     }
@@ -10545,6 +11825,7 @@ function xmindXmlTopic(el){
   return node;
 }
 function xmindToTree(files){
+  const ctx = xmCtx(files);                         // v64：四类的收集器
   let raw = files['content.json'];
   if(raw){
     const arr = JSON.parse(u8Text(raw));
@@ -10552,11 +11833,14 @@ function xmindToTree(files){
     const tops = [];
     sheets.forEach(sh => {
       const rt = sh && (sh.rootTopic || sh.root || sh.topic);
-      const t = rt ? xmindJsonTopic(rt) : null;
+      const t = rt ? xmindJsonTopic(rt, ctx) : null;
       if(t) tops.push(t);
+      xmSheetLinks(sh || {}, ctx);                 // v64：sheet 上的联系
     });
     if(!tops.length) throw new Error('文件里没有找到导图的中心主题');
-    return (tops.length === 1) ? tops[0] : { text: tr('思维导图'), children: tops };
+    const tree = (tops.length === 1) ? tops[0] : { text: tr('思维导图'), children: tops };
+    xmCtxFinish(tree, ctx);
+    return tree;
   }
   raw = files['content.xml'] || files['content.xml'.toUpperCase()];
   if(raw){
@@ -10566,20 +11850,35 @@ function xmindToTree(files){
     const tops = [];
     for(let i = 0; i < sheets.length; i++){
       for(let j = 0; j < sheets[i].children.length; j++){
-        if(lname(sheets[i].children[j]) === 'topic'){ tops.push(xmindXmlTopic(sheets[i].children[j])); break; }
+        if(lname(sheets[i].children[j]) === 'topic'){ tops.push(xmindXmlTopic(sheets[i].children[j], ctx)); break; }
       }
     }
+    /* v64：老版 XML 的 <relationships> —— 端点属性有 end1/end2 与 end1Id/end2Id 两代写法 */
+    const pseudo = { relationships: [] };
+    const rels = doc.getElementsByTagName('relationship');
+    for(let k = 0; k < rels.length; k++){
+      const r = rels[k], ttl = r.getElementsByTagName('title')[0];
+      pseudo.relationships.push({
+        end1Id: r.getAttribute('end1Id') || r.getAttribute('end1'),
+        end2Id: r.getAttribute('end2Id') || r.getAttribute('end2'),
+        title: ttl ? String(ttl.textContent || '').trim() : (r.getAttribute('title') || '')
+      });
+    }
+    xmSheetLinks(pseudo, ctx);
     if(!tops.length) throw new Error('文件里没有找到导图的中心主题');
-    return (tops.length === 1) ? tops[0] : { text: tr('思维导图'), children: tops };
+    const tree = (tops.length === 1) ? tops[0] : { text: tr('思维导图'), children: tops };
+    xmCtxFinish(tree, ctx);
+    return tree;
   }
   const keys = Object.keys(files).join('、');
   throw new Error('这个文件里没有 content.json（包内文件：' + (keys || '空') + '）');
 }
 function readXmindFile(f){
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try{
       const tree = xmindToTree(unzip(reader.result));
+      await xmShrinkBig(tree);       // v64：超大原图先补一张轻量副本，再交给 build()
       const cnt = totalNodes(tree);
       if(!cnt && !tree.children.length){ toast(tr('这个 XMind 文件里没有内容')); return; }
       applyImportedTree(tree, f.name.replace(/\.[^.]+$/, '') || f.name);
@@ -10684,10 +11983,18 @@ function pptTextBody(paras){
     const lvl = Math.max(0, Math.min(4, p.lvl | 0));
     const bu = lvl === 0 ? '<a:buNone/>'
       : '<a:buFont typeface="Arial" pitchFamily="34" charset="0"/><a:buChar char="•"/>';
-    x += '<a:p><a:pPr lvl="' + lvl + '" marL="' + (lvl * 342900 + 171450) + '" indent="-171450">' + bu + '</a:pPr>' +
-         '<a:r><a:rPr lang="zh-CN" altLang="en-US" sz="' + (p.sz || 1800) + '" b="' + (p.b ? 1 : 0) + '" dirty="0">' +
-         '<a:solidFill><a:srgbClr val="' + (p.color || '1F2328') + '"/></a:solidFill></a:rPr>' +
-         '<a:t>' + xmlEsc(p.text) + '</a:t></a:r></a:p>';
+    x += '<a:p><a:pPr lvl="' + lvl + '" marL="' + (lvl * 342900 + 171450) + '" indent="-171450">' + bu + '</a:pPr>';
+    if(p.runs){
+      /* v56：有样式时按片段拆成多个 <a:r>，P2 的行内片段不用再改这里 */
+      p.runs.forEach(r => {
+        x += '<a:r>' + tsPptRPr(r.st, p) + '<a:t>' + xmlEsc(r.t) + '</a:t></a:r>';
+      });
+    }else{
+      x += '<a:r><a:rPr lang="zh-CN" altLang="en-US" sz="' + (p.sz || 1800) + '" b="' + (p.b ? 1 : 0) + '" dirty="0">' +
+           '<a:solidFill><a:srgbClr val="' + (p.color || '1F2328') + '"/></a:solidFill></a:rPr>' +
+           '<a:t>' + xmlEsc(p.text) + '</a:t></a:r>';
+    }
+    x += '</a:p>';
   });
   return x + '</p:txBody>';
 }
@@ -10845,7 +12152,8 @@ function pptMapSlideXml(){
 function pptMapSlideBuild(){
   if(!flat || !flat.length) render();
   pptDrawn = flat.length;
-  if(!flat.length) return pptSlideXml([{ text: (root && root.text) || '思维导图', lvl: 0, sz: 3200, b: 1 }], []);
+  if(!flat.length) return pptSlideXml([{ text: (root && root.text) || '思维导图', lvl: 0, sz: 3200, b: 1,
+    runs: root ? tsStyledRuns(root, 'text', 'node') : null }], []);
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   flat.forEach(n => {
     if(n.x < minX) minX = n.x;
@@ -10893,7 +12201,7 @@ function pptMapSlideBuild(){
     /* N2：完成的节点在文字前加 ✅（和 N5 的语义图标同一位置、同一套做法）
        N3：链接再加一个 🔗 —— 整图缩到一页时画角标毫无意义，能留下的只有文字前缀。 */
     const lines = show ? estWrap((n.done === true ? '✅ ' : '') + ((markOf(n) || {}).ic ? (markOf(n).ic + ' ') : '') +
-                                 (linkOf(n) ? '🔗 ' : '') + n.text, fs, nw - 34, 4) : [];
+                                 (linkOf(n) ? '🔗 ' : '') + n.text, fs, nw - 34, nodeMaxLines(n)) : [];
     /* C2：只有真的在画文字时才带上备注（纯结构色块图里塞备注没意义，还会溢出形状） */
     const noteLines = (show && n.note) ? estWrap('备注：' + String(n.note).replace(/\s*\n\s*/g, '　'), fs * 0.8, nw - 34, 2) : null;
     let fill = 'FFFFFF', line = hexOf(mix(c, '#ffffff', .45)), font = '1F2328', bold = 0;
@@ -10938,7 +12246,8 @@ function pptOutlineSlides(tree){
   slides.push({
     file: 'slide1.xml',
     xml: pptSlideXml(
-      [{ text: tree.text || '思维导图', lvl: 0, sz: 4000, b: 1, color: '1F2328' }],
+      [{ text: tree.text || '思维导图', lvl: 0, sz: 4000, b: 1, color: '1F2328',
+         runs: tsStyledRuns(tree, 'text', 'node') }],
       coverBody
     )
   });
@@ -10960,7 +12269,8 @@ function pptOutlineSlides(tree){
         body.push({
           text: (c.done === true ? '✅ ' : '') + c.text, lvl: Math.min(4, d), b: 0,
           sz: [2000, 1800, 1600, 1450, 1350][Math.min(4, d)],
-          color: c.done === true ? '8A94A6' : ['1F2328','44546A','5A6472','5A6472','6B7789'][Math.min(4, d)]
+          color: c.done === true ? '8A94A6' : ['1F2328','44546A','5A6472','5A6472','6B7789'][Math.min(4, d)],
+          runs: tsPrefixedRuns(c.done === true ? '✅ ' : '', tsStyledRuns(c, 'text', 'node'))
         });
         /* C2：备注紧跟在本节点后面，小一号、再缩进一级、灰色 */
         if(c.note && body.length < 26) body.push(notePara(c.note, d + 1));
@@ -10972,7 +12282,8 @@ function pptOutlineSlides(tree){
     slides.push({
       file: 'slide' + (i + 2) + '.xml',
       xml: pptSlideXml(
-        [{ text: (i + 1) + '　' + (br.done === true ? '✅ ' : '') + br.text, lvl: 0, sz: 2800, b: 1, color: '1F2328' }],
+        [{ text: (i + 1) + '　' + (br.done === true ? '✅ ' : '') + br.text, lvl: 0, sz: 2800, b: 1, color: '1F2328',
+           runs: tsPrefixedRuns((i + 1) + '　' + (br.done === true ? '✅ ' : ''), tsStyledRuns(br, 'text', 'node')) }],
         body.length ? body : [{ text: '（该分支暂无下级内容）', lvl: 0, sz: 1600, color: '8A94A6' }]
       )
     });
@@ -11115,16 +12426,21 @@ function paintGbFrames(ctx, frames){
     ctx.fill(); ctx.stroke();
     if(f.title){
       ctx.setLineDash([]);
-      const fs = 11.5, tw = estTextW(f.title, fs), bw = tw + 16, bh = 19;
+      const st = (f.runs && f.runs.length === 1) ? f.runs[0].st : (f.runs ? tsOf('gb', null) : null);
+      const fs = tsFontSize(st, 11.5), tw = estTextW(f.title, fs), bw = tw + 16, bh = 19;
       const bx = f.x + (f.w - bw) / 2, by = f.y + 1;     // 框内顶部居中（与 .gbft 同一处）
       ctx.fillStyle = '#ffffff';
       roundRectPath(ctx, bx, by, bw, bh, 9); ctx.fill();
       ctx.strokeStyle = hexA(f.col, 0.55); ctx.lineWidth = 1;
       roundRectPath(ctx, bx, by, bw, bh, 9); ctx.stroke();
-      ctx.fillStyle = frameEdge(f.col);
-      ctx.font = '700 ' + fs + 'px ' + uiFontStack();
       ctx.textBaseline = 'middle';
-      ctx.fillText(f.title, bx + 8, by + bh / 2 + .5);
+      let px = bx + 8;
+      (f.runs || [{ t: f.title, st: {} }]).forEach(r => {
+        ctx.font = tsPngFont(r.st, 11.5, '700');
+        ctx.fillStyle = tsColorHex(r.st, frameEdge(f.col));
+        ctx.fillText(r.t, px, by + bh / 2 + .5);
+        px += tsMeasureW(ctx, r.t, tsFontSize(r.st, 11.5));
+      });
       ctx.setLineDash([6, 4]); ctx.lineWidth = 2.6;
     }
   });
@@ -11144,16 +12460,21 @@ function paintBdFrames(ctx, frames){
     ctx.fill(); ctx.stroke();
     if(f.title){
       ctx.setLineDash([]);
-      const fs = 11.5, tw = estTextW(f.title, fs), bw = tw + 16, bh = 19;
+      const st = (f.runs && f.runs.length === 1) ? f.runs[0].st : (f.runs ? tsOf('bd', null) : null);
+      const fs = tsFontSize(st, 11.5), tw = estTextW(f.title, fs), bw = tw + 16, bh = 19;
       const bx = f.x + 12, by = f.y - 11;
       ctx.fillStyle = '#ffffff';
       roundRectPath(ctx, bx, by, bw, bh, 9); ctx.fill();
       ctx.strokeStyle = hexA(f.col, 0.55); ctx.lineWidth = 1;
       roundRectPath(ctx, bx, by, bw, bh, 9); ctx.stroke();
-      ctx.fillStyle = frameEdge(f.col);
-      ctx.font = '700 ' + fs + 'px ' + uiFontStack();
       ctx.textBaseline = 'middle';
-      ctx.fillText(f.title, bx + 8, by + bh / 2 + .5);
+      let px = bx + 8;
+      (f.runs || [{ t: f.title, st: {} }]).forEach(r => {
+        ctx.font = tsPngFont(r.st, 11.5, '700');
+        ctx.fillStyle = tsColorHex(r.st, frameEdge(f.col));
+        ctx.fillText(r.t, px, by + bh / 2 + .5);
+        px += tsMeasureW(ctx, r.t, tsFontSize(r.st, 11.5));
+      });
       ctx.setLineDash([6, 4]); ctx.lineWidth = 2.4;
     }
   });
@@ -11194,17 +12515,23 @@ function paintLinkPaths(ctx, list){
   list.forEach(o => {
     const t = (o.lk && o.lk.t) || '';
     if(!t) return;
-    const g = o.g, la = o.la || g.mid, fs = 11.5, tw = estTextW(t, fs), bw = tw + 16, bh = 19;
+    const g = o.g, la = o.la || g.mid, fs = 11.5;
+    const lrs = textRunsOf(o.lk, 't', 'node');
+    const tw = lrs.reduce((s, r) => s + estTextW(r.t, tsFontSize(r.st, fs)), 0), bw = tw + 16, bh = 19;
     const bx = la.x - bw / 2, by = la.y - bh / 2;
     ctx.fillStyle = '#ffffff';
     roundRectPath(ctx, bx, by, bw, bh, 8); ctx.fill();
     ctx.strokeStyle = RLK_COLOR; ctx.lineWidth = 1; ctx.globalAlpha = 0.55;
     roundRectPath(ctx, bx, by, bw, bh, 8); ctx.stroke();
     ctx.globalAlpha = 1;
-    ctx.fillStyle = RLK_COLOR;
-    ctx.font = '700 ' + fs + 'px ' + uiFontStack();
     ctx.textBaseline = 'middle';
-    ctx.fillText(t, bx + 8, by + bh / 2 + .5);
+    let lpx = bx + 8;
+    lrs.forEach(r => {
+      ctx.fillStyle = tsColorHex(r.st, RLK_COLOR);
+      ctx.font = tsPngFont(r.st, fs, 700);
+      ctx.fillText(r.t, lpx, by + bh / 2 + .5);
+      lpx += tsMeasureW(ctx, r.t, tsFontSize(r.st, fs));
+    });
   });
   ctx.restore();
 }
@@ -11298,27 +12625,46 @@ function paintPng(ctx, nodes, nodeW, gframes, frames, sums, rlinks){
       roundRectPath(ctx, tb.x + .5, tb.y + .5, tb.w - 1, tb.h - 1, 6); ctx.stroke();
     }
     /* 字号 / 字重都从页面的 CSS 变量读，跟屏幕上的节点一模一样 —— 不会出现"屏幕一个样、图片又一个样" */
-    const fs = pngFontSize(n.depth);
-    ctx.font = pngFontWeight(n.depth, n.hasKids) + ' ' + fs + 'px ' + uiFontStack();
-    ctx.fillStyle = n.depth === 0 ? '#ffffff' : '#1f2328';
-    const hasImg = !!n.img;
-    const lines = wrapText(ctx, n.text, w - (n.sum ? 40 : 28), hasImg ? 2 : 4);
+    const fs = pngFontSize(n.depth), fw = pngFontWeight(n.depth, n.hasKids);
+    const baseFill = n.depth === 0 ? '#ffffff' : '#1f2328';
+    ctx.font = fw + ' ' + fs + 'px ' + uiFontStack();
+    ctx.fillStyle = baseFill;
+    const hasImg = !!n.img, maxW = w - (n.sum ? 40 : 28), maxLines = nodeMaxLines(n);
+    /* v56：有样式时按片段折行；无样式时仍是原来的 wrapText 结果，导出字节不变 */
+    const nRuns = textRunsOf(n, 'text', 'node');
+    const plainLines = wrapText(ctx, n.text, maxW, maxLines);
+    const lines = tsFlow(nRuns, maxW, maxLines, (ch, st) => {
+      ctx.font = tsPngFont(st, fs, fw);
+      return tsMeasureW(ctx, ch, tsFontSize(st, fs));
+    }, plainLines);
     const lh = fs * 1.35;
     /* 有图：文字压在缩略图下面（顶部对齐）；没图：还是垂直居中 —— 与屏幕上同一套排版 */
     let ty = hasImg
       ? (y + IMG_PAD_Y + IMG_THUMB_H + IMG_GAP + lh / 2)
       : (n.y - (lines.length - 1) * lh / 2);
-    lines.forEach(l => {
-      ctx.fillText(l, tx, ty);
+    lines.forEach(line => {
+      let px = tx, lw = 0;
+      line.forEach(r => {
+        ctx.font = tsPngFont(r.st, fs, fw);
+        ctx.fillStyle = tsColorHex(r.st, baseFill);
+        ctx.fillText(r.t, px, ty);
+        const rw = tsMeasureW(ctx, r.t, tsFontSize(r.st, fs));
+        px += rw; lw += rw;
+        /* u / s：canvas 没有 text-decoration，按实测宽度补线（与屏幕 span 同观感） */
+        if(r.st && (r.st.u || r.st.s)){
+          ctx.save(); ctx.globalAlpha = .8; ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1;
+          const yy = r.st.u ? (ty + fs * .45) : (ty - fs * .05);
+          ctx.beginPath(); ctx.moveTo(px - rw, yy); ctx.lineTo(px, yy); ctx.stroke(); ctx.restore();
+        }
+      });
       /* N2：完成的节点在每一行文字上画一条删除线（canvas 没有 text-decoration，
          所以按 measureText 的真实宽度自己画，长短和字一样齐） */
       if(n.done === true){
-        const tw = ctx.measureText(l).width;
         ctx.save();
         ctx.globalAlpha = .55;
-        ctx.strokeStyle = n.depth === 0 ? '#ffffff' : '#1f2328';
+        ctx.strokeStyle = baseFill;
         ctx.lineWidth = 1.3;
-        ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx + tw, ty); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx + lw, ty); ctx.stroke();
         ctx.restore();
       }
       ty += lh;
@@ -11555,7 +12901,12 @@ async function exportPptOutline(){
   if(r !== 'cancel') toast(trf('已导出 PPT 分页大纲（封面 + {c} 页分支）', { c: Math.max(0, root.children.length) }));
 }
 async function exportXmind(){
-  const r = await saveOut(suggestName() + '.xmind', zipStore(xmindParts(root)), 'application/vnd.xmind.workbook');
+  /* v64：先把原图从 IndexedDB 备齐再打包。xmindParts 仍同步（测试 / 其它调用点
+     直接传树就能跑），拿不到原图时自动退回节点上的轻量副本，图不会丢。 */
+  const nodes = [];
+  (function w(n){ if(!n) return; nodes.push(n); (n.children || []).forEach(w); })(root);
+  const map = await imgPrepareExport(nodes);
+  const r = await saveOut(suggestName() + '.xmind', zipStore(xmindParts(root, map)), 'application/vnd.xmind.workbook');
   if(r !== 'cancel') toast(tr('已导出 .xmind，可导入 XMind 继续编辑'));
 }
 /* PNG / SVG 固定白底风格（不跟深色主题走，否则黑底配深字反而看不清），
@@ -11591,6 +12942,7 @@ async function exportPng(){
   const noteIdx = new Map(visNotes.map((n, i) => [n, i + 1]));
   const nodes = flat.map(n => ({
     x: n.x, y: n.y, h: n.h, w: n.w || NODE_W, text: n.text, depth: n.depth,
+    font: n.font || null, rich: n.rich || null,   // v56：paintPng 的 textRunsOf 靠这两个字段取样式
     note: noteIdx.get(n) || 0,
     mark: (markOf(n) || {}).ic || '',          // N5：语义图标也画进图片（左上角）
     done: n.done === true,                     // N2：完成的节点画删除线 + 右下角对勾
@@ -11627,6 +12979,7 @@ async function exportPng(){
   const gframes = gbExportFrames(oy);          // N9：分组框（比单节点外框更低一层）
   paintPng(ctx, nodes.map(n => ({
     x: n.x, y: n.y + oy, h: n.h, w: n.w || NODE_W, text: n.text, depth: n.depth, note: n.note, mark: n.mark,
+    font: n.font, rich: n.rich,                   // v56：第二次 map 也不能丢
     done: n.done, img: n.img, imgEl: n.imgEl,
     color: n.color, bg: n.bg, bd: n.bd, hasKids: n.hasKids,
     kids: n.kids.map(k => ({ x: k.x, y: k.y + oy, w: k.w, h: k.h }))
@@ -11663,6 +13016,30 @@ function svgWrap(text, fs, weight, maxW, maxLines){
   }catch(e){}
   return estWrap(text, fs, maxW, maxLines);
 }
+/* v56：把「行 x 片段」写成 <text>/<tspan> 内容。无样式时只有一行一个片段且不带 style，
+   拼出来的字符串与原来的 xmlEsc(lines[0]) + tspan 完全一致。 */
+function tsSvgText(runs, plain, fill){
+  if(!runs) return xmlEsc(plain);
+  return runs.map(r => {
+    const st = tsSvgStyle(r.st, 11.5, '700', fill);
+    return st ? '<tspan style="' + st + '">' + xmlEsc(r.t) + '</tspan>' : xmlEsc(r.t);
+  }).join('');
+}
+function tsSvgLines(lines, tx, lh, fs, fw, fill){
+  let out = '';
+  lines.forEach((line, i) => {
+    let first = true;
+    line.forEach(r => {
+      const st = tsSvgStyle(r.st, fs, fw, fill);
+      const a = (i === 0 && first) ? '' :
+                (first ? ' x="' + svgNum(tx) + '" dy="' + svgNum(lh) + '"' : '');
+      out += st ? '<tspan' + a + ' style="' + st + '">' + xmlEsc(r.t) + '</tspan>' :
+                   (a ? '<tspan' + a + '>' + xmlEsc(r.t) + '</tspan>' : xmlEsc(r.t));
+      first = false;
+    });
+  });
+  return out;
+}
 function buildSvg(){
   const b = bounds(), pad = 40;
   const W = Math.ceil(b.maxX + pad * 2);
@@ -11688,11 +13065,13 @@ function buildSvg(){
            '" rx="18" fill="' + hexA(f.col, FRAME_FILL_GB) + '" stroke="' + frameEdge(f.col) +
            '" stroke-width="2.6" stroke-dasharray="6 4"/>\n';
       if(f.title){
-        const fs = 11.5, bw = estTextW(f.title, fs) + 16, bh = 19, bx = f.x + (f.w - bw) / 2, by = f.y + 2;
+        const gst = (f.runs && f.runs.length === 1) ? f.runs[0].st : (f.runs ? tsOf('gb', null) : null);
+        const fs = tsFontSize(gst, 11.5), bw = estTextW(f.title, fs) + 16, bh = 19, bx = f.x + (f.w - bw) / 2, by = f.y + 2;
         s += '<rect x="' + svgNum(bx) + '" y="' + svgNum(by) + '" width="' + svgNum(bw) + '" height="' + bh +
              '" rx="9" fill="#ffffff" stroke="' + hexA(f.col, 0.45) + '" stroke-width="1"/>\n' +
              '<text x="' + svgNum(bx + 8) + '" y="' + svgNum(by + 13.5) + '" font-family="' + xmlEsc(ff) +
-             '" font-size="' + fs + '" font-weight="700" fill="' + f.col + '">' + xmlEsc(f.title) + '</text>\n';
+             '" font-size="' + fs + '" font-weight="700" fill="' + f.col + '">' +
+             tsSvgText(f.runs, f.title, f.col) + '</text>\n';
       }
     });
     s += '</g>\n';
@@ -11707,11 +13086,13 @@ function buildSvg(){
            '" rx="16" fill="' + hexA(f.col, FRAME_FILL_BD) + '" stroke="' + frameEdge(f.col) +
            '" stroke-width="2.4" stroke-dasharray="6 4"/>\n';
       if(f.title){
-        const fs = 11.5, bw = estTextW(f.title, fs) + 16, bh = 19, bx = f.x + 12, by = f.y - 11;
+        const bst = (f.runs && f.runs.length === 1) ? f.runs[0].st : (f.runs ? tsOf('bd', null) : null);
+        const fs = tsFontSize(bst, 11.5), bw = estTextW(f.title, fs) + 16, bh = 19, bx = f.x + 12, by = f.y - 11;
         s += '<rect x="' + svgNum(bx) + '" y="' + svgNum(by) + '" width="' + svgNum(bw) + '" height="' + bh +
              '" rx="9" fill="#ffffff" stroke="' + hexA(f.col, 0.45) + '" stroke-width="1"/>\n' +
              '<text x="' + svgNum(bx + 8) + '" y="' + svgNum(by + 13.5) + '" font-family="' + xmlEsc(ff) +
-             '" font-size="' + fs + '" font-weight="700" fill="' + f.col + '">' + xmlEsc(f.title) + '</text>\n';
+             '" font-size="' + fs + '" font-weight="700" fill="' + f.col + '">' +
+             tsSvgText(f.runs, f.title, f.col) + '</text>\n';
       }
     });
     s += '</g>\n';
@@ -11767,13 +13148,16 @@ function buildSvg(){
     rlkList.forEach(o => {
       const t = (o.lk && o.lk.t) || '';
       if(!t) return;
-      const fs = 11.5, bw = estTextW(t, fs) + 16, bh = 19;
+      const fs = 11.5;
+      const lrs = textRunsOf(o.lk, 't', 'node');
+      const bw = lrs.reduce((s, r) => s + estTextW(r.t, tsFontSize(r.st, fs)), 0) + 16, bh = 19;
       const la = o.la || o.g.mid;
       const bx = la.x - bw / 2, by = la.y - bh / 2;
       s += '<rect x="' + svgNum(bx) + '" y="' + svgNum(by) + '" width="' + svgNum(bw) + '" height="' + bh +
            '" rx="8" fill="#ffffff" stroke="' + RLK_COLOR + '" stroke-opacity="0.55" stroke-width="1"/>\n' +
            '<text x="' + svgNum(bx + 8) + '" y="' + svgNum(by + 13.5) + '" font-family="' + xmlEsc(ff) +
-           '" font-size="' + fs + '" font-weight="700" fill="' + RLK_COLOR + '">' + xmlEsc(t) + '</text>\n';
+           '" font-size="' + fs + '" font-weight="700" fill="' + RLK_COLOR + '">' +
+           tsSvgText(tsStyledRuns(o.lk, 't', 'node'), t, RLK_COLOR) + '</text>\n';
     });
     s += '</g>\n';
   }
@@ -11807,19 +13191,20 @@ function buildSvg(){
            '" height="' + svgNum(tb.h) + '" rx="6" fill="none" stroke="#d7dee9" stroke-width="1"/>\n';
     }
     const fs = pngFontSize(n.depth), fw = pngFontWeight(n.depth, n.children.length > 0);
-    const hasImg = !!n.img;
-    const lines = svgWrap(n.text, fs, fw, w - (n.sum ? 40 : 28), hasImg ? 2 : 4);
+    const hasImg = !!n.img, maxW = w - (n.sum ? 40 : 28), maxLines = nodeMaxLines(n);
+    const nRuns = textRunsOf(n, 'text', 'node');
+    const plainLines = svgWrap(n.text, fs, fw, maxW, maxLines);
+    const lines = tsFlow(nRuns, maxW, maxLines, (ch, st) => estCharW(ch) * tsFontSize(st, fs), plainLines);
     const lh = fs * 1.35;
     const ty = hasImg
       ? (n.y + oy - h / 2 + IMG_PAD_Y + IMG_THUMB_H + IMG_GAP + lh / 2 + fs * 0.35)
       : (n.y + oy - (lines.length - 1) * lh / 2 + fs * 0.35);
+    const fill = n.depth === 0 ? '#ffffff' : (n.done === true ? '#8a94a6' : '#1f2328');
     s += '<text x="' + svgNum(tx) + '" y="' + svgNum(ty) + '" font-family="' + xmlEsc(ff) +
-         '" font-size="' + fs + '" font-weight="' + fw + '" fill="' + (n.depth === 0 ? '#ffffff' : (n.done === true ? '#8a94a6' : '#1f2328')) + '"' +
+         '" font-size="' + fs + '" font-weight="' + fw + '" fill="' + fill + '"' +
          /* N2：SVG 自带 text-decoration，比画线更准（跟着字形走，不会长短不一） */
          (n.done === true ? ' text-decoration="line-through"' : '') + '>' +
-         xmlEsc(lines[0] || '');
-    for(let i = 1; i < lines.length; i++)
-      s += '<tspan x="' + svgNum(tx) + '" dy="' + svgNum(lh) + '">' + xmlEsc(lines[i]) + '</tspan>';
+         tsSvgLines(lines, tx, lh, fs, fw, fill);
     s += '</text>\n';
     /* C2：有备注的节点右上角打编号角标（N3：有链接时往左让 23px，与 PNG / 屏幕一致） */
     if(n.note){
@@ -12289,6 +13674,7 @@ function openExport(){
 function closeExport(){ exportEl.classList.remove('show'); dlgCloseEl(exportEl); }
 function runExport(fmt){
   if(editing) commitEdit();
+  tsLossyWarn(fmt);
   hideCtx();
   closeExport();
   /* O4：记住这次用的格式，下次打开面板把它标出来 */
@@ -12464,8 +13850,21 @@ document.getElementById('btn-help').onclick = openHelp;
 document.getElementById('st-ok').onclick     = closeStats;
 document.getElementById('st-close').onclick  = closeStats;
 if(statsEl) statsEl.addEventListener('mousedown', e => { if(e.target === statsEl) closeStats(); });
-document.getElementById('hint-hide').onclick = e => { e.stopPropagation(); setHint(false); };
+/* v59：收起后指针还停在框里，CSS 的 :hover 会立刻把正文重新撑开 —— 加一次性锁，
+   等指针真离开（mouseleave）再解锁；移开再回来仍可像以前一样 hover 临时展开。 */
+document.getElementById('hint-hide').onclick = e => {
+  e.stopPropagation(); setHint(false);
+  const h = document.getElementById('hint');
+  if(h){
+    h.classList.add('locked');
+    h.addEventListener('mouseleave', function off(){ h.classList.remove('locked'); }, {once:true});
+  }
+};
 document.getElementById('hint-badge').onclick = e => { e.stopPropagation(); setHint(true); };
+/* 可访问：收起按钮是 role=button + tabindex，回车 / 空格也要能收起 */
+document.getElementById('hint-hide').addEventListener('keydown', e => {
+  if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); document.getElementById('hint-hide').click(); }
+});
 
 /* =====================================================================
    交互：拖拽 / 滚轮 / 快捷键
@@ -12733,6 +14132,8 @@ const SHORTCUTS = [
     { k: ['Tab'],              d: '新增子节点（往下开一层）' },
     { k: ['Enter'],            d: '新增同级节点（平着往后）' },
     { k: ['F2'],               d: '编辑当前节点文字（也可双击节点）' },
+    { k: ['Ctrl', 'B'],        d: '编辑时给选中的几个字加粗（斜体 I / 下划线 U 同理）',
+                               note: '也可以点选中文字上方浮出来的小工具条；不限整段，选几个字就只改几个字' },
     { k: ['Delete'],           d: '删除当前节点（Shift+Delete 只删它的所有子节点）' },
     { k: ['空格'],              d: '折叠 / 展开当前节点',
                                note: '浏览器默认拿它翻页，这里已拦下' },
@@ -12985,6 +14386,9 @@ window.addEventListener('keydown', e => {
   }
   if(document.body.classList.contains('fab-open')){
     if(e.key === 'Escape'){ e.preventDefault(); closeFabSheet(); return; }
+  }
+  if(hdrMorePanel && hdrMorePanel.classList.contains('open')){
+    if(e.key === 'Escape'){ e.preventDefault(); hdrMorePanel.classList.remove('open'); hdrMoreBtn.setAttribute('aria-expanded','false'); return; }
   }
   if(editing) return;
   /* O4：导出面板开着时，数字键 1–9 直接导出对应格式，Esc 关闭面板。
@@ -13289,13 +14693,257 @@ function syncPrefsUI(){
   if(weightSel) weightSel.value = nodeWeightKey;
   if(nodewSel)  nodewSel.value  = nodeWKey;
   if(layoutSel) layoutSel.value = layoutMode;
+  if(typeof tsSyncUI === 'function') tsSyncUI();
 }
 window.addEventListener('resize', () => { syncHeader(); applyTransform(); });
+
+
+/* ================= v56 P1：文字样式面板 =================
+   L1 全局 / L2 按类型写 fontPref（偏好，不进 serialize）；L3 当前对象写 obj.font（内容，进 serialize）。
+   所有输出都经 tsNorm() 白名单，外部数据带不进任意 hex / 字体族 / 绝对 px。 */
+const fontstyleEl = document.getElementById('fontstyle');
+let fsScope = 'global', fsKind = 'node';
+const FS_SCOPES = /^(global|kind|object)$/, FS_KINDS = /^(node|bd|gb)$/;
+
+function fsResolve(){
+  if(fsScope === 'global') return { kind: 'node', pref: fontPref.global, obj: null, persist: 'pref' };
+  if(fsScope === 'kind')   return { kind: fsKind, pref: fontPref[fsKind], obj: null, persist: 'pref' };
+  const n = selected || root, k = fsKind;
+  if(k === 'node') return { kind: 'node', pref: null, obj: n, persist: 'obj' };
+  if(k === 'bd')   return { kind: 'bd', pref: null, obj: (n && n.bd) || null, persist: 'obj' };
+  const g = ((root && root.groups) || []).find(x => x.id === (n && n.gb));
+  return { kind: 'gb', pref: null, obj: g || null, persist: 'obj' };
+}
+function fsCurrent(){
+  const r = fsResolve();
+  if(r.persist === 'pref') return tsNorm(r.pref);
+  return tsNorm(r.obj && r.obj.font);
+}
+function tsSyncUI(){
+  if(!fontstyleEl) return;
+  Array.from(document.querySelectorAll('[data-fs-scope]')).forEach(b => b.classList.toggle('on', b.dataset.fsScope === fsScope));
+  const kr = document.getElementById('fst-kind-row');
+  if(kr) kr.style.display = (fsScope === 'global') ? 'none' : '';
+  const kindSel = document.getElementById('fst-kind');
+  if(kindSel) kindSel.value = fsKind;
+  const cur = fsCurrent(), sizeSel = document.getElementById('fst-fs');
+  if(sizeSel) sizeSel.value = cur.fs ? String(cur.fs) : '';
+  Array.from(document.querySelectorAll('[data-fs-toggle]')).forEach(b => b.classList.toggle('on', !!cur[b.dataset.fsToggle]));
+  Array.from(document.querySelectorAll('[data-fs-color]')).forEach(b => b.classList.toggle('on', (cur.c || 'ink') === b.dataset.fsColor));
+  const pv = document.getElementById('fst-preview');
+  if(pv){ pv.textContent = tr('示例文字 Aa 项目里程碑'); pv.setAttribute('style', runStyle(cur)); }
+  const note = document.getElementById('fst-note');
+  if(note) note.textContent = (fsScope === 'object' && !fsResolve().obj)
+    ? tr('当前对象：还没有这个对象，先选中带外框或分组框的节点') : '';
+}
+function fsApply(mut){
+  const r = fsResolve();
+  if(r.persist === 'obj' && !r.obj){ toast(tr('当前对象：还没有这个对象，先选中带外框或分组框的节点')); return; }
+  const cur = Object.assign({}, fsCurrent());
+  mut(cur);
+  const next = tsNorm(cur);
+  if(r.persist === 'pref'){
+    if(r.pref === fontPref.global) fontPref.global = next; else fontPref[r.kind] = next;
+    applyPrefs(); savePrefs();
+  }else{
+    pushUndo(tr('改文字样式'));
+    if(tsHas(next)) r.obj.font = next; else delete r.obj.font;
+    save();
+  }
+  render(); tsSyncUI();
+}
+function openFontStyle(){ tsSyncUI(); tsInlineSync(); fontstyleEl.classList.add('show'); dlgOpenEl(fontstyleEl); }
+function closeFontStyle(){ fontstyleEl.classList.remove('show'); dlgCloseEl(fontstyleEl); }
 
 /* ---------- 自动备份：面板开关 ---------- */
 const bpanelEl = document.getElementById('bpanel');
 function openBk(){ bkUpdateUI(); bpanelEl.classList.add('show'); dlgOpenEl(bpanelEl); }
 function closeBk(){ bpanelEl.classList.remove('show'); dlgCloseEl(bpanelEl); }
+
+document.getElementById('btn-fontstyle').onclick = openFontStyle;
+document.getElementById('fst-close').onclick     = closeFontStyle;
+document.getElementById('fst-done').onclick      = closeFontStyle;
+fontstyleEl.addEventListener('mousedown', e => { if(e.target === fontstyleEl) closeFontStyle(); });
+Array.from(document.querySelectorAll('[data-fs-scope]')).forEach(b => b.addEventListener('click', () => {
+  fsScope = FS_SCOPES.test(b.dataset.fsScope) ? b.dataset.fsScope : 'global'; tsSyncUI();
+}));
+document.getElementById('fst-kind').onchange = e => {
+  fsKind = FS_KINDS.test(e.target.value) ? e.target.value : 'node'; tsSyncUI();
+};
+document.getElementById('fst-fs').onchange = e => {
+  const v = parseInt(e.target.value, 10) || 0;
+  fsApply(c => { if(v) c.fs = v; else delete c.fs; });
+};
+Array.from(document.querySelectorAll('[data-fs-toggle]')).forEach(b => b.addEventListener('click', () => {
+  const k = b.dataset.fsToggle; fsApply(c => { if(c[k]) delete c[k]; else c[k] = 1; });
+}));
+Array.from(document.querySelectorAll('[data-fs-color]')).forEach(b => b.addEventListener('click', () => {
+  const v = b.dataset.fsColor; fsApply(c => { if(v === 'ink') delete c.c; else c.c = v; });
+}));
+document.getElementById('fst-reset').onclick = () => fsApply(c => Object.keys(c).forEach(k => delete c[k]));
+
+/* ================= v57 P2：选中文字的浮选工具栏 =================
+   选区只从编辑态 textarea 的 selectionStart/End 读（画布上 user-select:none，
+   放开拖选会和节点拖动 / 框选抢手势）。选区是纯数字，render() 重建 DOM 之后
+   captureEditing / restoreEditing 会把它接回去，不需要存 DOM Range。
+   应用样式的顺序固定：pushUndo -> tsApplyRange -> render -> save。 */
+function tsBarHide(){ const b = document.getElementById('tsbar'); if(b) b.classList.remove('show'); }
+function tsSyncBar(){
+  const bar = document.getElementById('tsbar');
+  if(!bar) return;
+  const n = editing;
+  const ta = n && n.el && n.el.querySelector('.editor');
+  const a = ta ? ta.selectionStart : 0, b = ta ? ta.selectionEnd : 0;
+  if(!ta || !(b > a)){ bar.classList.remove('show'); return; }
+  const st = tsStyleAt(n, 'text', 'node', a, b);
+  Array.from(bar.querySelectorAll('[data-ts]')).forEach(btn => {
+    const k = btn.dataset.ts;
+    let on = false;
+    if(k === 'b' || k === 'i' || k === 'u' || k === 's') on = !!st[k];
+    else if(k === 'fs-') on = (st.fs || 0) < 0;
+    else if(k === 'fs+') on = (st.fs || 0) > 0;
+    else if(k.indexOf('c:') === 0) on = (st.c || 'ink') === k.slice(2);
+    btn.classList.toggle('on', on);
+  });
+  const pv = document.getElementById('ts-preview');
+  if(pv){
+    pv.textContent = '';
+    const lab = document.createElement('span');
+    lab.textContent = ta.value.slice(a, b);
+    const css = runStyle(st); if(css) lab.setAttribute('style', css);
+    pv.appendChild(document.createTextNode(trf('选中 {n} 个字 · ', { n: b - a })));
+    pv.appendChild(lab);
+  }
+  bar.classList.add('show');
+  const r = ta.getBoundingClientRect(), vw = window.innerWidth || 1280;
+  bar.style.left = Math.max(8, Math.min(vw - (bar.offsetWidth || 320) - 8, r.left)) + 'px';
+  const h = bar.offsetHeight || 70;
+  bar.style.top = (r.top - h - 8 >= 8 ? r.top - h - 8 : r.bottom + 8) + 'px';
+}
+function tsApplyFromEditor(mut){
+  const n = editing;
+  const ta = n && n.el && n.el.querySelector('.editor');
+  if(!n || !ta){ toast(tr('先双击节点，选中要调整的几个字')); return; }
+  const a = ta.selectionStart, b = ta.selectionEnd;
+  if(!(b > a)){ toast(tr('先选中要调整的几个字')); return; }
+  /* 编辑框里还有没落盘的字：先规整保存，让用户重选一次。
+     绝不拿旧 text 的偏移去套新文字 —— 那样会把样式加到错误的几个字上。 */
+  if(ta.value !== n.text){
+    commitEdit(); startEdit(n);
+    toast(tr('文字已保存，请重新选中要调整的部分'));
+    return;
+  }
+  pushUndo(tr('改选中文字样式'));
+  tsApplyRange(n, 'text', a, b, mut);
+  render(); save(); refreshBar();
+  toast(trf('已对选中的 {n} 个字调整样式', { n: b - a }));
+}
+const TS_MUTS = {
+  b: c => { if(c.b) delete c.b; else c.b = 1; },
+  i: c => { if(c.i) delete c.i; else c.i = 1; },
+  u: c => { if(c.u) delete c.u; else c.u = 1; },
+  s: c => { if(c.s) delete c.s; else c.s = 1; },
+  'fs-': c => { const v = Math.max(-2, (c.fs || 0) - 1); if(v) c.fs = v; else delete c.fs; },
+  'fs+': c => { const v = Math.min(3, (c.fs || 0) + 1); if(v) c.fs = v; else delete c.fs; },
+  clear: c => Object.keys(c).forEach(k => delete c[k])
+};
+Array.from(document.querySelectorAll('#tsbar [data-ts]')).forEach(btn => {
+  /* 关键：不让按钮抢焦点。textarea 一 blur 就会 commitEdit，选区也就没了。 */
+  btn.addEventListener('mousedown', e => e.preventDefault());
+  btn.addEventListener('click', () => {
+    const k = btn.dataset.ts;
+    const mut = TS_MUTS[k] || (k.indexOf('c:') === 0
+      ? (c => { const v = k.slice(2); if(v === 'ink') delete c.c; else c.c = v; }) : null);
+    if(mut) tsApplyFromEditor(mut);
+  });
+});
+
+/* ---- v58 P3：文字样式面板里的「行内片段」----
+   P2 的浮选工具栏只服务节点编辑态；外框标题 / 分组框标题用 contenteditable，
+   联系说明是浮层里的 input，选区形态都不一样。这里统一用面板自己的 textarea：
+   选区是纯数字，render() 全量重建 DOM 之后照样接得回来，不必存 DOM Range。
+   四类对象共用 tsApplyRange()，数据契约与 P1/P2 完全一致。 */
+const inlineObjEl  = document.getElementById('fst-inline-obj');
+const inlineTextEl = document.getElementById('fst-inline-text');
+function tsInlineTarget(){
+  const k = inlineObjEl ? inlineObjEl.value : 'node';
+  const n = selected || root;
+  if(k === 'bd'){
+    let t = (n && n.bd) ? n : null;
+    if(!t && root) t = (root.children || []).filter(c => c.bd)[0] || null;
+    return (t && t.bd) ? { obj: t.bd, key: 't', kind: 'bd' } : null;
+  }
+  if(k === 'gb'){
+    const g = (root && root.groups || [])[0];
+    return g ? { obj: g, key: 't', kind: 'gb' } : null;
+  }
+  if(k === 'rlk'){
+    const lk = (root && root.links || [])[0];
+    return lk ? { obj: lk, key: 't', kind: 'node' } : null;
+  }
+  return n ? { obj: n, key: 'text', kind: 'node' } : null;
+}
+function tsInlineSync(){
+  if(!inlineTextEl) return;
+  const t = tsInlineTarget();
+  const pv = document.getElementById('fst-inline-preview');
+  if(!t){
+    inlineTextEl.value = ''; inlineTextEl.disabled = true;
+    inlineTextEl.placeholder = tr('画布上还没有这个对象');
+    if(pv) pv.textContent = '';
+    return;
+  }
+  inlineTextEl.disabled = false;
+  /* 重画 textarea 的 value 会把光标推到末尾 —— 先记下纯数字选区，写完接回来。
+     这样 render() 末尾同步面板时，用户正在选的字不会被冲掉。 */
+  const _a = inlineTextEl.selectionStart || 0, _b = inlineTextEl.selectionEnd || 0;
+  inlineTextEl.value = plainText(t.obj, t.key);
+  try{
+    inlineTextEl.setSelectionRange(Math.min(_a, inlineTextEl.value.length),
+                                   Math.min(_b, inlineTextEl.value.length));
+  }catch(e){}
+  if(pv){ renderRuns(pv, t.obj, t.key, t.kind); if(!pv.textContent) pv.textContent = tr('（空文字）'); }
+  const a = inlineTextEl.selectionStart || 0, b = inlineTextEl.selectionEnd || 0;
+  const st = (b > a) ? tsStyleAt(t.obj, t.key, t.kind, a, b) : {};
+  Array.from(document.querySelectorAll('[data-ts-inline]')).forEach(btn => {
+    const k = btn.dataset.tsInline;
+    let on = false;
+    if(['b','i','u','s'].indexOf(k) >= 0) on = !!st[k];
+    else if(k === 'fs-') on = (st.fs || 0) < 0;
+    else if(k === 'fs+') on = (st.fs || 0) > 0;
+    else if(k.indexOf('c:') === 0) on = (st.c || 'ink') === k.slice(2);
+    btn.classList.toggle('on', on);
+  });
+}
+function tsInlineApply(mut){
+  const t = tsInlineTarget();
+  if(!t || !inlineTextEl || inlineTextEl.disabled){
+    toast(tr('先选中一个节点 / 外框 / 分组框 / 联系')); return;
+  }
+  const a = inlineTextEl.selectionStart, b = inlineTextEl.selectionEnd;
+  if(!(b > a)){ toast(tr('先在文字里选中要调整的几个字')); return; }
+  /* 与 P2 同一条防错：框里改过字就先同步，绝不拿旧 text 的偏移套新文字 */
+  if(inlineTextEl.value !== plainText(t.obj, t.key)){
+    tsInlineSync(); toast(tr('文字已同步，请重新选中要调整的部分')); return;
+  }
+  pushUndo(tr('改选中文字样式'));
+  tsApplyRange(t.obj, t.key, a, b, mut);
+  render(); save(); refreshBar();
+  tsInlineSync();
+  try{ inlineTextEl.setSelectionRange(a, b); }catch(e){}
+  tsInlineSync();
+}
+if(inlineObjEl) inlineObjEl.addEventListener('change', tsInlineSync);
+if(inlineTextEl) ['select','mouseup','keyup'].forEach(t => inlineTextEl.addEventListener(t, tsInlineSync));
+Array.from(document.querySelectorAll('[data-ts-inline]')).forEach(btn => {
+  btn.addEventListener('click', () => {
+    const k = btn.dataset.tsInline;
+    const mut = TS_MUTS[k] || (k.indexOf('c:') === 0
+      ? (c => { const v = k.slice(2); if(v === 'ink') delete c.c; else c.c = v; }) : null);
+    if(mut) tsInlineApply(mut);
+  });
+});
+
 document.getElementById('btn-bak').onclick  = openBk;
 document.getElementById('bk-x').onclick      = closeBk;
 /* O6 顺手修掉一个既有 bug：这个按钮原来的 id 是 bk-close，而「批量文本工具」的 ✕ 也叫
@@ -13323,8 +14971,9 @@ if(langBtn) langBtn.onclick = () => toggleLang();
         否则一张图里恰好叫「删除」的节点会被当成按钮翻掉。
      ② 原文先存到节点上（__zh），切回中文时原样还原，**不做反向查表** ——
         反向查表遇到一词多义就会串（'标准' 既是字号也是宽度，'清除' 出现在四个面板里）。 */
-const I18N_SKIP = '#nodes, #dragghost, #print-notes, #meas, #ol-body, #hs-list, #ws-list, ' +
-                  '#sp-list, #tpl-grid, #st-body, #bk-tip, [data-i18n-html], textarea, script, style';
+const I18N_SKIP = '#nodes, #frames, #rlabels, #ts-preview, #fst-inline-preview, #dragghost, #print-notes, #meas, ' +
+                  '#ol-body, #hs-list, #ws-list, #sp-list, #tpl-grid, #st-body, #bk-tip, ' +
+                  '[data-i18n-html], textarea, script, style';
 const I18N_ATTRS = ['title', 'aria-label', 'placeholder', 'alt'];
 
 function i18nDom(){
@@ -13405,6 +15054,7 @@ function applyLang(v, persist){
     langBtn.setAttribute('aria-label', langBtn.title);
   }
   i18nDom();
+  hdrLastKey = ''; hdrBalance();   /* v62：译名长度变了，单行的可用宽度要重算 */
 
   /* 全新用户刚打开就切语言：此刻画布上那句「中心主题」还是内置骨架的一部分，不是用户写的东西。
      只在「一点没动过」的状态下才把它跟着语言换掉 —— 撤销栈空（没改过任何东西）+ 只有一个节点
@@ -13437,6 +15087,7 @@ function applyLang(v, persist){
     if(exportEl.classList.contains('show')) exportScopeSyncUI();
     if(bpanelEl.classList.contains('show')) bkUpdateUI();
     if(findBarEl.classList.contains('show')) findUpdateCnt();
+    if(fontstyleEl.classList.contains('show')) tsSyncUI();
   }
   /* 启动那一次不写盘：prefs 是「用户选过的偏好」，不是「打开过」的痕迹 */
   if(persist !== false) savePrefs();
@@ -13459,9 +15110,12 @@ if(__prefs){
   nodeFsKey = __prefs.nodeFsKey || 'm';
   nodeWeightKey = __prefs.nodeWeightKey || 'level';
   nodeWKey = __prefs.nodeWKey || 'm';
+  fontPref = tsPrefNorm(__prefs.fontStyle);
   expFmt = __prefs.expFmt || '';
   arrowChainPref = !!__prefs.arrowChain;          // 第 37 轮修正：默认 false（平级），勾过才 true
   lang = LANG_OK.test(__prefs.lang || '') ? __prefs.lang : 'zh';
+  /* v62：常驻按钮名单（已在 normalizePrefs 里净化过） */
+  hdrPrimaryPref = hdrNormPrimary(__prefs.hdrPrimary).length ? hdrNormPrimary(__prefs.hdrPrimary) : HDR_PRIMARY_DEFAULT.slice();
 }
 applyPrefs(); syncPrefsUI();
 /* v50：导出件里内联的原图先灌回本源 —— 之后任何放大 / 导出都直接命中内存，
@@ -13488,6 +15142,15 @@ document.addEventListener('visibilitychange', () => { if(!document.hidden) touch
 /* v50：保守回收没有任何存档 / 快照 / 当前画布引用的原图。本次会话写过的永不删，
    浏览器不给用 IndexedDB 时连定时器都不排 —— 启动路径零异步。 */
 if(imgIdbOk()) setTimeout(() => { imgGc().catch(() => {}); }, 8000);
+/* v61：启动几何稳定化。三个时机都走带尺寸校验的 geomStableRecheck()，
+   不设一次性门闩 —— 早到的那次若尺寸还没变就什么都不做，晚到的仍能兜住；
+   renderSoon() 自身按帧合并，重复调用也只会补渲一次。
+   window.load 覆盖图片 / 样式 / 布局全落地；document.fonts.ready 覆盖字体度量晚到；
+   250ms 兜底覆盖「load 已过」或某张坏图把 load 挂住的情况。 */
+window.addEventListener('load', geomStableRecheck, { once:true });
+if(document.fonts && document.fonts.ready && typeof document.fonts.ready.then === 'function')
+  document.fonts.ready.then(geomStableRecheck).catch(() => {});
+setTimeout(geomStableRecheck, 250);
 </script>
 </body>
 </html>
