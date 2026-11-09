@@ -10,6 +10,61 @@
 
 ---
 
+## v67 · 2026-11-09（右键外框区域内任意位置即可弹出外框菜单）
+
+用户反馈：右键「框标题」才弹外框菜单的体验很差——标题可点击范围太小，操作不便。要求：**右键外框区域内（标题之外也算，但不包含其他组件如节点 / 链接 / 联系线）**应直接弹出外框菜单；不能影响其他原有功能；必须经过严格测试校验，测试通过才算完成。
+
+**修复**：新增 `frameAtPoint(cx, cy)`（对全部 `.bdf` / `.gbf` 包围盒做几何命中，重叠时取面积最小的帧）与 `selectFrameEl(d)`（按 `.bdft.dataset.fi` / `.gbft.dataset.gi` 反查所属节点，再 `selectNode` + `selectFrame`）。改写 stage 的 `contextmenu` 监听：优先用 `frameAtPoint` 判断，命中即 `preventDefault()` + `selectFrameEl(d)` + `showCtx(...)`。框标题自带的 `contextmenu` 监听已 `stopPropagation()`，不会重复触发；节点 / 链接 / 联系线的监听更靠前且 `stopPropagation`，组件区域不会被误判成外框。
+
+**验收（四步全过）**：`v67.js` **23 / 0**（单节点外框 / 多节点外框 / 画布空白 / 组件优先 / 标题老行为 / 回归守卫），注册进 `runall.py`。`_falsify_v67.py` **6 颗** + `_falsify_chrome_v67.py` **5 颗** 反证全部咬得住，逐轮 sha1 还原一致。全量回归 **60 套 / 4460 条 / 0 失败**。真 Chrome `_chrome_v67.py` **18 / 0** 用 CDP 真实右键。探针踩坑：持久化的「使用指南」面板 `#hint` 浮在画布上，会吞掉其下方区域的右键——探针改为先收起它（这正对应用户说的「除其他组件之外」）。`_mdcheck.py` 11 份 / 0 问题；i18n **EN 1098 / HTML 9**。
+
+产品 **15355 行 / 882295 字节（约 862 KB）**，sha1 `e2c354fb182a35392711ef84c0af6b7ea515da6f`。**尚未发布**——线上仍是 v65；v66（见下）也已完成未发布。本机无 XMind GUI 自动化，验证沿用「导入器模拟器 + 真打包 ZIP + 真 FileReader 往返 + Python zipfile 独立解包」。
+
+## v66 · 2026-11-09（联系线双击写说明显示输入光标）
+
+用户反馈：双击联系线写说明时编辑器未聚焦、不显示输入光标，无法输入。修复：写说明的编辑器在打开时聚焦并定位光标。**验收**：`v66.js` **40 / 0**、`_falsify_v66.py` **18 颗**、全量回归 **4437 / 0**、真 Chrome `_chrome_v66.py` **35 / 0**。未发布（线上 v65）。
+
+## v65 · 2026-11-09（补齐 XMind 联系线端点 · 外框统一 · 选中外框可编辑）
+
+用户三件事：① 原有 XMind 文件里「组合框↔概要、组合框↔组合框、概要↔节点」的联系导入后丢失，要求把**其他也丢的联系线**一并查清；② 外框和组合框本质是一个东西，统一叫**外框**、只保留一个功能点；③ 选中外框后要能删除、编辑、调样式。并且「不要影响其他原有功能，必须经过严格测试校验，测试通过才算完成」。
+
+### 取证：先穷举端点形态，再谈修
+
+新建 `_test/_artifacts/_diag_v65_links.js`，把 `sheet.relationships` 的 `end1Id/end2Id` 穷举成 12 种形态：节点↔节点、外框↔外框（单点 / 多点）、外框↔概要、概要↔节点、`summaries[].id` 当端点、根 / detached / 未被任何 summary 引用的 `children.summary` 主题、悬空端点、数字 id、老版 `content.xml` 的 `<boundary id>`。**修复前 12 条只保住 5 条**。
+
+根因（沿用 v64 从本机 XMind `app.asar` 抽出的 `/renderer/3112.js`）：官方生成器写的是 `e.source.id / e.target.id`，而导入器的 `h()` 明确接受 `type==='topic' || type==='boundary'` —— 也就是说 **`boundary.id` 本身就能当联系端点**。v64 的 `xmindJsonTopic()` 只把主题 id 放进 `ctx.byId`，`boundary.id`、`summaries[].id`、概要主题自己的 id、以及没有被引用的概要主题都没登记；`xmSheetLinks()` 查不到端点就把整条联系跳过，节点本身也一起丢。
+
+### 修复：端点表与端点类型保真
+
+- `xmCtx()` 新增 `ctx.epById`（端点 id → `{k,node}` 延迟解析或 `{k,id}` 直给），新增 `xmEp(ctx, rawId)` 统一解析两端；`xmSheetLinks()` 改走它。端点类型**保真**为 `node / bd / sum / grp`，不再全部退化成 `node`。
+- `xmindJsonTopic()` 登记主题 id、`summaries[].id`、概要主题 id、`boundary.id`；**没有 summary 引用的 `children.summary` 主题当普通子节点收下**，不再整颗丢弃。id 一律 `String()` 后登记，数字 id 也认。
+- 老版 `content.xml` 补 `<boundary>` / `<summary>` 的 id 映射，映射到它所在主题（优先第一个子主题）。悬空端点与自环仍然跳过；`xmindJsonTopic(t)` 不带 `ctx` 的 v63 纯文本回读一字未改。
+- 修复后诊断脚本 **12 条保住 11 条**，唯一丢弃的是本就该丢的悬空端点。
+
+### 外框统一：一个名字、一个功能点、两种存储
+
+用户可见层只留一套「添加外框 / 编辑外框标题 / 删除外框 / 外框色（5 色 + 清除）」，菜单、联系提示、文字样式按钮与占位文案、读屏 `aria-label` 全部改叫「外框」，旧的 `gbadd/gbedit/gbdel/gbclr/#ctx-gb` 入口全部移除。`frameAdd()` 按单选 / 多选自动分流，`frameOf() / frameEdit() / frameDel() / frameSetColor() / frameColor()` 统一识别两种框。
+
+**内部仍保留 `bd`（单节点外框）与 `root.groups + gb`（多节点外框）两种存储**：旧存档、XMind 导入、联系端点、文字样式、四种导出几何全都不用迁移，这是「不影响原有功能」的关键取舍。旧偏好 `fsKind='gb'` 靠两个 `hidden` 的 `<option>` 占位继续兼容，`FS_KINDS` 仍接受 `gb`。
+
+### 选中外框后能删、能改、能调样式
+
+- 点框标题 = 选中外框：给 `.bdf/.gbf` 加 `.sel`，用 `box-shadow` 画选中环（**不改 `border-width`、不动几何**），框体仍是 `pointer-events:none`；点别处 `selectNode()` 自动撤环。
+- **直接右键框标题**就弹出统一外框菜单，不必再绕回节点上右键。
+- 框被选中时 `F2` 编辑框标题、`Delete / Backspace` 删除外框 —— 否则按 Delete 会把整颗节点连同子树一起删掉，这是本次补掉的一个真实误操作。没选中外框时 Delete 仍按老行为删节点。
+- 改色落到 `bd.c` 或 `root.groups[].c`，色板高亮当前档；删除外框保留全部节点，操作都带可读撤销名。
+
+### 验收（四步全过）
+
+1. `v65.js` **61 条 / 0 失败**，注册进 `runall.py`；覆盖 12 种端点全表、数字 id / 老版 XML / 自环 / 悬空、术语与入口唯一、选中后的删除编辑改色与键盘、v64 四类导出与往返守卫。
+2. `_falsify_v65.py` **38 颗螺丝全咬**（含「主题 id 双保险同拆」「三处文案同拆」，每轮 sha1 还原一致）；`_falsify_chrome_v65.py` **7 颗全咬**。修掉两处「测试有洞」：`FS_KINDS` 原来测的是字面正则而不是产品、联系提示选错了 `.lk-tip` 元素；另把 `g()` 加取值兜底，拆坏产品时只变红不崩。
+3. 全量 `runall.py` **58 套 / 4397 条 / 0 失败**；历史套件 `boundary.js / groupframe.js / rlink.js / v58.js` 按统一口径同步断言后全绿。
+4. 真 Chrome `_chrome_v65.py` **37 条 / 0 失败**：验真实 CSS 层叠（`pointer-events`）、真实 `elementFromPoint` 命中、真实 `box-shadow` 选中环、真实右键 / 键盘事件、真实 `DOMParser` 跑 12 种端点。反证后集中复跑坐实数字。
+
+产品 **15273 行 / 877793 字节（约 857 KB）**，sha1 `28f0b5770c09`；i18n `EN 1098 / HTML 9`；`_mdcheck.py` 11 份 0 问题。反证脚本 **62 份**、真 Chrome 探针 **43 组**。**2026-11-09 用户第二轮明确说「发布」后已上线 v65**（沿用原分享链接 `mindmap-tool-30044.app.workbuddy.host`，覆盖原 v64），本地发布副本同为 v65；v56–v65 仍未提交 Git。本机无 XMind GUI 自动化，验证靠导入器模拟器 + 真打包 ZIP + 真 FileReader 往返 + Python `zipfile` 独立解包，不宣称「已用 XMind 软件打开验证」。
+
+---
+
 ## v64 · 2026-11-08（XMind 导入 / 导出补齐外框、概要、联系、插图）
 
 用户反馈：XMind 的**导入与导出**都带不动外框、概要、联系和插图。盘点后：导出侧概要（v63 已修）、外框 / 分组框、联系本来就有原生字段，但都缺 XMind 的 `class` 标记，**插图完全没写**；导入侧 `xmindJsonTopic()` 只读标题 / 备注 / 完成 / 链接 / 子节点，四类**一个都不认** —— 所以「导出再导入」必然丢光。

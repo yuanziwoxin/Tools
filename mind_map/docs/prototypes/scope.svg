@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="文字样式的四级作用域">
+<rect x="0" y="0" width="900" height="470" fill="#ffffff"/>
+<g font-family="-apple-system, Segoe UI, Microsoft YaHei, sans-serif">
+<text x="32" y="42" font-size="22" font-weight="700" fill="#0f172a">文字样式的四级作用域</text>
+<text x="32" y="68" font-size="13" fill="#475569">三个方案共用同一套优先级：越往下越具体，命中时覆盖上层</text>
+
+<rect x="32" y="92" width="836" height="66" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+<text x="52" y="120" font-size="15" font-weight="700" fill="#1d4ed8">L1 · 全局</text>
+<text x="52" y="143" font-size="12.5" fill="#334155">一次改动作用于整张图的所有文字（节点 / 外框标题 / 分组框标题）</text>
+<rect x="700" y="108" width="148" height="34" rx="7" fill="#ffffff" stroke="#93c5fd"/>
+<text x="774" y="130" font-size="12" text-anchor="middle" fill="#1d4ed8">prefs · 不进存档</text>
+
+<path d="M450 158 L450 178" stroke="#94a3b8" stroke-width="1.5"/>
+<path d="M444 172 L450 179 L456 172" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+
+<rect x="32" y="180" width="836" height="66" rx="10" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.5"/>
+<text x="52" y="208" font-size="15" font-weight="700" fill="#6d28d9">L2 · 按类型</text>
+<text x="52" y="231" font-size="12.5" fill="#334155">只管「节点文字」或只管「外框标题」或只管「分组框标题」</text>
+<rect x="700" y="196" width="148" height="34" rx="7" fill="#ffffff" stroke="#c4b5fd"/>
+<text x="774" y="218" font-size="12" text-anchor="middle" fill="#6d28d9">prefs · 不进存档</text>
+
+<path d="M450 246 L450 266" stroke="#94a3b8" stroke-width="1.5"/>
+<path d="M444 260 L450 267 L456 260" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+
+<rect x="32" y="268" width="836" height="66" rx="10" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5"/>
+<text x="52" y="296" font-size="15" font-weight="700" fill="#047857">L3 · 单个对象</text>
+<text x="52" y="319" font-size="12.5" fill="#334155">选中一个节点 / 一个外框 / 一个分组框，只改它自己的整段文字</text>
+<rect x="700" y="284" width="148" height="34" rx="7" fill="#ffffff" stroke="#6ee7b7"/>
+<text x="774" y="306" font-size="12" text-anchor="middle" fill="#047857">serialize · 随文件</text>
+
+<path d="M450 334 L450 354" stroke="#94a3b8" stroke-width="1.5"/>
+<path d="M444 348 L450 355 L456 348" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+
+<rect x="32" y="356" width="836" height="66" rx="10" fill="#fff7ed" stroke="#fdba74" stroke-width="1.5"/>
+<text x="52" y="384" font-size="15" font-weight="700" fill="#c2410c">L4 · 行内片段</text>
+<text x="52" y="407" font-size="12.5" fill="#334155">一段文字里只选中任意几个字单独改样式（本需求的第二个粒度）</text>
+<rect x="700" y="372" width="148" height="34" rx="7" fill="#ffffff" stroke="#fdba74"/>
+<text x="774" y="394" font-size="12" text-anchor="middle" fill="#c2410c">serialize · 随文件</text>
+
+<text x="32" y="450" font-size="12.5" fill="#64748b">A 只做 L1–L3　·　B 做满 L1–L4（推荐）　·　C 只做 L4，且把 HTML 直接塞进 text</text>
+</g>
+</svg>

@@ -432,6 +432,9 @@
         background:var(--stage-bg,#fff);outline:none;max-width:220px;overflow:hidden;text-overflow:ellipsis;}
   .gbft.ph{opacity:.6;font-weight:400;}
   @media print{ .gbft.ph{display:none;} }
+  /* v65：点外框标题 = 选中这个外框。用 box-shadow 画环，不改 border-width / 圆角，
+     也绝不动几何（框体位置由 bdFrameBox / gbFrameBox 算，样式不能改变它的尺寸）。 */
+  .bdf.sel,.gbf.sel{box-shadow:0 0 0 3px var(--accent,#7f77dd);}
 
   /* ---------- B4 大纲侧边栏 ---------- */
   #outline{
@@ -605,6 +608,24 @@
     -webkit-user-select:text;-moz-user-select:text;-ms-user-select:text;user-select:text;
     -webkit-touch-callout:default;
   }
+  /* v66：contenteditable 的行内标题（联系说明 / 外框标题 / 分组框标题）要同一个例外。
+     上面那条只放开了 textarea，于是双击联系线上的小标签后：
+       ① user-select:none 让插入点根本放不下；② .rlkt 的 overflow:hidden 把光标裁掉；
+       ③ 没写说明时 span 是空的，连承载光标的文本节点都没有。
+     这里一次性补齐：放开选择 + 显式 caret-color + 不裁剪 + 给空内容留最小宽度。
+     选择器权重高于 `#stage *`，也不会被 `body.rlk-drag .rlkl` 的继承值翻回去。 */
+  #stage .rlkt[contenteditable="true"],
+  #stage .bdft[contenteditable="true"],
+  #stage .gbft[contenteditable="true"]{
+    -webkit-user-select:text;-moz-user-select:text;-ms-user-select:text;user-select:text;
+    -webkit-touch-callout:default;
+    caret-color:currentColor;
+    overflow:visible;text-overflow:clip;
+    outline:none;min-width:12px;min-height:16px;
+  }
+  /* v66：正在写说明的药丸要一眼看得出可输入 —— 不再半透明，给主题色描边 */
+  .rlkl.editing{opacity:1;font-weight:700;border-color:var(--accent,#7f77dd);
+                box-shadow:0 0 0 2px rgba(127,119,221,.22);max-width:none;}
   .node:hover{box-shadow:0 4px 12px var(--node-shadow);border-color:var(--accent);}
   .node.selected{box-shadow:0 0 0 2.5px var(--accent),0 6px 14px var(--node-shadow);}
   .node .txt{overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;word-break:break-word;}
@@ -1314,7 +1335,7 @@
     <button class="btn" id="btn-outline" title="大纲视图：左侧列出全部节点，点一行定位到画布，双击文字就地改名">☰ 大纲</button>
     <button class="btn" id="btn-stats" title="结构统计：总节点数、各层级分布、各一级分支占比">📊 统计</button>
     <button class="btn" id="btn-help" title="快捷键速查：按功能分组列出全部快捷键（也按 ? 或 F1 打开）">⌨ 快捷键</button>
-    <button class="btn" id="btn-fontstyle" title="文字样式：统一调整节点 / 外框标题 / 分组框标题，也可选中几个字单独调整">Aa 文字样式</button>
+    <button class="btn" id="btn-fontstyle" title="文字样式：统一调整节点 / 外框标题，也可选中几个字单独调整">Aa 文字样式</button>
   </div></div>
   <div class="mp-grp"><div class="mp-cap">面板</div><div class="mp-items" data-grp="panels">
     <button class="btn" id="btn-hist" title="历史版本：本机自动留的快照，误删 / 改乱了可以回到早先的样子">🕘 历史</button>
@@ -1662,7 +1683,8 @@
         <select id="fst-kind" title="选择要调整的那一类文字">
           <option value="node">节点文字</option>
           <option value="bd">外框标题</option>
-          <option value="gb">分组框标题</option>
+          <!-- v65：gb 只作旧偏好 fsKind='gb' 的兼容占位，用户可见的只有上面一个「外框标题」 -->
+          <option value="gb" hidden>外框标题</option>
         </select>
       </label>
       <label class="mini">字号
@@ -1693,11 +1715,12 @@
           <select id="fst-inline-obj" title="选择要调整的文字">
             <option value="node">当前节点文字</option>
             <option value="bd">外框标题</option>
-            <option value="gb">分组框标题</option>
-            <option value="rlk">联系说明</option>
+          <!-- v65：gb 只作旧偏好 fsKind='gb' 的兼容占位，用户可见的只有上面一个「外框标题」 -->
+          <option value="gb" hidden>外框标题</option>
+              <option value="rlk">联系说明</option>
           </select>
         </label>
-        <textarea id="fst-inline-text" rows="2" spellcheck="false" placeholder="先选中一个节点 / 外框 / 分组框 / 联系"></textarea>
+        <textarea id="fst-inline-text" rows="2" spellcheck="false" placeholder="先选中一个节点 / 外框 / 概要 / 联系"></textarea>
         <div class="fst-toggles" id="fst-inline-toggles">
           <button class="btn" data-ts-inline="b" title="加粗">B</button>
           <button class="btn" data-ts-inline="i" title="斜体"><i>I</i></button>
@@ -1879,22 +1902,14 @@
   <div data-act="imgview">查看大图</div>
   <div data-act="imgdel">移除图片</div>
   <div data-act="done">标记完成<kbd>Ctrl+Enter</kbd></div>
-  <!-- N8：外框（Boundary）—— 范围由所属节点决定，加在谁身上就包住谁和它的可见后代 -->
+  <!-- v65：外框（Boundary）—— 只保留一个功能点。选中一个节点 = 框住它和它的后代；
+       选中多个节点 = 框住这几个节点。旧称「分组框」是同一件事的另一种范围，入口与叫法在此统一。 -->
   <div data-act="bdadd">添加外框</div>
   <div data-act="bdedit">编辑外框标题</div>
   <div data-act="bddel">删除外框</div>
   <div class="swrow" id="ctx-bd">
     <span class="mini">外框色</span>
     <span class="sw clear" data-act="bdclr" title="取消外框的自定义颜色（回到默认紫）">清除</span>
-  </div>
-  <!-- N9：分组框 —— 框住「选中的这几个节点」。与上面「外框」的区别：那个框住谁由节点自己决定
-       （它和它的可见后代），这个框住谁由**多选**决定，可以跨分支、也可以只框几个兄弟。 -->
-  <div data-act="gbadd">为选中节点加分组框</div>
-  <div data-act="gbedit">编辑分组框标题</div>
-  <div data-act="gbdel">删除分组框</div>
-  <div class="swrow" id="ctx-gb">
-    <span class="mini">分组框色</span>
-    <span class="sw clear" data-act="gbclr" title="取消分组框的自定义颜色（回到默认紫）">清除</span>
   </div>
   <!-- N11：联系 —— 任意两个对象之间画一条带说明的曲线（节点 / 外框 / 概要 / 分组框都能当端点） -->
   <div data-act="rlkadd">加联系…</div>
@@ -2089,7 +2104,7 @@
   <div class="card">
     <div class="hd"><span id="rlk-title">加联系</span><span class="x" id="rlk-close" role="button" tabindex="0" aria-label="关闭" title="关闭">×</span></div>
     <div class="bd">
-      <div class="lk-tip">在两个对象之间拉一条带说明的曲线：节点、外框、概要、分组框都能当端点。线画在节点之下，不会盖住文字。</div>
+      <div class="lk-tip">在两个对象之间拉一条带说明的曲线：节点、外框、概要都能当端点。线画在节点之下，不会盖住文字。</div>
       <label class="rlk-row"><span>起点</span><select id="rlk-a"></select></label>
       <label class="rlk-row"><span>终点</span><select id="rlk-b"></select></label>
       <label class="rlk-row"><span>说明</span><input type="text" id="rlk-t" placeholder="比如「互为依据」「此处有冲突」（可留空）" autocomplete="off"></label>
@@ -3260,6 +3275,12 @@ const EN = Object.freeze({
   "没勾的按钮都在「⋯ 更多工具」里，随时可以再调": "Unchecked buttons live in \"⋯ More tools\" — adjust anytime",
   "常驻工具栏": "Pin to toolbar",
   "常用按钮": "Pinned commands",
+  "文字样式：统一调整节点 / 外框标题，也可选中几个字单独调整": "Text style: set fonts globally, by type or per object; you can also style just a few selected characters",
+  "先选中一个节点 / 外框 / 概要 / 联系": "Select a node / boundary / summary / relationship first",
+  "在两个对象之间拉一条带说明的曲线：节点、外框、概要都能当端点。线画在节点之下，不会盖住文字。": "Draw a labelled curve between two objects — nodes, boundaries and summaries can all be endpoints. The curve is drawn beneath the nodes, so text stays readable.",
+  "给 {n} 个节点加外框": "Add a boundary around {n} nodes",
+  "删外框（{n} 个节点）": "Remove boundary ({n} nodes)",
+  "外框已删（节点都还在）": "Boundary removed — all nodes are still there",
   /*<</EN>>*/
 });
 
@@ -7062,7 +7083,12 @@ function renderFrames(){
     lb.style.border = '1px solid ' + hexA(col, 0.55);
     lb.dataset.fi = i;                       // 反查：右键「编辑标题」靠它找到这一颗
     lb.addEventListener('mousedown', e => { e.stopPropagation(); });
-    lb.addEventListener('click', e => { e.stopPropagation(); selectNode(n); });
+    lb.addEventListener('click', e => { e.stopPropagation(); selectNode(n); selectFrame(d); });
+    /* v65：直接右键框标题也能进「编辑 / 删除 / 改色」，不必再绕回节点上右键 */
+    lb.addEventListener('contextmenu', e => {
+      e.preventDefault(); e.stopPropagation();
+      selectNode(n); selectFrame(d); showCtx(e.clientX, e.clientY);
+    });
     lb.addEventListener('dblclick', e => { e.stopPropagation(); editBdTitle(n, lb); });
     d.appendChild(lb);
     frag.appendChild(d);
@@ -7099,21 +7125,40 @@ function editBdOf(n){
 /* 行内改标题（外框 / 分组框共用）：Enter 保存 / Esc 还原 / 失焦保存。
    刻意不开浮层 —— 少一张浮层就少一处「Esc 关不掉」的无障碍风险（现有 14 张浮层的断言也不用动）。
    onSave 只在「值真的变了」时被调用，撤销名由调用方给（两处的上下文不一样）。 */
-function editLabel(lb, prev, onSave){
+function editLabel(lb, prev, onSave, opts){
   if(!lb) return;
   if(lb.dataset.edit === '1') return;      // 已经在编辑了，别再进一次（双击会连着派发两次）
   lb.dataset.edit = '1';
   lb.classList.remove('ph');
   lb.textContent = prev;
+  /* v66：没写说明时 span 里一个节点都没有，插入点没有落点（空药丸里看不见光标）。
+     补一个空文本节点承载光标；textContent 仍是 ''，提交时读到的值一字不变。 */
+  if(!lb.firstChild) lb.appendChild(document.createTextNode(''));
   lb.setAttribute('contenteditable', 'true');
+  /* v66：`.ph` 其实挂在药丸（.rlkl）上，不是在文字 span 上 —— 单独给编辑态一个可看见的外观。
+     其它调用方（外框 / 分组框标题）拿不到 .rlkl，这里自然什么都不做。 */
+  const pill = (lb.closest && lb.closest('.rlkl')) || null;
+  if(pill) pill.classList.add('editing');
   lb.focus();
   try{
-    const rg = document.createRange(); rg.selectNodeContents(lb);
+    const rg = document.createRange();
+    if(opts && opts.caret === 'end'){
+      /* 联系说明：折叠到文字末尾，双击完直接接着写，看得见闪烁的插入光标。
+         不再是整段高亮；想整段替换仍可用 Ctrl+A。 */
+      const last = lb.lastChild;
+      if(last && last.nodeType === 3) rg.setStart(last, last.length);
+      else if(last) rg.setStartAfter(last);
+      else rg.setStart(lb, 0);
+      rg.collapse(true);
+    }else{
+      rg.selectNodeContents(lb);           // 外框 / 分组框标题保持老行为：进编辑态就全选
+    }
     const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(rg);
   }catch(e){}
   const finish = keep => {
     if(lb.dataset.edit !== '1') return;
     lb.dataset.edit = '0';
+    if(pill) pill.classList.remove('editing');
     lb.removeAttribute('contenteditable');
     const v = bdTitle(lb.textContent);
     if(keep && v !== prev) onSave(v);
@@ -7138,7 +7183,7 @@ function editBdTitle(n, lb){
 function editGbTitle(g, lb){
   if(!g || !lb) return;
   editLabel(lb, g.t || '', v => {
-    pushUndo(trf('改分组框标题：{x}', { x: clip(g.t || tr('分组框'), 12) }));
+    pushUndo(trf('改外框标题：{x}', { x: clip(g.t || tr('外框'), 12) }));
     g.t = v;
     delete g.rich;                // v56：同上
     save();
@@ -7267,20 +7312,26 @@ function renderGroupFrames(frag){
     d.style.borderWidth = '2.6px';
     d.style.background  = hexA(col, FRAME_FILL_GB);
     d.setAttribute('role', 'group');
-    d.setAttribute('aria-label', g.t ? trf('分组框「{t}」', { t: g.t }) : tr('分组框'));
+    d.setAttribute('aria-label', g.t ? trf('外框「{t}」', { t: g.t }) : tr('外框'));
     const lb = document.createElement('div');
     lb.className = 'gbft' + (g.t ? '' : ' ph');
-    if(g.t) renderRuns(lb, g, 't', 'gb'); else lb.textContent = tr('分组框标题（双击改）');
+    if(g.t) renderRuns(lb, g, 't', 'gb'); else lb.textContent = tr('外框标题（双击改）');
     lb.style.color = frameEdge(col);
     lb.style.border = '1px solid ' + hexA(col, 0.55);
     lb.dataset.gi = g.id;
     lb.addEventListener('mousedown', e => { e.stopPropagation(); });
     /* 点标题 = 选中组里第一个**看得见**的成员：右键菜单（改标题 / 改色 / 删组）
        都挂在「当前节点」上，不这样用户就没法从框本身进菜单。 */
-    lb.addEventListener('click', e => {
-      e.stopPropagation();
+      lb.addEventListener('click', e => {
+        e.stopPropagation();
+        const m = flat.find(n => n.gb === g.id);
+        if(m){ selectNode(m); selectFrame(d); }
+      });
+    /* v65：多节点外框同样支持直接右键框标题 */
+    lb.addEventListener('contextmenu', e => {
+      e.preventDefault(); e.stopPropagation();
       const m = flat.find(n => n.gb === g.id);
-      if(m) selectNode(m);
+      if(m){ selectNode(m); selectFrame(d); showCtx(e.clientX, e.clientY); }
     });
     lb.addEventListener('dblclick', e => { e.stopPropagation(); editGbTitle(g, lb); });
     d.appendChild(lb);
@@ -7312,29 +7363,30 @@ function gbTargets(){
 function gbAdd(){
   const list = gbTargets();
   if(list.length < 2){ toast(tr('先选中两个以上的节点')); return; }
-  pushUndo(trf('给 {n} 个节点加分组框', { n: list.length }));
+  pushUndo(trf('给 {n} 个节点加外框', { n: list.length }));
   const id = gbNewId();
   root.groups = root.groups || [];
   root.groups.push({ id, t: '', c: null });
   list.forEach(n => { n.gb = id; });
   render(); save(); refreshBar();
-  toast(tr('已加分组框 · 双击框上的标题可以写名字'));
+  toast(tr('已加外框 · 双击框上的标题可以写名字'));
 }
 function gbDel(n){
   if(!n || !n.gb) return;
   const id = n.gb, ms = gbMembers(id);
-  pushUndo(trf('删分组框（{n} 个节点）', { n: ms.length }));
+  pushUndo(trf('删外框（{n} 个节点）', { n: ms.length }));
   root.groups = (root.groups || []).filter(g => g.id !== id);
   ms.forEach(x => { delete x.gb; });
   render(); save(); refreshBar();
-  toast(tr('分组框已删（节点都还在）'));
+  toast(tr('外框已删（节点都还在）'));
 }
 function gbSetColor(n, col){
   if(!n || !n.gb) return;
   const g = (root.groups || []).find(x => x.id === n.gb);
   if(!g) return;
   const c = bdColor(col);
-  pushUndo(trf(c ? '改分组框颜色' : '分组框恢复默认颜色'));
+  pushUndo(c ? trf('改外框颜色「{n}」', { n: clip(g.t || tr('外框'), 12) })
+             : tr('取消外框的自定义颜色（回到默认紫）'));
   g.c = c;
   render(); save(); refreshBar();
 }
@@ -7346,7 +7398,89 @@ function editGbOf(n){
   const g = (root.groups || []).find(x => x.id === n.gb);
   if(lb && g) editGbTitle(g, lb);
 }
-/* ====== N9：分组框 END ====== */
+/* ====== v65：统一「外框」BEGIN ======
+   单节点外框（bd，圈一个节点及其子树）与旧称「分组框」（gb，圈选中的多个节点）
+   本质是同一个东西的两种范围。用户只见一个功能点、一个名字；内部保留两种存储，
+   于是旧存档 / XMind 导入 / 联系端点 / 文字样式都不用迁移，零回归。 */
+function frameOf(){
+  if(!selected) return null;
+  if(selected.bd) return { k:'bd', node:selected, obj:selected.bd };
+  if(selected.gb){
+    const g = (root.groups || []).find(x => x.id === selected.gb);
+    if(g) return { k:'gb', node:selected, obj:g };
+  }
+  return null;
+}
+function frameAdd(){
+  if(selectedSet.size > 1 && gbTargets().length >= 2){ gbAdd(); return; }
+  bdAdd(selected);
+}
+function frameEdit(){
+  const f = frameOf();
+  if(!f) return;
+  if(f.k === 'bd') editBdOf(f.node); else editGbOf(f.node);
+}
+function frameDel(){
+  const f = frameOf();
+  if(!f) return;
+  clearFrameSel();
+  if(f.k === 'bd') bdDel(f.node); else gbDel(f.node);
+}
+function frameSetColor(col){
+  const f = frameOf();
+  if(!f){ bdSetColor(selected, col); return; }     // 没框时顺手加一个，沿用旧行为
+  if(f.k === 'bd') bdSetColor(f.node, col); else gbSetColor(f.node, col);
+}
+function frameColor(){
+  const f = frameOf();
+  return !f ? '' : (f.k === 'bd' ? bdColorOf(f.node) : gbColorOf(f.obj));
+}
+/* 点外框标题 = 选中这个外框：给框体一个可见的选中环，点别处自然消失。
+   框体本身仍是 pointer-events:none，画布平移 / 框选 / 联系线命中都不受影响。 */
+function clearFrameSel(){
+  const L = framesEl();
+  if(L) L.querySelectorAll('.bdf.sel, .gbf.sel').forEach(el => el.classList.remove('sel'));
+}
+function selectFrame(el){
+  clearFrameSel();
+  if(el) el.classList.add('sel');
+}
+/* v67：右键「外框区域内（标题之外）」也能直接弹外框菜单。
+   框体本身是 pointer-events:none，右键空白处事件会冒泡到 stage；
+   这里按几何命中帧 DOM 元素的包围盒，命中即选中该帧并弹菜单。
+   标题自带的 contextmenu 监听会 stopPropagation，不会重复触发；
+   节点 / 联系 / 链接各自在更靠前的监听里 stopPropagation，故组件区域不会误判成外框。 */
+function frameAtPoint(cx, cy){
+  const L = framesEl();
+  if(!L) return null;
+  const els = L.querySelectorAll('.bdf, .gbf');
+  let best = null, bestArea = Infinity;
+  for(const d of els){
+    const r = d.getBoundingClientRect();
+    if(cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom){
+      const area = (r.width || 0) * (r.height || 0);
+      if(area < bestArea){ bestArea = area; best = d; }
+    }
+  }
+  return best;
+}
+/* 选中某个外框元素（与标题右键的 selectNode + selectFrame 完全等价，统一一处） */
+function selectFrameEl(d){
+  if(!d) return;
+  if(d.classList.contains('bdf')){
+    const lb = d.querySelector('.bdft');
+    const n = lb && lb.dataset.fi != null ? flat[+lb.dataset.fi] : null;
+    if(n) selectNode(n);
+    selectFrame(d);
+  } else if(d.classList.contains('gbf')){
+    const lb = d.querySelector('.gbft');
+    const gid = lb && lb.dataset.gi;
+    const m = gid ? flat.find(n => n.gb === gid) : null;
+    if(m) selectNode(m);
+    selectFrame(d);
+  }
+}
+/* ====== v65：统一「外框」END ====== */
 
 /* ====== N11：联系（Relationship） BEGIN ======
    「这两个东西是有关系的」—— 可以跨分支、跨层级，甚至一端是外框/概要/分组框。
@@ -7757,14 +7891,14 @@ function editLinkTitle(lk, el){
   editLabel(el, lk.t || '', v => {
     pushUndo(trf('改联系说明：{x}', { x: clip(lk.t || tr('联系'), 12) }));
     lk.t = v; save();
-  });
+  }, { caret: 'end' });            // v66：双击后光标落在末尾，看得见、可以直接接着写
 }
 /* 端点显示名（对话框与撤销名共用一套口径）。
    占位符统一用 {t} —— 与既有的「外框「{t}」」「分组框「{t}」」同一套词条，不再另造一份近似键。 */
 function epName(ep){
   if(ep.k === 'grp'){
     const g = (root.groups || []).find(x => x.id === ep.id) || {};
-    return trf('分组框「{t}」', { t: g.t || tr('未命名') });
+    return trf('外框「{t}」', { t: g.t || tr('未命名') });
   }
   const n = uidIndex().get(ep.id) || {};
   const t = clip(n.text || tr('空节点'), 16);
@@ -7782,7 +7916,7 @@ function rlkOptions(){
     if(n.bd)  bds.push({ v: 'bd:' + nodeUid(n),   t: trf('外框「{t}」', { t: n.bd.t || clip(n.text, 14) }) });
   });
   (root.groups || []).forEach(g => {
-    if(groupRect(g.id)) grps.push({ v: 'grp:' + g.id, t: trf('分组框「{t}」', { t: g.t || tr('未命名') }) });
+    if(groupRect(g.id)) grps.push({ v: 'grp:' + g.id, t: trf('外框「{t}」', { t: g.t || tr('未命名') }) });
   });
   return nodes.concat(sums, bds, grps);
 }
@@ -9861,6 +9995,7 @@ function syncSelectionUI(){
 function selectNode(n){
   selected = n;
   selectedSet = n ? new Set([n]) : new Set();
+  clearFrameSel();                 // v65：点别处就撤掉外框选中环
   syncSelectionUI();
   refreshBar();
 }
@@ -10217,11 +10352,12 @@ function showCtx(x, y){
   const imgAddAct = ctxMenu.querySelector('[data-act="imgadd"]');
   if(imgAddAct && imgAddAct.firstChild && imgAddAct.firstChild.nodeType === 3)
     imgAddAct.firstChild.nodeValue = tr((selected && selected.img) ? '更换图片…' : '插入图片…');
-  /* N8：没有外框时，「编辑标题 / 删除 / 清除颜色」三项目前无事可做 —— 置灰比点了没反应好 */
+  /* v65：统一外框 —— 单节点 bd 与多节点 gb 都算「当前有外框」 */
+  const curFrame = frameOf();
   ['bdedit', 'bddel', 'bdclr'].forEach(a => {
     const el = ctxMenu.querySelector('[data-act="' + a + '"]');
     if(!el) return;
-    if(selected.bd) el.removeAttribute('disabled'); else el.setAttribute('disabled', '1');
+    if(curFrame) el.removeAttribute('disabled'); else el.setAttribute('disabled', '1');
   });
   /* N11：联系至少要两个能当端点的对象，否则点了也是白点 */
   const rlkBtn = ctxMenu.querySelector('[data-act="rlkadd"]');
@@ -10235,25 +10371,10 @@ function showCtx(x, y){
     if(!el) return;
     if(selected && selected.sum) el.removeAttribute('disabled'); else el.setAttribute('disabled', '1');
   });
-  /* N9：分组框 —— 「加」要求多选里至少两个可入组的节点；其余三项要求当前节点已在某个组里。
-     两个"加"并存但不打架：外框（bdadd）永远可用，管的是「这个节点 + 它的后代」。 */
-  const gAdd = ctxMenu.querySelector('[data-act="gbadd"]');
-  if(gAdd){ if(gbTargets().length >= 2) gAdd.removeAttribute('disabled'); else gAdd.setAttribute('disabled', '1'); }
-  ['gbedit', 'gbdel', 'gbclr'].forEach(a => {
-    const el = ctxMenu.querySelector('[data-act="' + a + '"]');
-    if(!el) return;
-    if(selected && selected.gb) el.removeAttribute('disabled'); else el.setAttribute('disabled', '1');
-  });
-  /* N9：分组框色板同样圈出当前那一支 */
-  const g = selected && selected.gb ? (root.groups || []).find(x => x.id === selected.gb) : null;
-  const curGb = g ? gbColorOf(g) : '';
-  ctxMenu.querySelectorAll('#ctx-gb .sw[data-color]').forEach(d => {
-    d.classList.toggle('on', !!curGb && d.getAttribute('data-color') === curGb);
-  });
-  /* N8：外框色板把当前那一支圈出来（与「高亮」那排同一套 .on 视觉） */
-  const curBd = selected.bd ? bdColorOf(selected) : '';
+  /* v65：只有一套外框色板，当前框是 bd 还是 gb 都能高亮出正在用的那一档 */
+  const curFrameCol = frameColor();
   ctxMenu.querySelectorAll('#ctx-bd .sw[data-color]').forEach(d => {
-    d.classList.toggle('on', !!curBd && d.getAttribute('data-color') === curBd);
+    d.classList.toggle('on', !!curFrameCol && d.getAttribute('data-color') === curFrameCol);
   });
   /* N5：把当前节点已有的标记高亮出来，用户一眼知道它是哪一档 */
   const curMark = selected.mark || '';
@@ -10295,17 +10416,12 @@ ctxMenu.addEventListener('click', e => {
   else if(a === 'imgview') openImgView(selected);
   else if(a === 'imgdel')  imgDel(selected);
   else if(a === 'done') setNodeDone(selected);
-  else if(a === 'bdadd')  bdAdd(selected);            // N8：外框
-  else if(a === 'bdedit') editBdOf(selected);
-  else if(a === 'bddel')  bdDel(selected);
-  else if(a === 'bdcolor') bdSetColor(selected, d.getAttribute('data-color'));
-  else if(a === 'bdclr')  bdSetColor(selected, null);
+  else if(a === 'bdadd')  frameAdd();                 // v65：统一外框（单选 / 多选自动分流）
+  else if(a === 'bdedit') frameEdit();
+  else if(a === 'bddel')  frameDel();
+  else if(a === 'bdcolor') frameSetColor(d.getAttribute('data-color'));
+  else if(a === 'bdclr')   frameSetColor(null);
   else if(a === 'rlkadd')  openRlinkDlg();             // N11：联系
-  else if(a === 'gbadd')   gbAdd();                   // N9：分组框
-  else if(a === 'gbedit')  editGbOf(selected);
-  else if(a === 'gbdel')   gbDel(selected);
-  else if(a === 'gbcolor') gbSetColor(selected, d.getAttribute('data-color'));
-  else if(a === 'gbclr')   gbSetColor(selected, null);
   else if(a === 'sumadd')  sumAdd();                  // P2：概要
   else if(a === 'sumedit') sumEdit(selected);
   else if(a === 'sumdel')  sumDel(selected);
@@ -10338,21 +10454,7 @@ ctxMenu.addEventListener('click', e => {
     row.appendChild(s);
   });
 })();
-/* N9：分组框色板 —— 与上面外框色板同一套 .sw 视觉与数据属性，只有 data-act 不同。
-   只在「当前节点已在某个组里」时可用（没组的时候改色无从谈起，置灰就行）。 */
-(function buildGbSwatches(){
-  const row = document.getElementById('ctx-gb');
-  if(!row) return;
-  BD_COLORS.forEach(c => {
-    const s = document.createElement('span');
-    s.className = 'sw';
-    s.style.background = c;
-    s.setAttribute('data-act', 'gbcolor');
-    s.setAttribute('data-color', c);
-    s.title = '把分组框改成这个颜色';   // 走 applyLang 的运行时翻译（#ctx 不在 I18N_SKIP 里），别在这里 tr()
-    row.appendChild(s);
-  });
-})();
+/* v65：分组框色板已并入下面统一的外框色板（只保留一个功能点）。 */
 /* N8：外框色板（与「高亮」同一套 .sw 视觉，但走独立的 data-act='bdcolor'，
    点下去 = 定色；没框的时候顺手就把框加上，省一次往返） */
 (function buildBdSwatches(){
@@ -11625,7 +11727,11 @@ function unzip(buf){
    XMind 的 id 不是本工具的 uid（可能超长、可能含中文），所以另建一张 byId 映射；
    只有真正被联系引用的节点才发 uid —— 与「n.uid 只在当端点时发」的约定保持一致。 */
 function xmCtx(files){
-  return { files: files || {}, byId: new Map(), groups: [], links: [], images: {}, big: [],
+  /* v65：byId 只登记「主题 → 节点」；epById 额外登记所有能当联系端点的对象 id
+     （boundary / summary 对象 / 概要主题），值用 {k,node} 延迟解析或 {k,id} 直给，
+     保住「只有真正被联系引用的节点才发 uid」这条约定。 */
+  return { files: files || {}, byId: new Map(), epById: new Map(),
+           groups: [], links: [], images: {}, big: [],
            gseq: 0, lseq: 0, useq: 0, iseq: 0 };
 }
 function xmUid(node, ctx){
@@ -11674,6 +11780,21 @@ async function xmShrinkBig(tree){
     }catch(e){ /* 这一张放弃，其余节点照常导入 */ }
   }
 }
+/* v65：端点 id → 本工具端点对象。
+   取证（本机 asar /renderer/3112.js）：官方生成器写的是 e.source.id / e.target.id，
+   而导入器的 h() 明确接受 type==='topic' 或 'boundary' —— 也就是说 XMind 的联系线
+   可以一头连在外框 / 分组框（boundary.id）上；summaries[].id 与 children.summary 里
+   的概要主题 id 同样可能出现在 end1Id / end2Id 上。v64 只登记了主题 id，导致
+   「框↔框」「框↔概要」「框↔节点」以及指向未引用概要主题的联系整条被丢。 */
+function xmEp(ctx, rawId){
+  if(rawId == null) return null;
+  const key = String(rawId).trim();
+  if(!key) return null;
+  const e = ctx.epById && ctx.epById.get(key);
+  if(e) return e.node ? { k:e.k, id: xmUid(e.node, ctx) } : { k:e.k, id:e.id };
+  const n = ctx.byId.get(key);
+  return n ? { k:'node', id: xmUid(n, ctx) } : null;
+}
 /* sheet.relationships → root.links；扩展里的 bend / shift 也一并按端点匹配回来 */
 function xmSheetLinks(sh, ctx){
   const ex = (Array.isArray(sh.extensions) ? sh.extensions : []).filter(e =>
@@ -11685,10 +11806,10 @@ function xmSheetLinks(sh, ctx){
   });
   (Array.isArray(sh.relationships) ? sh.relationships : []).forEach(r => {
     if(!r) return;
-    const a = ctx.byId.get(r.end1Id), b = ctx.byId.get(r.end2Id);
-    if(!a || !b || a === b) return;                 // 悬空端点的联系不进本工具
+    const a = xmEp(ctx, r.end1Id), b = xmEp(ctx, r.end2Id);
+    if(!a || !b || (a.k === b.k && a.id === b.id)) return;   // 悬空端点 / 自环不进本工具
     const one = { id: 'xml' + (++ctx.lseq), t: String(r.title == null ? '' : r.title).slice(0, 60),
-                  a: { k: 'node', id: xmUid(a, ctx) }, b: { k: 'node', id: xmUid(b, ctx) } };
+                  a, b };
     const key = String(r.end1Id) + '>' + String(r.end2Id) + '>' + String(r.title || '');
     const hit = exMap.get(key);
     if(hit){
@@ -11744,7 +11865,13 @@ function xmindJsonTopic(t, ctx){
     });
     return node;
   }
-  if(typeof t.id === 'string' && t.id) ctx.byId.set(t.id, node);
+  /* v65：id 不一定是字符串（外部 XMind 文件会写数字），一律按字符串登记，
+     查找侧 xmEp() 同样按字符串查；epById 让端点保留它本来的类型。 */
+  const tid = (t.id == null ? '' : String(t.id).trim());
+  if(tid){
+    ctx.byId.set(tid, node);
+    ctx.epById.set(tid, { k:'node', node });
+  }
   xmTopicImage(t, node, ctx);                       // v64：插图
   const ch = t.children || {}, attached = [];
   ['attached', 'detached', 'callout'].forEach(k => {
@@ -11756,35 +11883,62 @@ function xmindJsonTopic(t, ctx){
       if(k === 'attached') attached.push(s);
     });
   });
-  /* v64：概要。XMind 的概要主题住 children.summary，父主题用 summaries[].topicId
-     指过去；range 指向 attached 的 0 基闭区间，正好就是本工具 sum:{a,b} 的口径。 */
+  /* v65：概要。XMind 的概要主题住 children.summary，父主题用 summaries[].topicId
+     指过去；range 指向 attached 的 0 基闭区间，正好就是本工具 sum:{a,b} 的口径。
+     ★ 三类 id 都要登记成联系端点：summaries[].id（对象 id）、概要主题自己的 id、
+       以及「没有被任何 summary 引用」的概要主题 —— v64 会把未引用的整颗丢掉，
+       顺带把指向它的联系也弄没了。 */
   const sums = Array.isArray(t.summaries) ? t.summaries : [];
   const pool = Array.isArray(ch.summary) ? ch.summary : [];
   const last = Math.max(0, attached.length - 1);
+  const used = new Set();
   sums.forEach(s => {
     const r = xmRange(s && s.range);
-    if(!r) return;
-    const raw = pool.filter(x => x && x.id === s.topicId)[0];
-    const sn = raw ? xmindJsonTopic(raw, ctx) : null;
+    const sid = (s && s.topicId == null) ? '' : String(s.topicId).trim();
+    const raw = pool.filter(x => x && String(x.id == null ? '' : x.id).trim() === sid)[0];
+    if(!raw) return;
+    const sn = xmindJsonTopic(raw, ctx);
     if(!sn) return;
-    sn.sum = { a: Math.min(r.a, last), b: Math.min(Math.max(r.b, r.a), last) };
+    used.add(raw);
+    if(r) sn.sum = { a: Math.min(r.a, last), b: Math.min(Math.max(r.b, r.a), last) };
     node.children.push(sn);                        // 本工具不变量：概要排真实子节点之后
+    const rid = String(raw.id == null ? '' : raw.id).trim();
+    if(rid && r) ctx.epById.set(rid, { k:'sum', node: sn });   // 线落在括线上，不是卡片上
+    if(s && s.id != null){
+      const k = String(s.id).trim();
+      if(k){ ctx.byId.set(k, sn); ctx.epById.set(k, r ? { k:'sum', node: sn } : { k:'node', node: sn }); }
+    }
   });
-  /* 不规范文件（只有 children.summary、没有 summaries）也不能丢内容：当普通子节点收下 */
-  if(!sums.length && pool.length)
-    pool.forEach(x => { const s = xmindJsonTopic(x, ctx); if(s) node.children.push(s); });
-  /* v64：外框 / 分组框。range 退化成单点 = 本工具的 bd；(a,b) 多点 = 根上建一个 group
-     并给整段成员打 gb。XMind 的 range 只支持连续区间，所以这里天然也是连续的。 */
+  /* 不规范文件（有 children.summary 但缺对应 summaries）也不能丢内容：当普通子节点收下 */
+  pool.forEach(x => {
+    if(used.has(x)) return;
+    const s = xmindJsonTopic(x, ctx);
+    if(s) node.children.push(s);                 // 递归里已经登记过 x.id
+  });
+  /* v65：外框 / 分组框。range 退化成单点 = 本工具的 bd；(a,b) 多点 = 根上建一个 group
+     并给整段成员打 gb。★ boundary.id 必须登记成联系端点：XMind 的联系线可以连在
+     外框上（3112.js 的 h() 明确接受 type==='boundary'），v64 没登记就整条丢。 */
   (Array.isArray(t.boundaries) ? t.boundaries : []).forEach(b => {
+    const bid = (b && b.id == null) ? '' : String(b.id).trim();
     const r = xmRange(b && b.range);
-    if(!r || !attached.length) return;
+    if(!r || !attached.length){
+      if(bid){ ctx.byId.set(bid, node); ctx.epById.set(bid, { k:'node', node }); }
+      return;
+    }
     const a = Math.min(r.a, attached.length - 1);
     const z = Math.min(Math.max(r.b, a), attached.length - 1);
     const ttl = String(b.title == null ? '' : b.title).replace(/\s+/g, ' ').trim().slice(0, 60);
-    if(a === z){ attached[a].bd = { t: ttl, c: null }; return; }
-    const gid = 'xmg' + (++ctx.gseq);
-    ctx.groups.push({ id: gid, t: ttl, c: null });
-    for(let i = a; i <= z; i++) attached[i].gb = gid;
+    let ep;
+    if(a === z){
+      attached[a].bd = { t: ttl, c: null };
+      ep = { k:'bd', id: xmUid(attached[a], ctx) };
+    }else{
+      const gid = 'xmg' + (++ctx.gseq);
+      ctx.groups.push({ id: gid, t: ttl, c: null });
+      for(let i = a; i <= z; i++) attached[i].gb = gid;
+      ep = { k:'grp', id: gid };
+    }
+    if(bid){ ctx.byId.set(bid, attached[a]); ctx.epById.set(bid, ep); }
   });
   return node;
 }
@@ -11792,7 +11946,13 @@ function lname(el){ return String(el.localName || el.nodeName || '').replace(/^.
 function xmindXmlTopic(el, ctx){
   const node = { text: '', note: '', children: [] };
   const tid = el.getAttribute && el.getAttribute('id');
-  if(tid && ctx) ctx.byId.set(tid, node);            // v64：老版 XML 的联系端点也认
+  if(tid && ctx){
+    const k = String(tid).trim();
+    ctx.byId.set(k, node);                           // v64：老版 XML 的联系端点也认
+    ctx.epById.set(k, { k:'node', node });           // v65：端点类型统一走 epById
+    if(!ctx.xmlEls) ctx.xmlEls = new Map();
+    ctx.xmlEls.set(el, node);
+  }
   for(let i = 0; i < el.children.length; i++){
     const c = el.children[i], tag = lname(c);
     if(tag === 'title') node.text = (c.textContent || '').trim();
@@ -11864,6 +12024,22 @@ function xmindToTree(files){
         title: ttl ? String(ttl.textContent || '').trim() : (r.getAttribute('title') || '')
       });
     }
+    /* v65：老版 XML 里 <boundary>/<summary> 的 id 也可能被 <relationship> 引用；
+       映射到它所在主题（优先第一个子主题），别让这类联系凭空消失。 */
+    Array.from(doc.getElementsByTagName('*')).forEach(b => {
+      const tag = lname(b);
+      if(tag !== 'boundary' && tag !== 'summary') return;
+      const bid = b.getAttribute && b.getAttribute('id');
+      if(!bid) return;
+      const k = String(bid).trim();
+      if(!k || ctx.byId.has(k)) return;
+      let p = b.parentElement, hit = null;
+      while(p && !hit){ hit = ctx.xmlEls && ctx.xmlEls.get(p); p = p.parentElement; }
+      if(!hit) return;
+      const rep = hit.children[0] || hit;
+      ctx.byId.set(k, rep);
+      ctx.epById.set(k, { k:'node', node: rep });
+    });
     xmSheetLinks(pseudo, ctx);
     if(!tops.length) throw new Error('文件里没有找到导图的中心主题');
     const tree = (tops.length === 1) ? tops[0] : { text: tr('思维导图'), children: tops };
@@ -14094,6 +14270,16 @@ window.addEventListener('pointercancel', e => {
 });
 /* 长按之后安卓还会再补一次原生菜单 —— 触屏模式下统一挡掉（我们的菜单已经出来了） */
 stage.addEventListener('contextmenu', e => {
+  /* v67：右键落在某个外框的区域内（标题之外也算）—— 直接选中该外框并弹菜单，
+     不必再去够那个很小的标题。框体是 pointer-events:none，事件会冒泡到这里；
+     节点 / 联系 / 链接各自在更靠前的监听里 stopPropagation，故组件区域不会误判成外框。 */
+  const d = frameAtPoint(e.clientX, e.clientY);
+  if(d){
+    e.preventDefault();
+    selectFrameEl(d);
+    showCtx(e.clientX, e.clientY);
+    return;
+  }
   if(document.body.classList.contains('touch')){
     e.preventDefault();
     if(window.getSelection){ try{ window.getSelection().removeAllRanges(); }catch(_){} }
@@ -14511,6 +14697,15 @@ window.addEventListener('keydown', e => {
   }
   if(anyPanelOpen()) return;                 // 面板开着时 Tab/Enter 归面板自己用，别去动画布
   if(!selected) return;
+  /* v65：框被选中时 F2 / Delete 作用于外框本身 —— 否则点中框标题后按 Delete 会
+     把整颗节点连同子树一起删掉，是「选中外框」最危险的一个误操作。 */
+  const FSEL = framesEl() && framesEl().querySelector('.bdf.sel, .gbf.sel');
+  if(FSEL && !e.ctrlKey && !e.metaKey && !e.altKey &&
+     (e.key === 'F2' || e.key === 'Delete' || e.key === 'Backspace')){
+    e.preventDefault();
+    if(e.key === 'F2') frameEdit(); else frameDel();
+    return;
+  }
   /* N2：Ctrl+Enter 打勾 / 取消勾（多选时整批切换）。
      必须排在下面那条「Enter＝新增同级」之前，否则 Ctrl 版会被当成普通回车。
      也必须排在「面板过滤」之后 —— 备注面板里的 Ctrl+Enter 是「保存并关闭」，别抢。 */
@@ -14710,7 +14905,11 @@ function fsResolve(){
   if(fsScope === 'kind')   return { kind: fsKind, pref: fontPref[fsKind], obj: null, persist: 'pref' };
   const n = selected || root, k = fsKind;
   if(k === 'node') return { kind: 'node', pref: null, obj: n, persist: 'obj' };
-  if(k === 'bd')   return { kind: 'bd', pref: null, obj: (n && n.bd) || null, persist: 'obj' };
+  /* v65：外框统一 —— 单节点 bd 与多节点 gb 都从「外框标题」这一档进入 */
+  if(k === 'bd'){
+    const g = ((root && root.groups) || []).find(x => x.id === (n && n.gb));
+    return { kind: 'bd', pref: null, obj: (n && n.bd) || g || null, persist: 'obj' };
+  }
   const g = ((root && root.groups) || []).find(x => x.id === (n && n.gb));
   return { kind: 'gb', pref: null, obj: g || null, persist: 'obj' };
 }

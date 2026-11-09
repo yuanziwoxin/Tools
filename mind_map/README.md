@@ -17,12 +17,12 @@
   &nbsp;
   <img src="https://img.shields.io/badge/layout-mind%20%7C%20org-0ea5a4" alt="two layouts"/>
   &nbsp;
-  <img src="https://img.shields.io/badge/tests-57%20suites%20%2F%204336%20assertions-7c3aed" alt="test suite scale"/>
+  <img src="https://img.shields.io/badge/tests-58%20suites%20%2F%204397%20assertions-7c3aed" alt="test suite scale"/>
   &nbsp;
   <img src="https://img.shields.io/badge/UI-bilingual%20%C2%B7%20%E4%B8%AD%E8%8B%B1%E5%8F%8C%E8%AF%AD-0f9d8f" alt="bilingual interface"/>
 </p>
 
-Most mind-mapping tools want an account, a desktop client, a yearly subscription — or they keep your map on someone else's server. This one is **a single ~852 KB HTML file**: double-click to run, works with the network unplugged, and the map lives on your own disk.
+Most mind-mapping tools want an account, a desktop client, a yearly subscription — or they keep your map on someone else's server. This one is **a single ~857 KB HTML file**: double-click to run, works with the network unplugged, and the map lives on your own disk.
 
 > **Sharing is the install**: send the HTML file to anyone; they double-click it and hold exactly the same full tool — view it, edit it, export from it. No package, no login, no server.
 >
@@ -89,10 +89,9 @@ Big maps don't hurt because you can't draw them; they hurt because you can't fin
 - **Statistics**: level distribution, branch share, badge summary, and last render time — so "is it slow?" becomes a number
 - **Search** `Ctrl+F`: highlighted hits, "only matches" mode, **notes are searched too**, case / whole-word / regex, plus batch replace
 - **Two layouts**: **horizontal** (mind map, default) and **vertical** (org chart, reporting lines read top-down). Switching changes no data, arrow keys and fold dots follow, and exports use the current layout
-- **Boundaries**: a dashed frame that groups a branch with its visible descendants — right-click to add / title / recolour / remove. It travels with the node (copy, paste, move, delete), tightens when you fold or filter, never eats a click, and lands in PNG / SVG / PDF and in the map data. The border is the frame colour darkened 45% and drawn 2.4–2.6px thick, the inside carries the same colour at 20–24% — so the region reads at a glance without competing with the text
+- **Boundaries** (v65: one feature for both ranges; v67: right-click anywhere in the frame): right-click **Add boundary** on one node to frame that branch with its visible descendants, or select several nodes — **across branches if you like** — to frame them together. Either way there is one menu, one name and one colour row: **Edit boundary title / Remove boundary / Boundary color**. Click the frame's title to select it (a visible ring appears). **From v67 you can right-click anywhere inside the frame — not just the tiny title — to open that same menu** (a right-click over a node, link or relationship line still goes to that component). Press `F2` to rename, or `Delete` to remove just the frame — the nodes stay. It travels with the node (copy, paste, move, delete), tightens when you fold or filter, never eats a click, and lands in PNG / SVG / PDF, the map data and XMind's native `boundary`. The border is the frame colour darkened 45% and drawn 2.4–2.6px thick, the inside carries the same colour at 20–24% — so the region reads at a glance without competing with the text
 - **Summaries**: select two or more siblings, right-click **Add summary**, and a bracket wraps them with a summary topic that states the shared point. The summary topic is a real node — it can grow sub-nodes of its own, and the range follows inserts and deletes
-- **Group frames**: select a few nodes — **across branches if you like** — and right-click **Group the selected nodes** to wrap them in one dashed frame. It is a background layer: it never moves a node horizontally, but it does ask for a small vertical gap between neighbours so its dashed border always runs through empty space instead of under a node card. It dissolves by itself when only one member is left, and exports to XMind as a native boundary
-- **Relationships**: pick any two objects on the canvas — **node, boundary, summary or group frame** — and right-click **Add relationship** to draw a labelled dashed curve between them. **Drag the curve** to pull it clear of anything covering it (a 2.2px dashed line carries a 16px invisible hit band so it is easy to grab) — in any direction: sideways pushes the arc aside, along the line slides it forward or back, and it follows up to ±900px. Labels avoid cards, boundaries and group frames; when the whole curve is buried the label is pushed out along the normal instead of sitting on top of something. **If the line is too short to grab, drag the label** — on short links it is the handle. Short links still draw their ends: instead of collapsing into a bump inside the gap they **loop out through the 20px gap** between the cards, and the emptier side is chosen when the link is created; below 30px the line turns solid with a smaller arrowhead. Double-click the label to describe the relationship, `×` to delete it. The start and end default in the order node → summary → boundary → group frame, so the one you picked first is the start. In XMind it becomes a native `relationship`
+- **Relationships**: pick any two objects on the canvas — **node, boundary, summary or boundary around several nodes** — and right-click **Add relationship** to draw a labelled dashed curve between them. **Drag the curve** to pull it clear of anything covering it (a 2.2px dashed line carries a 16px invisible hit band so it is easy to grab) — in any direction: sideways pushes the arc aside, along the line slides it forward or back, and it follows up to ±900px. Labels avoid cards and boundaries; when the whole curve is buried the label is pushed out along the normal instead of sitting on top of something. **If the line is too short to grab, drag the label** — on short links it is the handle. Short links still draw their ends: instead of collapsing into a bump inside the gap they **loop out through the 20px gap** between the cards, and the emptier side is chosen when the link is created; below 30px the line turns solid with a smaller arrowhead. Double-click the label to describe the relationship, `×` to delete it. The start and end default in the order node → summary → boundary → multi-node boundary, so the one you picked first is the start. In XMind it becomes a native `relationship`
 - **Node images**: right-click a node → **Insert image…** and the picture lands on the node as a 96px thumbnail, with the text unchanged below it — image and text together in one node, or either one alone. **Hover** the thumbnail to see the original, scroll to zoom it, click for the full-size view (fit / actual size / pointer-anchored wheel zoom, drag to pan — **dragging the image pans the map behind it too**, with a pale backdrop, and it drags at any zoom level). **The original is kept byte-for-byte**: the node stores only a 320px lightweight copy for layout, while the original goes to IndexedDB (no re-encoding, no GIF frames lost), so 100% zoom, PNG and SVG all show the real pixels; small images are kept as-is with zero re-encoding. Exporting a **standalone .html / map .json** inlines the originals, so **handing someone a single HTML file still shows them the original** — single-file sharing is intact. Only **inline** images are accepted, so it still works offline; images ride along with copy / paste / undo / saving, and a text-only export keeps the “（图片）” placeholder
 
 <p align="center">
@@ -104,7 +103,7 @@ Big maps don't hurt because you can't draw them; they hurt because you can't fin
 </p>
 
 <p align="center">
-  <img src="screenshots/mindmap-group.en.png" width="820" alt="Group frames: one dashed frame across branches around the second and third items, with the group name inside its top edge"/>
+  <img src="screenshots/mindmap-group.en.png" width="820" alt="Boundaries across branches: one dashed frame around the second and third items, with the boundary title inside its top edge"/>
 </p>
 
 <p align="center">
@@ -129,13 +128,13 @@ The **Export ▾** panel groups formats by purpose — **Images / Office / Data 
 
 | Format | Typical use | How notes travel |
 | --- | --- | --- |
-| **PNG** / **SVG** / **PDF** | Documents, slides, sharp at any zoom | Numbered badge + a note list under the map; **boundaries, summaries, group frames and relationships drawn** |
+| **PNG** / **SVG** / **PDF** | Documents, slides, sharp at any zoom | Numbered badge + a note list under the map; **boundaries, summaries and relationships drawn** |
 | **PPT · one slide** | The map as vector shapes on one slide, still recolourable | A small grey line inside the shape |
 | **PPT · paged outline** | Cover + one page per top-level branch | A small grey line after the node |
 | **Word** | Numbered headings by level, keep writing | A grey paragraph one level in |
 | **Excel** | One row per node with level / parent / full path | A dedicated "Note" column |
 | **Markdown** | A standard `#` outline for notes apps | A `> 备注：…` blockquote — **re-imports onto the node** |
-| **XMind** / **OPML** | Continue in XMind / Mubu / Workflowy / Feishu | `notes` / `_note` fields; **boundaries, group frames, summaries, relationships and images** all become native XMind objects — and since v64 all four are read back on import |
+| **XMind** / **OPML** | Continue in XMind / Mubu / Workflowy / Feishu | `notes` / `_note` fields; **boundaries, summaries, relationships and images** all become native XMind objects — since v64 all four are read back on import, and v65 also keeps relationships whose endpoints are boundaries or summaries |
 | **Standalone page** | Double-click to open, complete **and still editable** | Included in the data |
 | **Map data `.json`** | The main backup format; open it later to continue | Included in the data |
 
@@ -223,7 +222,7 @@ A few deliberate decisions:
 
 ## Under the hood
 
-**15,156 lines, ~852 KB, zero external dependencies.** A few things worth pointing at:
+**15,273 lines, ~857 KB, zero external dependencies.** A few things worth pointing at:
 
 **Layout**
 A hand-written tidy-tree (left→right) and a vertical org chart (top→bottom) share one coordinate convention (`x` = node's left edge, `y` = vertical centre), so positioning, bounds, fit-to-window, minimap and rubber-band selection all run from a single implementation. Collapsed subtrees never enter layout.
@@ -238,9 +237,9 @@ Office and XMind files are **hand-written OOXML / ZIP** (an internal store + CRC
 The search switches (`Aa` / whole word / regex) are not three matchers: one `findCompile()` turns "keyword + switches" into a single `{test, replace}` shared by search and replace, so they can't drift. An invalid regex degrades to literal matching and marks the input, instead of throwing.
 
 **How it is verified**
-jsdom loads the real page and runs end-to-end interaction tests — **57 suites, 4336 assertions** — then real Chrome headless covers what jsdom cannot: computed styles and true layout, real `PointerEvent` pinch zoom with anchor maths, real `elementFromPoint` hit testing (proving the mobile drawer isn't swallowed by the scrim), minimap canvas pixels, and genuinely filling localStorage to 5 MB to exercise quota recovery. Exports are unpacked and checked independently with Python `zipfile` and `python-pptx`.
+jsdom loads the real page and runs end-to-end interaction tests — **58 suites, 4397 assertions** — then real Chrome headless covers what jsdom cannot: computed styles and true layout, real `PointerEvent` pinch zoom with anchor maths, real `elementFromPoint` hit testing (proving the mobile drawer isn't swallowed by the scrim), minimap canvas pixels, and genuinely filling localStorage to 5 MB to exercise quota recovery. Exports are unpacked and checked independently with Python `zipfile` and `python-pptx`.
 
-Every fix also gets a **counter-proof**: temporarily restore the old behaviour and confirm the same assertions **really turn red** — otherwise the test had no teeth (60 falsification scripts, each verifying the restored file with sha1), plus 42 real-Chrome probes for what jsdom cannot measure. One command: `python _test/runall.py`.
+Every fix also gets a **counter-proof**: temporarily restore the old behaviour and confirm the same assertions **really turn red** — otherwise the test had no teeth (62 falsification scripts, each verifying the restored file with sha1), plus 43 real-Chrome probes for what jsdom cannot measure. One command: `python _test/runall.py`.
 
 ---
 
